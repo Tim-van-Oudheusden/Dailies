@@ -1,0 +1,132 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # One live run per PR: a new push cancels the superseded run. Pushes to main
+  # get a per-commit group, so no main run is ever cancelled.
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: true
+
+env:
+  DEVEL_ID: io.github.tim_van_oudheusden.Dailies.Devel
+  MANIFEST: build-aux/flatpak/io.github.tim_van_oudheusden.Dailies.Devel.json
+
+jobs:
+  build:
+    # Required by the main ruleset (.github/rulesets/main.json); keep the name in sync.
+    name: Build, lint, test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      # The scripts' hash-pinned lock (requests, tldextract, jsonschema, check-jsonschema) for the
+      # tests in tests/scripts, then the dev tools, pinned to the versions in .pre-commit-config.yaml
+      # and coverage-gate.yml.
+      - name: Install script dependencies
+        run: python -m pip install --require-hashes -r scripts/requirements.txt
+      - name: Install dev tools
+        run: python -m pip install ruff==0.17.1 pytest==9.1.1 pytest-cov==7.1.0 pyyaml==6.0.3
+      - name: Lint and format check
+        run: ruff check . && ruff format --check .
+      - name: Unit, script, tooling and data tests
+        run: pytest tests/core tests/scripts tests/tooling tests/data
+      - name: Validate data files against their schemas
+        run: |
+          check-jsonschema --schemafile data/v1/schema/catalog.schema.json data/v1/games.json
+          check-jsonschema --schemafile data/v1/schema/popularity.schema.json data/v1/popularity.json
+
+  static-checks:
+    # Required by the main ruleset (.github/rulesets/main.json); keep the name in sync.
+    name: Static checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      # shellcheck publishes no checksum file: the SHA-256 is computed from the release asset. actionlint's matches
+      # the release's actionlint_<version>_checksums.txt.
+      SHELLCHECK_VERSION: 0.11.0
+      SHELLCHECK_SHA256: 8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198
+      ACTIONLINT_VERSION: 1.7.12
+      ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Release binaries pinned by SHA-256: no third-party action and no docker:// image.
+      - name: Install shellcheck and actionlint
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin"
+          cd "$RUNNER_TEMP"
+          shellcheck_archive="shellcheck-v${SHELLCHECK_VERSION}.linux.x86_64.tar.xz"
+          curl -fsSLO "https://github.com/koalaman/shellcheck/releases/download/v${SHELLCHECK_VERSION}/${shellcheck_archive}"
+          echo "${SHELLCHECK_SHA256}  ${shellcheck_archive}" | sha256sum -c -
+          tar -xJf "$shellcheck_archive"
+          mv "shellcheck-v${SHELLCHECK_VERSION}/shellcheck" bin/
+          actionlint_archive="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl -fsSLO "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/${actionlint_archive}"
+          echo "${ACTIONLINT_SHA256}  ${actionlint_archive}" | sha256sum -c -
+          tar -xzf "$actionlint_archive" -C bin actionlint
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      # Every tracked *.sh file plus extensionless sh/bash scripts under scripts/.
+      - name: shellcheck
+        run: |
+          {
+            git ls-files '*.sh'
+            git ls-files scripts ':!:*.sh' | while IFS= read -r file; do
+              if head -n 1 "$file" | grep -Eq '^#!.*[/ ](ba)?sh( |$)'; then echo "$file"; fi
+            done
+          } | xargs -d '\n' shellcheck -x
+      # Reads .github/actionlint.yaml and also runs shellcheck on every run: block, via the shellcheck on PATH.
+      - name: actionlint
+        run: actionlint -color
+
+  flatpak:
+    # aarch64 is built only on release (release.yml), to keep PR CI short.
+    name: Flatpak (x86_64)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-51
+      options: --privileged
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # flatpak-builder-lint is on PATH in this image (it is built FROM ghcr.io/flathub/flatpak-builder-lint).
+      # The exceptions file covers the Devel ID only; the release ID gets none. --user-exceptions only takes effect
+      # together with --exceptions.
+      - name: Lint manifest
+        run: flatpak-builder-lint --gha-format --exceptions --user-exceptions build-aux/flatpak/lint-exceptions.json manifest "$MANIFEST"
+      # The Devel manifest's dailies module sets run-tests, so flatpak-builder runs the Meson tests in the build
+      # sandbox; the action runs flatpak-builder under xvfb-run. The action then exports repo/, writes the bundle and
+      # uploads it as an artifact.
+      #
+      # Caching: the action's built-in cache, with no cache-key. Upstream issue
+      # https://github.com/flatpak/flatpak-github-actions/issues/239 showed that the README's
+      # `cache-key: flatpak-builder-${{ github.sha }}` never restores (the key changes on every commit and the
+      # restore fallback `flatpak-builder-<arch>` is not a prefix of it); PR 261 (in v6.8) dropped that example and
+      # the maintainers recommend the default key, `flatpak-builder-<arch>-<manifest hash>`, which restores whenever
+      # the manifest is unchanged and otherwise falls back to the newest cache. Bazaar's manual actions/cache
+      # restore/save around the action predates that fix and only re-implements the same thing.
+      - name: Build Flatpak
+        uses: flatpak/flatpak-github-actions/flatpak-builder@79327416609af08178ad73b352877e51450790b3 # v6.8
+        with:
+          manifest-path: ${{ env.MANIFEST }}
+          bundle: ${{ env.DEVEL_ID }}-x86_64.flatpak
+          artifact-name: ${{ env.DEVEL_ID }}-x86_64.flatpak
+          arch: x86_64
+      - name: Lint exported repo
+        run: flatpak-builder-lint --gha-format --exceptions --user-exceptions build-aux/flatpak/lint-exceptions.json repo repo
