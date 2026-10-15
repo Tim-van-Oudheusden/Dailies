@@ -1,0 +1,12 @@
+# Categories for the notes GitHub generates from merged pull requests on a release (release.yml workflow,
+# generate_release_notes). https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes
+changelog:
+  categories:
+    - title: Games / catalogue
+      labels: [data]
+    - title: Features
+      labels: [type::feature]
+    - title: Fixes
+      labels: [type::bug]
+    - title: Other
+      labels: ["*"]

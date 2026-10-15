@@ -1,0 +1,128 @@
+name: Release
+
+# A pushed vX.Y.Z tag publishes a GitHub Release with x86_64 and aarch64 bundles (decision #12). A tag with a `-`
+# suffix (v0.2.0-beta.1) publishes a pre-release. See CONTRIBUTING.md, "Releasing".
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  # One run per tag; a run that is publishing is never cancelled.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  MANIFEST: build-aux/flatpak/io.github.tim_van_oudheusden.Dailies.json
+
+jobs:
+  verify:
+    name: Verify version metadata
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+      prerelease: ${{ steps.check.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # Full history, so the commit pinned in the release manifest can be compared with the tag.
+          fetch-depth: 0
+      # Tag == meson.build version == newest metainfo <release>, and the release date is not in the future.
+      - name: Check tag against meson.build and the metainfo
+        id: check
+        run: |
+          python3 -I scripts/release_check.py verify --tag "$GITHUB_REF_NAME" > "$RUNNER_TEMP/verify.txt"
+          cat "$RUNNER_TEMP/verify.txt"
+          cat "$RUNNER_TEMP/verify.txt" >> "$GITHUB_OUTPUT"
+      # The bundles build the commit pinned in the release manifest, not the checked-out tag, so that commit must hold
+      # the same tree as the tag apart from the manifest itself.
+      - name: Check the release manifest builds the tagged tree
+        env:
+          PINNED_COMMIT: ${{ steps.check.outputs.pinned_commit }}
+        run: |
+          if ! git cat-file -e "${PINNED_COMMIT}^{commit}" 2>/dev/null; then
+            echo "::error file=${MANIFEST}::The release manifest pins ${PINNED_COMMIT}, which is not a commit in this repository"
+            exit 1
+          fi
+          if ! git diff --quiet "$PINNED_COMMIT" HEAD -- . ":(exclude)${MANIFEST}"; then
+            echo "::error file=${MANIFEST}::The release manifest pins ${PINNED_COMMIT}, whose files differ from ${GITHUB_REF_NAME}:"
+            git diff --stat "$PINNED_COMMIT" HEAD -- . ":(exclude)${MANIFEST}"
+            exit 1
+          fi
+
+  build:
+    name: Build (${{ matrix.arch }})
+    needs: verify
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-51
+      options: --privileged
+    strategy:
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-latest
+          # Free native arm64 runner for public repositories; there is no ubuntu-latest-arm label.
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Flathub's rules with no exceptions: lint-exceptions.json covers the Devel ID only.
+      - name: Lint release manifest
+        run: flatpak-builder-lint --gha-format manifest "$MANIFEST"
+      # Builds the commit pinned in the manifest, exports repo/, writes the bundle and uploads it as an artifact.
+      # No cache: a cache saved on a tag can only be restored by runs on that same tag.
+      - name: Build Flatpak
+        uses: flatpak/flatpak-github-actions/flatpak-builder@79327416609af08178ad73b352877e51450790b3 # v6.8
+        with:
+          manifest-path: ${{ env.MANIFEST }}
+          bundle: Dailies-${{ matrix.arch }}.flatpak
+          artifact-name: Dailies-${{ matrix.arch }}
+          arch: ${{ matrix.arch }}
+          branch: stable
+          cache: false
+      - name: Lint exported repo
+        run: flatpak-builder-lint --gha-format repo repo
+
+  publish:
+    name: Publish GitHub Release
+    needs: [verify, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: Dailies-*
+          path: dist
+          merge-multiple: true
+      - name: Write SHA256SUMS
+        working-directory: dist
+        run: sha256sum Dailies-x86_64.flatpak Dailies-aarch64.flatpak > SHA256SUMS
+      # The newest metainfo release's notes, then the install instructions; GitHub appends the generated notes.
+      - name: Write release body
+        run: python3 -I scripts/release_check.py notes > "$RUNNER_TEMP/release-body.md"
+      - name: Publish
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Dailies ${{ needs.verify.outputs.version }}
+          body_path: ${{ runner.temp }}/release-body.md
+          generate_release_notes: true
+          prerelease: ${{ needs.verify.outputs.prerelease == 'true' }}
+          fail_on_unmatched_files: true
+          files: |
+            dist/Dailies-x86_64.flatpak
+            dist/Dailies-aarch64.flatpak
+            dist/SHA256SUMS

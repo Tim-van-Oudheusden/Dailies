@@ -205,29 +205,44 @@ PR-body template.
 A release is a pushed tag `vX.Y.Z`. Three places name the version and must agree: `version:` in `project()` in
 `meson.build` (the single source of truth), the newest `<release>` entry in
 `data/io.github.tim_van_oudheusden.Dailies.metainfo.xml.in` (the human changelog, shown in the About dialog and on
-Flathub), and the tag.
+Flathub), and the tag. The release manifest, `build-aux/flatpak/io.github.tim_van_oudheusden.Dailies.json`, builds
+the Dailies source from a pinned `commit`, not from the checkout, so that pin has to point at the released code.
 
 Pushing the tag runs `.github/workflows/release.yml`:
 
-1. **Verify** checks that the tag, the Meson version and the newest metainfo release are the same version, and that
-   the release date is not in the future. On a mismatch it stops before anything is built.
-2. **Build** builds the release manifest, `build-aux/flatpak/io.github.tim_van_oudheusden.Dailies.json`, for x86_64
-   (`ubuntu-latest`) and aarch64 (`ubuntu-24.04-arm`) in the `gnome-51` image, and runs `flatpak-builder-lint` on the
-   manifest before and the repo after, with Flathub's rules and no exceptions.
+1. **Verify** runs `scripts/release_check.py verify`: the tag, the Meson version and the newest metainfo release must
+   be the same version, and the release date must not be in the future. It then checks that the commit pinned in the
+   release manifest has the same files as the tag, apart from the manifest itself. On any mismatch it stops before
+   anything is built or published.
+2. **Build** builds the release manifest for x86_64 (`ubuntu-latest`) and aarch64 (`ubuntu-24.04-arm`) in the
+   `gnome-51` image, and runs `flatpak-builder-lint` on the manifest before and the repo after, with Flathub's rules
+   and no exceptions.
 3. **Publish** creates the GitHub Release with `Dailies-x86_64.flatpak`, `Dailies-aarch64.flatpak` and `SHA256SUMS`.
-   The body is the newest metainfo release's description, followed by notes generated from the merged PRs
-   (`.github/release.yml` sorts them into categories).
+   The body (`scripts/release_check.py notes`) is the newest metainfo release's description and the install
+   instructions, followed by notes generated from the merged PRs (`.github/release.yml` sorts them into categories).
 
-A tag with a `-` suffix (`v0.2.0-beta.1`) publishes a pre-release. Bundles do not update themselves: users install the
-next bundle over the old one, and their favourites and settings stay.
+A tag with a `-` suffix (`v0.2.0-beta.1`) publishes a pre-release; `meson.build` and the metainfo then carry the same
+`0.2.0-beta.1`. Bundles do not update themselves: users install the next bundle over the old one, and their
+favourites and settings stay.
+
+Preview the checks and the release body locally:
+
+```sh
+python3 scripts/release_check.py verify --tag vX.Y.Z
+python3 scripts/release_check.py notes
+```
 
 ### Cutting a release
 
 1. Open a pull request (`chore(release): X.Y.Z (#N)`) that raises `version:` in `meson.build` and adds a
    `<release version="X.Y.Z" date="YYYY-MM-DD">` entry at the top of `<releases>` in the metainfo, describing what
-   changed for users. The Meson `appstreamcli validate` test checks the entry.
-2. Merge it, then run the manual checklist below on the Devel bundle that CI built from the merge commit.
-3. Tag the merge commit and push the tag:
+   changed for users. The Meson `appstreamcli validate` test checks the entry. Merge it.
+2. Open a second pull request (`build(flatpak): pin release manifest to X.Y.Z (#N)`) that sets the `dailies` module's
+   `commit` in the release manifest to the merge commit from step 1, and merge it with nothing else merged in
+   between. The pin cannot go into the first pull request: a commit cannot name its own hash. It holds only a
+   `commit`; a `tag` would have to point at that same commit, which the tag in step 4 does not.
+3. Run the manual checklist below on the Devel bundle that CI built from the merge commit.
+4. Tag the merge commit of step 2 and push the tag:
 
    ```sh
    git switch main && git pull
@@ -235,11 +250,12 @@ next bundle over the old one, and their favourites and settings stay.
    git push origin vX.Y.Z
    ```
 
-4. The `Release` workflow under **Actions** publishes the release, which then appears under **Releases**.
+5. The `Release` workflow under **Actions** publishes the release, which then appears under **Releases**.
 
-To retry a failed run, re-run its failed jobs from the Actions tab. If the tag points at the wrong commit, delete the
-tag (`git push origin :refs/tags/vX.Y.Z`) and any release it created, fix the cause, and tag again. A published release
-that turns out to be broken is fixed forward with a new patch release; see [`docs/runbooks/`](docs/runbooks/README.md).
+To retry a failed run, re-run its failed jobs from the Actions tab. If the tag points at the wrong commit, or Verify
+reports that the pinned commit differs from the tag, delete the tag (`git push origin :refs/tags/vX.Y.Z`) and any
+release it created, fix the cause, and tag again. A published release that turns out to be broken is fixed forward
+with a new patch release; see [`docs/runbooks/`](docs/runbooks/README.md).
 
 ### Manual checklist before tagging
 
