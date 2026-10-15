@@ -8,7 +8,7 @@ if glib_compile_schemas.found()
   # The fetcher tests talk to a server on 127.0.0.1; inside a sandbox the proxy portal may refuse to resolve for them.
   gi_test_env.set('GIO_USE_PROXY_RESOLVER', 'dummy')
 
-  foreach name : ['favorites', 'store', 'fetcher']
+  foreach name : ['favorites', 'store', 'fetcher', 'filters']
     test(
       name,
       py,
@@ -18,6 +18,23 @@ if glib_compile_schemas.found()
       suite: 'gi',
     )
   endforeach
+
+  # The tile needs the built resources and config.py, and a display: the test starts its own Broadway server.
+  broadwayd = find_program('gtk4-broadwayd', required: false)
+  if broadwayd.found()
+    tile_test_env = gi_test_env
+    tile_test_env.set('BROADWAYD', broadwayd.full_path())
+    tile_test_env.set('DAILIES_GRESOURCE', resources[0].full_path())
+    tile_test_env.set('DAILIES_CONFIG', meson.project_build_root() / 'dailies' / 'config.py')
+    test(
+      'tile',
+      py,
+      args: [files('gi' / 'test_tile.py')],
+      env: tile_test_env,
+      depends: [compiled_schemas, resources],
+      suite: 'gi',
+    )
+  endif
 endif
 
 # The e2e smoke test starts the installed app, so it only passes after `meson install` (flatpak-builder runs the tests

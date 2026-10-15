@@ -1,10 +1,10 @@
-"""The library's translated texts: category titles, the This Week subtitle and the stale-list banner."""
+"""The library's translated texts: category and difficulty titles, tile captions, the This Week subtitle and banner."""
 
 from datetime import date
 
 from gi.repository import GLib
 
-from dailies.core.models import Category
+from dailies.core.models import Category, Difficulty
 
 
 def category_title(category: Category) -> str:
@@ -23,6 +23,22 @@ def category_title(category: Category) -> str:
         Category.SPORTS: _("Sports"),
     }
     return titles[category]
+
+
+def difficulty_title(difficulty: Difficulty) -> str:
+    """Return the translated name of `difficulty`, as shown on a tile's difficulty pill."""
+    titles = {
+        Difficulty.EASY: _("Easy"),
+        Difficulty.MEDIUM: _("Medium"),
+        Difficulty.HARD: _("Hard"),
+    }
+    return titles[difficulty]
+
+
+def caption(category_label: str, difficulty_label: str) -> str:
+    """Return a tile's caption, which screen readers read after the name: "Geography · Easy"."""
+    # Translators: a game tile's caption, the category then the difficulty.
+    return _("{category} · {difficulty}").format(category=category_label, difficulty=difficulty_label)
 
 
 def week_subtitle(week: str, as_of: date | None) -> str:

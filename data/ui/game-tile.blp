@@ -1,0 +1,94 @@
+using Gtk 4.0;
+
+template $DailiesGameTile: Overlay {
+  // Narrow enough for two columns at 360 px, wide enough for the caption row and the star beside the glyph.
+  width-request: 160;
+
+  // The whole card is the "open" button for the pointer; the grid's item takes the keyboard focus instead of it.
+  // The star is an overlay, so a button is never nested in a button.
+  child: Button open_button {
+    can-focus: false;
+    clicked => $on_open_clicked();
+
+    // The description, "Geography · Easy", is set from code: it follows the game.
+    accessibility {
+      labelled-by: title_label;
+    }
+
+    styles [
+      "card",
+      "game-tile",
+    ]
+
+    child: Box {
+      orientation: vertical;
+      spacing: 6;
+
+      Image glyph {
+        pixel-size: 32;
+        width-request: 64;
+        height-request: 64;
+        halign: start;
+        margin-bottom: 6;
+        accessible-role: presentation;
+      }
+
+      Label title_label {
+        label: bind template.game as <$DailiesGameObject>.name;
+        ellipsize: end;
+        xalign: 0;
+
+        styles [
+          "heading",
+        ]
+      }
+
+      Box {
+        spacing: 6;
+
+        Label category_label {
+          label: bind template.game as <$DailiesGameObject>.category-label;
+          ellipsize: end;
+          xalign: 0;
+          hexpand: true;
+
+          styles [
+            "caption",
+            "dimmed",
+          ]
+        }
+
+        // The pill carries text, not just a colour; its colour class is set from code.
+        Label difficulty_label {
+          label: bind template.game as <$DailiesGameObject>.difficulty-label;
+          valign: center;
+
+          styles [
+            "caption-heading",
+            "difficulty-badge",
+          ]
+        }
+      }
+    };
+  };
+
+  // Wired up in #43.
+  [overlay]
+  ToggleButton favorite_button {
+    halign: end;
+    valign: start;
+    margin-top: 12;
+    margin-end: 12;
+    icon-name: "dailies-non-starred-symbolic";
+    tooltip-text: _("Add to Favorites");
+
+    accessibility {
+      label: _("Favorite");
+    }
+
+    styles [
+      "circular",
+      "osd",
+    ]
+  }
+}

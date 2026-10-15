@@ -8,12 +8,22 @@ template $DailiesWindow: Adw.ApplicationWindow {
   width-request: 360;
   height-request: 294;
 
+  // When several breakpoints match, the last one applies: the narrowest goes last.
+  Adw.Breakpoint {
+    condition ("max-width: 900sp")
+
+    setters {
+      grid_view.max-columns: 3;
+    }
+  }
+
   Adw.Breakpoint {
     condition ("max-width: 500sp")
 
     setters {
       split_view.collapsed: true;
       sidebar.mode: page;
+      grid_view.max-columns: 2;
     }
   }
 
@@ -92,14 +102,109 @@ template $DailiesWindow: Adw.ApplicationWindow {
 
             Adw.ToolbarView {
               [top]
-              Adw.HeaderBar {}
+              Adw.HeaderBar {
+                [end]
+                MenuButton {
+                  icon-name: "view-sort-descending-symbolic";
+                  tooltip-text: _("Sort");
+                  menu-model: sort_menu;
+                }
+              }
 
               [top]
               Adw.Banner stale_banner {}
 
-              // The game grid replaces this placeholder (#42).
-              content: Adw.StatusPage placeholder {
-                title: bind content_page.title;
+              content: Stack content_stack {
+                transition-type: crossfade;
+
+                StackPage {
+                  name: "grid";
+
+                  child: ScrolledWindow {
+                    hscrollbar-policy: never;
+
+                    child: Adw.ClampScrollable {
+                      maximum-size: 1400;
+                      tightening-threshold: 1200;
+
+                      child: GridView grid_view {
+                        name: "grid";
+                        min-columns: 1;
+                        max-columns: 5;
+                        single-click-activate: true;
+                        enable-rubberband: false;
+                        margin-top: 12;
+                        margin-bottom: 12;
+                        margin-start: 12;
+                        margin-end: 12;
+                        activate => $on_game_activated();
+
+                        // The list item takes the focus, so the arrow keys move between games and Enter opens one;
+                        // screen readers read its label and description.
+                        factory: BuilderListItemFactory {
+                          template ListItem {
+                            accessible-label: bind template.item as <$DailiesGameObject>.name;
+                            accessible-description: bind template.item as <$DailiesGameObject>.caption;
+
+                            child: $DailiesGameTile {
+                              game: bind template.item as <$DailiesGameObject>;
+                            };
+                          }
+                        };
+                      };
+                    };
+                  };
+                }
+
+                StackPage {
+                  name: "empty-favorites";
+
+                  child: Adw.StatusPage {
+                    icon-name: "dailies-non-starred-symbolic";
+                    title: _("No Favorites Yet");
+                    description: _("Press the star on any game to pin it here");
+
+                    child: Button {
+                      label: _("Browse Popular Games");
+                      halign: center;
+                      action-name: "win.show-section";
+                      action-target: "'popular'";
+
+                      styles [
+                        "pill",
+                        "suggested-action",
+                      ]
+                    };
+                  };
+                }
+
+                StackPage {
+                  name: "no-results";
+
+                  child: Adw.StatusPage {
+                    icon-name: "system-search-symbolic";
+                    title: _("No Games Found");
+                    description: _("Try a different search");
+                  };
+                }
+
+                StackPage {
+                  name: "empty-section";
+
+                  child: Adw.StatusPage empty_section_page {
+                    title: _("Nothing Here Yet");
+
+                    child: Button {
+                      label: _("Suggest a game on GitHub");
+                      halign: center;
+                      clicked => $on_suggest_clicked();
+
+                      styles [
+                        "pill",
+                      ]
+                    };
+                  };
+                }
               };
             }
           };
@@ -120,5 +225,13 @@ menu primary_menu {
     item (_("_Preferences"), "app.preferences")
     item (_("_Keyboard Shortcuts"), "app.shortcuts")
     item (_("_About Dailies"), "app.about")
+  }
+}
+
+menu sort_menu {
+  section {
+    item (_("_Default"), "win.sort-mode", "default")
+    item (_("_Name"), "win.sort-mode", "name")
+    item (_("D_ifficulty"), "win.sort-mode", "difficulty")
   }
 }

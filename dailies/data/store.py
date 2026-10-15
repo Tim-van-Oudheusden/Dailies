@@ -92,6 +92,10 @@ class Store(GObject.Object):
         self.props.popularity = new_popularity
         self._update_freshness()
 
+    def get(self, game_id: str) -> GameObject | None:
+        """Return the object of the game with id `game_id`, or None when the catalog has no such game."""
+        return self._objects.get(game_id)
+
     def refresh_all(self, callback: Callable[[dict[str, Outcome]], None] | None = None, *, force: bool = False) -> None:
         """Revalidate the cached files with the server, reload when one changed, then call `callback` with outcomes.
 

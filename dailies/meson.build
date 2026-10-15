@@ -43,7 +43,9 @@ install_data(
 )
 install_data(
   'ui/__init__.py',
+  'ui/filters.py',
   'ui/game_object.py',
   'ui/library.py',
+  'ui/tile.py',
   install_dir: moduledir / 'ui',
 )

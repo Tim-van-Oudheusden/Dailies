@@ -84,16 +84,17 @@ machine, and the coverage floors apply to `dailies/core` and `scripts/` only.
 | `core/models.py` | no | Frozen `Game` dataclass; `Category` enum (ten ids, display names, glyph names); `Difficulty` enum. An unknown category maps to `trivia` so a newer catalog never crashes an older app |
 | `core/catalog.py` | no | `parse(bytes) -> Catalog`: structural check (`schema_version == 1`, required keys, tolerant enums), `is_newer()` by `generated_at`; hides entries whose `status` is not `active` but keeps them so favourites still resolve |
 | `core/popularity.py` | no | `parse(bytes) -> Popularity` (week, `valid_until`, `popular`, `trending`), `rank_of(id)`, `is_stale(now)` |
-| `core/search.py` | no | Case- and accent-folded substring match over name, description, tags and category label |
-| `core/sections.py` | no | The sidebar's section ids (Favorites, Popular, Trending, then the category ids), which categories have active games, the section to restore, and the "as of" date of stale shelves |
+| `core/search.py` | no | Case- and accent-folded substring match over name, description, tags and category label; whether a new query narrows or widens the matches |
+| `core/sections.py` | no | The sidebar's section ids (Favorites, Popular, Trending, then the category ids), which categories have active games, the section to restore, the "as of" date of stale shelves; what each section holds, the sort keys (shelf rank, favourite order, name, or the `sort-mode` override), the empty-state page, the tiles' colour classes |
 | `core/cache.py` | no | The cache directory (`<name>.json`, `.etag`, `.fetched`, atomic writes) and the decisions of one refresh: skip while younger than the maximum age, `If-None-Match`, fall-through order of the data URLs, `Retry-After` backoff, validate before writing; the stale-banner rule |
 | `data/fetcher.py` | Soup, Gio, GLib | Thin asynchronous libsoup 3 shell over `core/cache.py`: one `Soup.Session` with `User-Agent: Dailies/<version> (+https://github.com/Tim-van-Oudheusden/Dailies)` sends the requests a refresh asks for, one at a time, and never retries in a loop |
 | `data/favorites.py` | Gio | Wraps the `favorites` string-array key: `is_favorite`, `toggle`, order (newest last); emits `changed(id)` |
 | `data/store.py` | Gio | Owns the `Gio.ListStore` of `GameObject`; applies catalog, popularity and favourites; `reload()` diffs by id so the grid keeps its scroll position |
-| `ui/game_object.py` | GObject | `GameObject` with `game`, `favorite`, `popular_rank` and `trending_rank` properties for Blueprint bindings and filters |
+| `ui/game_object.py` | GObject | `GameObject` with `game`, `name`, `category-label`, `difficulty-label`, `caption`, `available`, `favorite`, `popular-rank` and `trending-rank` properties for Blueprint bindings and filters |
 | `ui/filters.py` | Gtk | `SectionFilter` (Favorites, Popular, Trending or a category) and `SearchFilter`, combined in a `Gtk.EveryFilter`; `SectionSorter` orders shelves by rank, Favorites by favourite order, categories by name |
-| `ui/tile.py` | Gtk, Adw | `GameTile`: a `.card` button (category glyph, name, "Category · Difficulty" caption, difficulty pill) with an overlaid star toggle, never a button inside a button |
-| `ui/library.py` | Adw | Window, sidebar, grid, search bar, empty states, toasts |
+| `ui/tile.py` | Gtk, Adw | `GameTile`: a `.card` button (tinted category glyph, name, category, difficulty pill; screen readers hear "Name, Category · Difficulty") with an overlaid star toggle, never a button inside a button |
+| `ui/library.py` | GLib | The library's translated texts: category and difficulty names, tile captions, the This Week subtitle, the stale banner |
+| `window.py` | Adw | Window, sidebar, grid, search bar, empty states, toasts; `open_game()` is the one way a game is opened |
 | `ui/browser_page.py` | WebKit | The in-app browser page; only imported when `HAVE_WEBKIT` |
 | `ui/opener.py` | Gtk, Gio | Turns the `open-mode` setting into an action (see [Opening games](#opening-games)) |
 | `ui/preferences.py` | Adw | `Adw.PreferencesDialog`: open mode, website data, catalog options |
