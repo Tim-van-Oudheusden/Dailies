@@ -6,11 +6,18 @@
   <project_license>GPL-3.0-or-later</project_license>
 
   <name>Dailies</name>
-  <summary>Play your daily guessing games in one place</summary>
+  <summary>Play your daily guessing games</summary>
   <description>
     <p>
-      Dailies collects daily guessing games like Wordle and Connections in one window. Pick a game from a category, keep
-      your favourites at the top, and see which games are popular this week.
+      Dailies gathers daily guessing games like Wordle, Connections and Worldle in one window, sorted into ten
+      categories from words and logic to music, movies and geography. Popular and Trending shelves, refreshed every
+      week, show which games are popular right now and which are on the rise. Star the games you play every day to keep
+      them together in Favorites.
+    </p>
+    <p>
+      Games open in a built-in browser that keeps your streaks between sessions, or in your default web browser if you
+      prefer. Dailies needs no account and collects no data: your favorites stay on your device, and the app only
+      downloads the game list and the game pages you open.
     </p>
   </description>
 
@@ -24,14 +31,69 @@
   <url type="homepage">https://github.com/Tim-van-Oudheusden/Dailies</url>
   <url type="bugtracker">https://github.com/Tim-van-Oudheusden/Dailies/issues</url>
   <url type="vcs-browser">https://github.com/Tim-van-Oudheusden/Dailies</url>
+  <url type="contribute">https://github.com/Tim-van-Oudheusden/Dailies/blob/main/CONTRIBUTING.md</url>
 
-  <content_rating type="oars-1.1"/>
+  <!-- Blue 1 and Blue 5 from the GNOME palette, the icon's header colours (docs/research/logo-icon.md §8). -->
+  <branding>
+    <color type="primary" scheme_preference="light">#99c1f1</color>
+    <color type="primary" scheme_preference="dark">#1a5fb4</color>
+  </branding>
+
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+    <control>touch</control>
+  </supports>
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+
+  <!--
+    Dailies itself has no ads, purchases, chat or accounts, but the built-in browser shows the games' own websites and
+    lets the user navigate from there, so the rating covers what the catalog's sites expose: banner ads, paid
+    subscriptions (NYT Spelling Bee, GeoGuessr), LinkedIn's messaging next to its games, and ad networks that receive
+    unique identifiers from the game pages.
+  -->
+  <content_rating type="oars-1.1">
+    <content_attribute id="money-advertising">moderate</content_attribute>
+    <content_attribute id="money-purchasing">intense</content_attribute>
+    <content_attribute id="social-chat">moderate</content_attribute>
+    <content_attribute id="social-info">intense</content_attribute>
+  </content_rating>
+
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/v0.1.0/data/screenshots/1.png</image>
+      <caption>Your favorite daily games together in one place</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/v0.1.0/data/screenshots/2.png</image>
+      <caption>The games that are popular this week</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/v0.1.0/data/screenshots/3.png</image>
+      <caption>Playing a game in the built-in browser</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/v0.1.0/data/screenshots/4.png</image>
+      <caption>Word games in the dark style</caption>
+    </screenshot>
+  </screenshots>
 
   <releases>
-    <release version="0.1.0" date="2026-10-15">
-      <description>
-        <p>First release.</p>
-        <p>Music games play sound inside Dailies.</p>
+    <release version="0.1.0" date="2026-10-16">
+      <description translate="no">
+        <p>The first release of Dailies.</p>
+        <ul>
+          <li>Browse more than a hundred daily guessing games in ten categories</li>
+          <li>See the games that are popular and trending this week</li>
+          <li>Star games to keep them in Favorites, with undo</li>
+          <li>Search the current section with Ctrl+F</li>
+          <li>Play in the built-in browser, which keeps your game progress, or in your default browser</li>
+          <li>Choose how games open, clear website data and refresh the game list in Preferences</li>
+          <li>Works offline with a bundled copy of the game list and updates it from GitHub</li>
+          <li>Music games play sound inside Dailies</li>
+        </ul>
       </description>
     </release>
   </releases>
