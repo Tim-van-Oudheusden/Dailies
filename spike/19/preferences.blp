@@ -1,0 +1,78 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $DailiesPreferencesDialog: Adw.PreferencesDialog {
+  search-enabled: true;
+  content-width: 640;
+  content-height: 560;
+
+  Adw.PreferencesPage {
+    name: "general";
+    title: _("General");
+    icon-name: "preferences-system-symbolic";
+
+    Adw.PreferencesGroup {
+      title: _("Opening Games");
+      description: _("Dailies tries the options in order: configured browser, built-in browser, then the system browser");
+
+      Adw.ComboRow browser_mode_row {
+        title: _("Open Games With");
+
+        model: StringList {
+          strings [
+            _("Configured Browser"),
+            _("Built-in Browser"),
+            _("System Browser"),
+          ]
+        };
+      }
+
+      Adw.EntryRow browser_command_row {
+        title: _("Browser Command");
+        show-apply-button: true;
+        input-purpose: terminal;
+        apply => $on_browser_command_apply(template);
+      }
+
+      Adw.SwitchRow fallback_row {
+        title: _("Fall Back to Built-in Browser");
+        subtitle: _("Use the built-in browser when the configured browser cannot be started");
+      }
+    }
+
+    Adw.PreferencesGroup {
+      title: _("Library");
+
+      Adw.SwitchRow show_difficulty_row {
+        title: _("Show Difficulty Badges");
+      }
+
+      Adw.ComboRow refresh_row {
+        title: _("Refresh Popularity Data");
+        subtitle: _("How often the weekly report is downloaded");
+
+        model: StringList {
+          strings [
+            _("Daily"),
+            _("Weekly"),
+            _("Manually"),
+          ]
+        };
+      }
+    }
+
+    Adw.PreferencesGroup {
+      title: _("Danger Zone");
+      separate-rows: true;
+
+      Adw.ButtonRow clear_favorites_row {
+        title: _("Clear All Favorites");
+        activated => $on_clear_favorites(template);
+
+        styles [
+          "destructive-action",
+        ]
+      }
+    }
+  }
+}

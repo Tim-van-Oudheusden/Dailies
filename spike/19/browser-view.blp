@@ -1,0 +1,102 @@
+using Gtk 4.0;
+using Adw 1;
+using WebKit 6.0;
+
+template $DailiesBrowserPage: Adw.NavigationPage {
+  tag: "browser";
+  title: bind web_view.title;
+
+  Adw.ToolbarView {
+    [top]
+    Adw.HeaderBar {
+      [start]
+      Box {
+        spacing: 6;
+
+        Button back_button {
+          icon-name: "go-previous-symbolic";
+          tooltip-text: _("Back");
+          action-name: "browser.back";
+        }
+
+        Button forward_button {
+          icon-name: "go-next-symbolic";
+          tooltip-text: _("Forward");
+          action-name: "browser.forward";
+        }
+
+        Button reload_button {
+          icon-name: "view-refresh-symbolic";
+          tooltip-text: _("Reload");
+          action-name: "browser.reload";
+          visible: bind web_view.is-loading inverted;
+        }
+
+        Button stop_button {
+          icon-name: "process-stop-symbolic";
+          tooltip-text: _("Stop");
+          action-name: "browser.stop";
+          visible: bind web_view.is-loading;
+        }
+      }
+
+      title-widget: Adw.WindowTitle {
+        title: bind web_view.title;
+        subtitle: bind web_view.uri;
+      };
+
+      [end]
+      MenuButton {
+        icon-name: "view-more-symbolic";
+        tooltip-text: _("Browser Menu");
+        menu-model: browser_menu;
+      }
+
+      [end]
+      Button {
+        tooltip-text: _("Open in System Browser");
+        action-name: "browser.open-externally";
+
+        child: Adw.ButtonContent {
+          icon-name: "external-link-symbolic";
+          label: _("Open Externally");
+          can-shrink: true;
+        };
+      }
+    }
+
+    content: Overlay {
+      [overlay]
+      ProgressBar progress_bar {
+        valign: start;
+        fraction: bind web_view.estimated-load-progress;
+        visible: bind web_view.is-loading;
+
+        styles [
+          "osd",
+        ]
+      }
+
+      WebKit.WebView web_view {
+        vexpand: true;
+        hexpand: true;
+        load-changed => $on_load_changed(template);
+        decide-policy => $on_decide_policy(template);
+        create => $on_create(template);
+      }
+    };
+  }
+}
+
+menu browser_menu {
+  section {
+    item (_("_Copy Link"), "browser.copy-link")
+    item (_("Add to _Favorites"), "browser.favorite")
+  }
+
+  section {
+    item (_("Zoom _In"), "browser.zoom-in")
+    item (_("Zoom _Out"), "browser.zoom-out")
+    item (_("_Normal Size"), "browser.zoom-reset")
+  }
+}

@@ -1,0 +1,99 @@
+using Gtk 4.0;
+
+template $DailiesGameTile: Overlay {
+  // The whole card is the "open" button; the star is an overlay so we never
+  // nest a button inside a button.
+  child: Button open_button {
+    clicked => $on_open_clicked(template);
+
+    accessibility {
+      labelled-by: title_label;
+      described-by: category_label;
+    }
+
+    styles [
+      "card",
+      "game-tile",
+    ]
+
+    child: Box {
+      orientation: vertical;
+      spacing: 6;
+      margin-top: 12;
+      margin-bottom: 12;
+      margin-start: 12;
+      margin-end: 12;
+
+      Picture icon {
+        width-request: 64;
+        height-request: 64;
+        halign: center;
+        can-shrink: true;
+        content-fit: contain;
+        paintable: bind template.game as <$DailiesGame>.icon-paintable;
+        alternative-text: bind template.game as <$DailiesGame>.name;
+
+        styles [
+          "icon-dropshadow",
+        ]
+      }
+
+      Label title_label {
+        label: bind template.game as <$DailiesGame>.name;
+        ellipsize: end;
+        xalign: 0;
+        margin-top: 6;
+
+        styles [
+          "heading",
+        ]
+      }
+
+      Box {
+        spacing: 6;
+
+        Label category_label {
+          label: bind template.game as <$DailiesGame>.category;
+          ellipsize: end;
+          xalign: 0;
+          hexpand: true;
+
+          styles [
+            "caption",
+            "dimmed",
+          ]
+        }
+
+        Label difficulty_label {
+          label: bind template.game as <$DailiesGame>.difficulty-label;
+          // CSS classes "difficulty-easy|medium|hard" are toggled from code
+          // (Adw.CssClassBinding, libadwaita 1.10, can do this declaratively).
+          styles [
+            "caption-heading",
+            "difficulty-badge",
+          ]
+        }
+      }
+    };
+  };
+
+  [overlay]
+  ToggleButton favorite_button {
+    halign: end;
+    valign: start;
+    margin-top: 6;
+    margin-end: 6;
+    active: bind template.favorite bidirectional;
+    icon-name: bind $favorite_icon_name(favorite_button.active) as <string>;
+    tooltip-text: bind $favorite_tooltip(favorite_button.active) as <string>;
+
+    accessibility {
+      label: _("Favorite");
+    }
+
+    styles [
+      "circular",
+      "osd",
+    ]
+  }
+}

@@ -1,0 +1,251 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $DailiesWindow: Adw.ApplicationWindow {
+  title: _("Dailies");
+  default-width: 1100;
+  default-height: 760;
+  width-request: 360;
+  height-request: 294;
+
+  Adw.Breakpoint {
+    condition ("max-width: 500sp")
+
+    setters {
+      split_view.collapsed: true;
+      sidebar.mode: page;
+      grid_view.max-columns: 2;
+    }
+  }
+
+  Adw.Breakpoint {
+    condition ("max-width: 900sp")
+
+    setters {
+      grid_view.max-columns: 3;
+    }
+  }
+
+  content: Adw.ToastOverlay toast_overlay {
+    Adw.NavigationView navigation_view {
+      Adw.NavigationPage {
+        tag: "library";
+        title: _("Dailies");
+
+        Adw.NavigationSplitView split_view {
+          min-sidebar-width: 200;
+          max-sidebar-width: 280;
+          sidebar-width-fraction: 0.22;
+
+          sidebar: Adw.NavigationPage {
+            title: _("Dailies");
+
+            Adw.ToolbarView {
+              [top]
+              Adw.HeaderBar {
+                [end]
+                MenuButton {
+                  primary: true;
+                  icon-name: "open-menu-symbolic";
+                  tooltip-text: _("Main Menu");
+                  menu-model: primary_menu;
+                }
+              }
+
+              content: Adw.Sidebar sidebar {
+                // Handler calls split_view.set_show_content(True) and
+                // switches the grid's category filter.
+                activated => $on_sidebar_activated(template);
+
+                Adw.SidebarSection {
+                  Adw.SidebarItem favorites_item {
+                    title: _("Favorites");
+                    icon-name: "starred-symbolic";
+                  }
+                }
+
+                Adw.SidebarSection {
+                  title: _("This Week");
+
+                  Adw.SidebarItem {
+                    title: _("Popular");
+                    icon-name: "emblem-favorite-symbolic";
+                  }
+
+                  Adw.SidebarItem {
+                    title: _("Trending");
+                    icon-name: "view-refresh-symbolic";
+                  }
+                }
+
+                // Category items are appended at runtime from the data file.
+                Adw.SidebarSection categories_section {
+                  title: _("Categories");
+                }
+              };
+            }
+          };
+
+          content: Adw.NavigationPage content_page {
+            title: _("Favorites");
+
+            Adw.ToolbarView {
+              [top]
+              Adw.HeaderBar header_bar {
+                [end]
+                MenuButton {
+                  icon-name: "view-sort-descending-symbolic";
+                  tooltip-text: _("Sort");
+                  menu-model: sort_menu;
+                }
+
+                [end]
+                ToggleButton search_button {
+                  icon-name: "system-search-symbolic";
+                  tooltip-text: _("Search");
+                  action-name: "win.search";
+                }
+              }
+
+              [top]
+              SearchBar search_bar {
+                search-mode-enabled: bind search_button.active bidirectional;
+                key-capture-widget: split_view;
+
+                Adw.Clamp {
+                  maximum-size: 500;
+                  tightening-threshold: 500;
+
+                  SearchEntry search_entry {
+                    placeholder-text: _("Search games");
+                    hexpand: true;
+                    search-changed => $on_search_changed(template);
+                  }
+                }
+              }
+
+              content: Stack content_stack {
+                transition-type: crossfade;
+
+                StackPage {
+                  name: "loading";
+
+                  child: Adw.Spinner {
+                    halign: center;
+                    valign: center;
+                    width-request: 48;
+                    height-request: 48;
+                  };
+                }
+
+                StackPage {
+                  name: "grid";
+
+                  child: ScrolledWindow {
+                    hscrollbar-policy: never;
+
+                    child: Adw.ClampScrollable {
+                      maximum-size: 1400;
+                      tightening-threshold: 1200;
+
+                      child: GridView grid_view {
+                        min-columns: 1;
+                        max-columns: 5;
+                        single-click-activate: true;
+                        enable-rubberband: false;
+                        margin-top: 12;
+                        margin-bottom: 12;
+                        margin-start: 12;
+                        margin-end: 12;
+                        activate => $on_game_activated(template);
+
+                        factory: BuilderListItemFactory {
+                          template ListItem {
+                            activatable: true;
+                            child: $DailiesGameTile {
+                              game: bind template.item as <$DailiesGame>;
+                            };
+                          }
+                        };
+                      };
+                    };
+                  };
+                }
+
+                StackPage {
+                  name: "empty-favorites";
+
+                  child: Adw.StatusPage {
+                    icon-name: "non-starred-symbolic";
+                    title: _("No Favorites Yet");
+                    description: _("Press the star on any game to pin it here");
+
+                    Button {
+                      label: _("Browse Popular Games");
+                      halign: center;
+                      action-name: "win.show-popular";
+
+                      styles [
+                        "pill",
+                        "suggested-action",
+                      ]
+                    }
+                  };
+                }
+
+                StackPage {
+                  name: "no-results";
+
+                  child: Adw.StatusPage {
+                    icon-name: "system-search-symbolic";
+                    title: _("No Games Found");
+                    description: _("Try a different search");
+                  };
+                }
+              };
+            }
+          };
+        }
+      }
+
+      // The in-app browser page is pushed at runtime (see browser-view.blp).
+    }
+  };
+}
+
+menu primary_menu {
+  section {
+    item {
+      label: _("_Refresh Game List");
+      action: "app.refresh";
+    }
+  }
+
+  section {
+    item (_("_Preferences"), "app.preferences")
+    item (_("_Keyboard Shortcuts"), "app.shortcuts")
+    item (_("_About Dailies"), "app.about")
+  }
+}
+
+menu sort_menu {
+  section {
+    item {
+      label: _("Popularity");
+      action: "win.sort-by";
+      target: "popularity";
+    }
+
+    item {
+      label: _("Name");
+      action: "win.sort-by";
+      target: "name";
+    }
+
+    item {
+      label: _("Difficulty");
+      action: "win.sort-by";
+      target: "difficulty";
+    }
+  }
+}
