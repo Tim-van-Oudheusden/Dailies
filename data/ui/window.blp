@@ -8,13 +8,117 @@ template $DailiesWindow: Adw.ApplicationWindow {
   width-request: 360;
   height-request: 294;
 
-  content: Adw.ToolbarView {
-    [top]
-    Adw.HeaderBar {}
+  Adw.Breakpoint {
+    condition ("max-width: 500sp")
 
-    content: Adw.StatusPage {
-      title: _("Dailies");
-      description: _("Play your daily guessing games in one place");
-    };
+    setters {
+      split_view.collapsed: true;
+      sidebar.mode: page;
+    }
+  }
+
+  content: Adw.ToastOverlay toast_overlay {
+    Adw.NavigationView navigation_view {
+      Adw.NavigationPage {
+        tag: "library";
+        title: _("Dailies");
+
+        Adw.NavigationSplitView split_view {
+          min-sidebar-width: 200;
+          max-sidebar-width: 280;
+          sidebar-width-fraction: 0.22;
+
+          sidebar: Adw.NavigationPage {
+            title: _("Dailies");
+
+            Adw.ToolbarView {
+              [top]
+              Adw.HeaderBar {
+                [end]
+                MenuButton primary_menu_button {
+                  primary: true;
+                  icon-name: "open-menu-symbolic";
+                  tooltip-text: _("Main Menu");
+                  menu-model: primary_menu;
+                }
+              }
+
+              content: Adw.Sidebar sidebar {
+                activated => $on_sidebar_activated();
+
+                Adw.SidebarSection {
+                  Adw.SidebarItem favorites_item {
+                    title: _("Favorites");
+                    icon-name: "dailies-starred-symbolic";
+                  }
+                }
+
+                Adw.SidebarSection {
+                  title: _("This Week");
+
+                  suffix: Label week_label {
+                    // The stale variant is long: it wraps rather than squeezing the section title.
+                    wrap: true;
+                    justify: right;
+                    xalign: 1;
+
+                    styles [
+                      "caption",
+                      "dimmed",
+                    ]
+                  };
+
+                  Adw.SidebarItem popular_item {
+                    title: _("Popular");
+                    icon-name: "dailies-popular-symbolic";
+                  }
+
+                  Adw.SidebarItem trending_item {
+                    title: _("Trending");
+                    icon-name: "dailies-trending-symbolic";
+                  }
+                }
+
+                // One item per category, appended at startup.
+                Adw.SidebarSection categories_section {
+                  title: _("Categories");
+                }
+              };
+            }
+          };
+
+          content: Adw.NavigationPage content_page {
+            title: _("Favorites");
+
+            Adw.ToolbarView {
+              [top]
+              Adw.HeaderBar {}
+
+              [top]
+              Adw.Banner stale_banner {}
+
+              // The game grid replaces this placeholder (#42).
+              content: Adw.StatusPage placeholder {
+                title: bind content_page.title;
+              };
+            }
+          };
+        }
+      }
+
+      // The in-app browser page is pushed at runtime (#46).
+    }
   };
+}
+
+menu primary_menu {
+  section {
+    item (_("_Refresh Game List"), "app.refresh")
+  }
+
+  section {
+    item (_("_Preferences"), "app.preferences")
+    item (_("_Keyboard Shortcuts"), "app.shortcuts")
+    item (_("_About Dailies"), "app.about")
+  }
 }

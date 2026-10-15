@@ -30,6 +30,7 @@ install_data(
   'core/catalog.py',
   'core/models.py',
   'core/popularity.py',
+  'core/sections.py',
   'core/search.py',
   install_dir: moduledir / 'core',
 )
@@ -43,5 +44,6 @@ install_data(
 install_data(
   'ui/__init__.py',
   'ui/game_object.py',
+  'ui/library.py',
   install_dir: moduledir / 'ui',
 )

@@ -47,7 +47,7 @@ class Application(Adw.Application):
             # Imported here: its Gtk.Template needs the gresource that main() registers.
             from dailies.window import Window
 
-            window = Window(application=self)
+            window = Window(application=self, store=self.store, state=Gio.Settings.new(f"{config.APP_ID}.State"))
             if config.PROFILE == "development":
                 window.add_css_class("devel")
             window.connect("map", self._on_first_map)
