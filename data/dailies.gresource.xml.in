@@ -7,6 +7,8 @@
     <file preprocess="xml-stripblanks">ui/window.ui</file>
     <file preprocess="xml-stripblanks">ui/browser-page.ui</file>
     <file preprocess="xml-stripblanks">ui/preferences.ui</file>
+    <!-- Adw.Application turns <resource base path>/shortcuts-dialog.ui into app.shortcuts (Ctrl+?). -->
+    <file alias="shortcuts-dialog.ui" preprocess="xml-stripblanks">ui/shortcuts-dialog.ui</file>
     <!-- Adw.Application loads style.css from its resource base path on its own. -->
     <file alias="style.css">ui/style.css</file>
   </gresource>

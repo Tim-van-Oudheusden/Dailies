@@ -9,20 +9,23 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-10-16. Issues #24, #34, #40, #25, #27, #38, #39, #41, #57 on branch `build/24-m0-m1-foundation` (one commit each,
-one PR). Spike #19 is closed; its findings are in the issue comment, and the corrected Blueprint skeletons are on
-`spike/19-gnome-51-sdk`.
+2026-10-16. Issues #87, #69, #61, #51, #49, #42, #43, #44, #45, #46, #47, #48 on branch `feat/42-m1-launcher` (one
+commit each, one PR). All ten decisions (#8–#17) are closed; only #16 departs from its proposed default (audio is
+requested now, not on demand).
 
-- **Outcome:** a Devel Flatpak with the window shell, the sidebar, the GSettings favourites store, an ETag-cached
-  fetcher and Store fed from the bundled snapshot, the app and category icons, ci.yml, and the submission validator.
-  The grid itself is #42.
+- **Outcome:** the M1 launcher is usable end to end: grid, favourites with undo, search, opener, built-in WebKit page,
+  Preferences, About/Shortcuts, the e2e smoke test; plus the Tranco popularity scripts, `release.yml`, the pulseaudio
+  socket and the bracket-city tag.
 - **Open follow-ups:**
-  - Decisions #9 (open-mode default `in-app`) and #15 (`show-other-languages` default `true`) are still open; the
-    schema uses their proposed defaults.
-  - The release manifest pins `commit` without `tag` until v0.1.0 (#55).
-  - `metainfo-missing-screenshots` in `lint-exceptions.json` goes away with #50.
+  - #18 is owner-only (admin settings, secrets, labels); it blocks #29, #32, #56, #58, #62, #66.
+  - #55: the release flow is now two PRs (bump, then pin `commit` to the bump's merge commit); `release.yml` verify
+    fails until the release manifest pins a commit whose tree matches the tag.
+  - #50 still owns screenshots, OARS and the full 0.1.0 notes.
+  - Not verified by an agent: NYT login/streak persistence, a real portal launch, audio in Bandle.
 - **Gotchas:**
-  - The host has GTK 4.22 / Adw 1.9, so build and test inside `org.gnome.Sdk//51` (`flatpak run --user …`).
-  - `--user-exceptions` only works together with `--exceptions` in flatpak-builder-lint.
-  - gi tests live in `tests/gi/` (Meson suite `gi`, unittest); host pytest ignores that folder.
-  - Adwaita 51 has no `emblem-favorite-symbolic`, so Popular uses the bundled `dailies-popular-symbolic`.
+  - The host has GTK 4.22 / Adw 1.9, so build and test inside `org.gnome.Sdk//51` (`scripts/dev.sh build-devel`).
+  - The SDK has no Xvfb: headless GTK tests use a private `gtk4-broadwayd` (see `tests/e2e/test_smoke.py`).
+  - Parallel agents in git worktrees: file tools resolve relative paths against the main checkout, so give them
+    absolute worktree paths, and build with `flatpak-builder` without `--install`.
+  - Application accelerators beat page shortcut controllers, so the browser page borrows Ctrl+R by unsetting
+    `app.refresh`'s accelerator while it is shown.

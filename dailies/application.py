@@ -11,7 +11,7 @@ import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
-from gi.repository import Adw, Gio, GLib, GObject
+from gi.repository import Adw, Gio, GLib, GObject, Gtk
 
 from dailies import config
 from dailies.core import cache
@@ -51,17 +51,7 @@ class Application(Adw.Application):
         fetcher = Fetcher(cache_dir, _data_urls(), config.VERSION)
         self.store = Store(cache_dir, Path(config.PKGDATADIR) / "data" / "v1", self.favorites, fetcher)
         self.store.load_initial()
-        self.set_accels_for_action("win.toggle-favorite", ["<Control>d"])
-        self.set_accels_for_action("win.search", ["<Control>f"])
-
-        for name, activate, accels in (
-            ("preferences", self._on_preferences, ["<Control>comma"]),
-            ("refresh", self._on_refresh, _REFRESH_ACCELS),
-        ):
-            action = Gio.SimpleAction(name=name)
-            action.connect("activate", lambda _action, _param, activate=activate: activate())
-            self.add_action(action)
-            self.set_accels_for_action(f"app.{name}", accels)
+        self._add_actions()
 
     def do_activate(self) -> None:
         """Present the main window, creating it on first activation; the game list is refreshed once it maps."""
@@ -127,6 +117,41 @@ class Application(Adw.Application):
 
             browser_page.clear_all_blocking()
         Adw.Application.do_shutdown(self)
+
+    def _add_actions(self) -> None:
+        # app.shortcuts comes from Adw.Application, which finds shortcuts-dialog.ui in the gresource; the browser
+        # page's own keys live on the page. data/ui/shortcuts-dialog.blp lists every accelerator set here.
+        for name, activate, accels in (
+            ("quit", self.quit, ["<Control>q"]),
+            ("about", self._show_about, []),
+            ("preferences", self._on_preferences, ["<Control>comma"]),
+            ("refresh", self._on_refresh, _REFRESH_ACCELS),
+        ):
+            action = Gio.SimpleAction(name=name)
+            action.connect("activate", lambda _action, _param, activate=activate: activate())
+            self.add_action(action)
+            self.set_accels_for_action(f"app.{name}", accels)
+        # The window adds these actions (dailies/window.py).
+        self.set_accels_for_action("win.toggle-favorite", ["<Control>d"])
+        self.set_accels_for_action("win.search", ["<Control>f"])
+
+    def _show_about(self) -> None:
+        # Name, icon, developer, version, URLs, licence and release notes come from the bundled metainfo.
+        about = Adw.AboutDialog.new_from_appdata(f"{config.PREFIX}/{config.APP_ID}.metainfo.xml", config.VERSION)
+        about.set_developers(["Tim van Oudheusden https://github.com/Tim-van-Oudheusden"])
+        about.set_designers(["Tim van Oudheusden https://github.com/Tim-van-Oudheusden"])
+        # Translators: Replace "translator-credits" with your name/username, and optionally an email or URL.
+        about.set_translator_credits(_("translator-credits"))
+        about.add_legal_section(
+            _("Trademarks"),
+            None,
+            Gtk.License.CUSTOM,
+            _(
+                "Dailies is not affiliated with The New York Times, Merriam-Webster, LinkedIn or any game listed. "
+                "Game names are trademarks of their owners; Dailies only opens their public websites."
+            ),
+        )
+        about.present(self.props.active_window)
 
 
 def _data_urls() -> list[str]:

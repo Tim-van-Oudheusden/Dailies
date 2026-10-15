@@ -2,7 +2,13 @@ subdir('icons')
 
 blueprints = custom_target(
   'blueprints',
-  input: files('ui/browser-page.blp', 'ui/game-tile.blp', 'ui/preferences.blp', 'ui/window.blp'),
+  input: files(
+    'ui/browser-page.blp',
+    'ui/game-tile.blp',
+    'ui/preferences.blp',
+    'ui/shortcuts-dialog.blp',
+    'ui/window.blp',
+  ),
   output: '.',
   command: [
     find_program('blueprint-compiler', version: '>= 0.22'),

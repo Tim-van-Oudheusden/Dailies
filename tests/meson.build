@@ -35,6 +35,19 @@ if glib_compile_schemas.found()
       suite: 'gi',
     )
   endif
+
+  # The bundled Shortcuts and About dialogs; the test opens its own Broadway display.
+  dialogs_test_env = gi_test_env
+  dialogs_test_env.set('DAILIES_GRESOURCE', resources[0].full_path())
+  dialogs_test_env.set('DAILIES_PREFIX', prefix_path)
+  test(
+    'dialogs',
+    py,
+    args: [files('gi' / 'test_dialogs.py')],
+    env: dialogs_test_env,
+    depends: [compiled_schemas, resources],
+    suite: 'gi',
+  )
 endif
 
 # The e2e smoke test starts the installed app, so it only passes after `meson install` (flatpak-builder runs the tests

@@ -10,4 +10,5 @@ data/io.github.tim_van_oudheusden.Dailies.metainfo.xml.in
 data/ui/browser-page.blp
 data/ui/game-tile.blp
 data/ui/preferences.blp
+data/ui/shortcuts-dialog.blp
 data/ui/window.blp

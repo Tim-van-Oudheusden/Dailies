@@ -1,0 +1,79 @@
+using Gtk 4.0;
+using Adw 1;
+
+// Adw.Application loads <resource base path>/shortcuts-dialog.ui on its own: it adds the app.shortcuts action and
+// its Ctrl+? accelerator. The accelerators are spelled out because the browser page installs its own controllers,
+// which an action-name item couldn't look up.
+Adw.ShortcutsDialog shortcuts_dialog {
+  Adw.ShortcutsSection {
+    title: _("General");
+
+    Adw.ShortcutsItem {
+      title: _("Main Menu");
+      accelerator: "F10";
+    }
+
+    Adw.ShortcutsItem {
+      title: _("Preferences");
+      accelerator: "<Control>comma";
+    }
+
+    Adw.ShortcutsItem {
+      title: _("Keyboard Shortcuts");
+      accelerator: "<Control>question";
+    }
+
+    Adw.ShortcutsItem {
+      title: _("Quit");
+      accelerator: "<Control>q";
+    }
+  }
+
+  Adw.ShortcutsSection {
+    title: _("Library");
+
+    Adw.ShortcutsItem {
+      title: _("Search");
+      accelerator: "<Control>f";
+    }
+
+    Adw.ShortcutsItem {
+      title: _("Toggle Favorite");
+      accelerator: "<Control>d";
+    }
+
+    Adw.ShortcutsItem {
+      title: _("Refresh Game List");
+      accelerator: "<Control>r";
+    }
+  }
+
+  Adw.ShortcutsSection {
+    title: _("Built-in Browser");
+
+    Adw.ShortcutsItem {
+      title: _("Back");
+      accelerator: "<Alt>Left";
+    }
+
+    Adw.ShortcutsItem {
+      title: _("Forward");
+      accelerator: "<Alt>Right";
+    }
+
+    Adw.ShortcutsItem {
+      title: _("Reload");
+      accelerator: "<Control>r";
+    }
+
+    Adw.ShortcutsItem {
+      title: _("Show Address");
+      accelerator: "<Control>l";
+    }
+
+    Adw.ShortcutsItem {
+      title: _("Open in Browser");
+      accelerator: "<Control><Shift>o";
+    }
+  }
+}
