@@ -30,4 +30,4 @@ Every runbook here should say which of the two paths it concerns.
 
 ## Index
 
-- No runbooks yet.
+- [Re-enable a scheduled workflow](re-enable-cron.md): no Monday popularity pull request; the app shows "as of".

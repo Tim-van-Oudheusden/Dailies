@@ -1,0 +1,133 @@
+name: Weekly popularity
+
+# Every Monday: collect the Tranco ranks of every active game's domain, compute the Popular and Trending shelves
+# deterministically, validate them against the schema and open a numbers-only pull request (issue #62; the Claude
+# report follows in #66). Fails closed: when Tranco failed for too many domains, compute.py exits non-zero, nothing
+# is published and data/v1/popularity.json stays as it is. A maintainer merges the PR; main is protected.
+# Scheduled workflows in public repositories are disabled after 60 days without activity; re-enable this one from
+# the Actions tab (docs/runbooks/re-enable-cron.md).
+
+on:
+  schedule:
+    # Monday 04:17 UTC: off the hour, when GitHub's scheduler is least loaded.
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+    inputs:
+      narrate:
+        description: Write the Claude report (not used yet; see #66)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  # One run at a time; a run that is publishing is never cancelled.
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  compute:
+    name: Collect and compute
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      week: ${{ steps.week.outputs.week }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      # requests for the collector, jsonschema for compute.py, check-jsonschema for the validation step.
+      - name: Install script dependencies
+        run: python -m pip install --require-hashes -r scripts/requirements.txt
+      # Exits 0 whenever raw/tranco.json was written; deciding whether the week is usable is compute.py's job.
+      - name: Collect Tranco ranks
+        run: python -I scripts/popularity/collect.py --catalog data/v1/games.json --out "$RUNNER_TEMP/raw/"
+      # Reads last week's file for the history; exits 1 and writes nothing when Tranco failed for > 20 % of domains.
+      - name: Compute shelves
+        run: >-
+          python -I scripts/popularity/compute.py --catalog data/v1/games.json --raw "$RUNNER_TEMP/raw/"
+          --previous data/v1/popularity.json --out "$RUNNER_TEMP/result/popularity.json"
+          --summary "$RUNNER_TEMP/result/summary.json"
+      - name: Validate against the schema
+        run: check-jsonschema --schemafile data/v1/schema/popularity.schema.json "$RUNNER_TEMP/result/popularity.json"
+      - name: Write the pull-request body
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: >-
+          python -I scripts/popularity/pr_body.py --summary "$RUNNER_TEMP/result/summary.json"
+          --out "$RUNNER_TEMP/result/pr-body.md" --run-url "$RUN_URL"
+      # The schema pins week to ^\d{4}-W\d{2}$, so the value is safe to use in the PR title.
+      - name: Read the ISO week
+        id: week
+        run: echo "week=$(jq -r .week "$RUNNER_TEMP/result/popularity.json")" >> "$GITHUB_OUTPUT"
+      # Kept for audits even when compute failed closed.
+      - name: Upload raw signals
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: popularity-raw
+          path: |
+            ${{ runner.temp }}/raw/
+            ${{ runner.temp }}/result/summary.json
+          retention-days: 90
+      - name: Upload the result for the publish job
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: popularity-result
+          path: ${{ runner.temp }}/result/
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Open the data pull request
+    needs: compute
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      # create-pull-request configures its own token for the push.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: popularity-result
+          path: ${{ runner.temp }}/result
+      - name: Put popularity.json in place
+        run: cp "$RUNNER_TEMP/result/popularity.json" data/v1/popularity.json
+      # Only the shelves (and, from #66, the weekly report) may change.
+      - name: Guard the changed paths
+        run: |
+          set -euo pipefail
+          status=0
+          while IFS= read -r line; do
+            path=${line:3}
+            case "$path" in
+              data/v1/popularity.json | docs/popularity/*) ;;
+              *)
+                echo "::error::Unexpected change: $path"
+                status=1
+                ;;
+            esac
+          done < <(git status --porcelain --untracked-files=all)
+          exit "$status"
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          branch: data/popularity
+          delete-branch: true
+          # #66 adds docs/popularity/ here with the report; a pathspec that matches no file makes `git add` fail.
+          add-paths: data/v1/popularity.json
+          commit-message: "data(popularity): week ${{ needs.compute.outputs.week }}"
+          title: "data(popularity): week ${{ needs.compute.outputs.week }}"
+          body-path: ${{ runner.temp }}/result/pr-body.md
+          labels: |
+            data
+            automated
