@@ -265,7 +265,11 @@ what the manifest's `x-checker-data` and a later Flathub manifest consume.
 any command on the host, Flatpak calls it a sandbox escape, and Flathub grants it only with strong justification.
 Without it a specific host browser cannot be started, so the **Custom command** mode stays hidden and inert until the
 user grants the permission with `flatpak override`, a choice they make knowingly. The finish-args are network, IPC,
-fallback X11, Wayland and DRI; no filesystem access and no D-Bus names.
+fallback X11, Wayland, PulseAudio and DRI; no filesystem access and no D-Bus names.
+
+**Decision:** the manifests request `--socket=pulseaudio` from the first release ([#16][issue-16]). Why: music games
+(Bandle, Heardle Decades, Songless) play their clips in the built-in browser, and WebKitGTK has no other route to the
+sound server. The socket is used for playback only; Dailies itself makes no sound.
 
 **Decision:** `dailies/core` never imports `gi`. Why: parsing, ranking and search are then tested with plain pytest
 on any runner in seconds, without the GNOME SDK; the GTK layers stay thin and are covered by the build checks and the
@@ -289,4 +293,5 @@ results here.
 [issue-9]: https://github.com/Tim-van-Oudheusden/Dailies/issues/9
 [issue-10]: https://github.com/Tim-van-Oudheusden/Dailies/issues/10
 [issue-12]: https://github.com/Tim-van-Oudheusden/Dailies/issues/12
+[issue-16]: https://github.com/Tim-van-Oudheusden/Dailies/issues/16
 [issue-52]: https://github.com/Tim-van-Oudheusden/Dailies/issues/52

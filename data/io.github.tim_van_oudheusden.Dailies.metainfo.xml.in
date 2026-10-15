@@ -31,6 +31,7 @@
     <release version="0.1.0" date="2026-10-15">
       <description>
         <p>First release.</p>
+        <p>Music games play sound inside Dailies.</p>
       </description>
     </release>
   </releases>
