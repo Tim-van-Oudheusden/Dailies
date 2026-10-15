@@ -228,9 +228,9 @@ outside the top five, topped up with the newest games (`reason: "new"`) so the s
 more than 20 % of domains the job fails and the old file stays. The current `popularity.json` is hand-written
 (`method_version: 0`).
 
-**Publishing.** `pages.yml` will publish `data/v1/` to GitHub Pages at
-`https://tim-van-oudheusden.github.io/Dailies/v1/`; `raw.githubusercontent.com` is the fallback URL and, until
-`pages.yml` exists, the only one.
+**Publishing.** `pages.yml` publishes `data/v1/` (schemas included) and, once it exists, `docs/popularity/` to GitHub
+Pages at `https://tim-van-oudheusden.github.io/Dailies/v1/` on every push to `main` that touches them. The app tries
+that URL first and falls back to `raw.githubusercontent.com` on a server error, a 429 or a network failure.
 
 **Releases.** See [Releasing in `CONTRIBUTING.md`](../CONTRIBUTING.md#releasing). The tag, `version:` in `meson.build`
 and the newest metainfo `<release>` must agree, which the `verify` job checks before anything is built. Bundles do not

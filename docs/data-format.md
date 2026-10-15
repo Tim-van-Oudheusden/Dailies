@@ -19,10 +19,9 @@ pytest tests/data
 
 `tests/data/test_catalog_file.py` also checks the [rules the schemas cannot express](#rules-beyond-the-schemas).
 
-**Where to get them.** The files are meant to be fetched from GitHub Pages at
-`https://tim-van-oudheusden.github.io/Dailies/v1/` once the Pages workflow exists, with
-`https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/main/data/v1/` as the fallback (and, until then, the
-only URL). Both send an ETag; please use conditional requests (`If-None-Match`) and fetch at most every few hours.
+**Where to get them.** Fetch the files from GitHub Pages at `https://tim-van-oudheusden.github.io/Dailies/v1/`, with
+`https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/main/data/v1/` as the fallback. Both send an ETag; please
+use conditional requests (`If-None-Match`) and fetch at most every few hours.
 
 ## `games.json`
 
