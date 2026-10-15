@@ -109,6 +109,30 @@ template $DailiesWindow: Adw.ApplicationWindow {
                   tooltip-text: _("Sort");
                   menu-model: sort_menu;
                 }
+
+                [end]
+                ToggleButton search_button {
+                  icon-name: "system-search-symbolic";
+                  tooltip-text: _("Search");
+                }
+              }
+
+              // Typing anywhere in the library starts a search. The query is kept across sections.
+              [top]
+              SearchBar search_bar {
+                search-mode-enabled: bind search_button.active bidirectional;
+                key-capture-widget: split_view;
+                notify::search-mode-enabled => $on_search_mode_changed();
+
+                child: Adw.Clamp {
+                  maximum-size: 500;
+
+                  child: SearchEntry search_entry {
+                    placeholder-text: _("Search games");
+                    hexpand: true;
+                    search-changed => $on_search_changed();
+                  };
+                };
               }
 
               [top]

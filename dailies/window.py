@@ -47,6 +47,8 @@ class Window(Adw.ApplicationWindow):
     grid_view: Gtk.GridView = Gtk.Template.Child()
     empty_section_page: Adw.StatusPage = Gtk.Template.Child()
     toast_overlay: Adw.ToastOverlay = Gtk.Template.Child()
+    search_bar: Gtk.SearchBar = Gtk.Template.Child()
+    search_entry: Gtk.SearchEntry = Gtk.Template.Child()
 
     def __init__(self, *, application: Adw.Application, store: Store, state: Gio.Settings) -> None:
         super().__init__(application=application)
@@ -67,6 +69,7 @@ class Window(Adw.ApplicationWindow):
         self._ids = {item: section for section, item in self._items.items()}
 
         self._setup_grid(application.settings, application.favorites)
+        self.search_bar.connect_entry(self.search_entry)
         self._add_actions(application.settings)
 
         store.connect("notify::catalog", lambda *_args: self._update_categories())
@@ -91,6 +94,18 @@ class Window(Adw.ApplicationWindow):
     def on_sidebar_activated(self, _sidebar: Adw.Sidebar, _index: int) -> None:
         """Navigate to the content, which matters when the split view is collapsed."""
         self.split_view.props.show_content = True
+
+    @Gtk.Template.Callback()
+    def on_search_changed(self, entry: Gtk.SearchEntry) -> None:
+        """Filter the current section, and every section shown next, by the query."""
+        self._search_filter.props.text = entry.props.text
+        self._update_page()
+
+    @Gtk.Template.Callback()
+    def on_search_mode_changed(self, search_bar: Gtk.SearchBar, _pspec: GObject.ParamSpec) -> None:
+        """Clear the query when the search bar closes (Escape or the search button), restoring the full section."""
+        if not search_bar.props.search_mode_enabled:
+            self.search_entry.props.text = ""
 
     @Gtk.Template.Callback()
     def on_suggest_clicked(self, _button: Gtk.Button) -> None:
@@ -126,12 +141,17 @@ class Window(Adw.ApplicationWindow):
             ("open-game", "s", self._on_open_game),
             ("toggle-game-favorite", "s", self._on_toggle_game_favorite),
             ("toggle-favorite", None, self._on_toggle_favorite),
+            ("search", None, self._on_search),
         ):
             action = Gio.SimpleAction(
                 name=name, parameter_type=GLib.VariantType(parameter_type) if parameter_type else None
             )
             action.connect("activate", callback)
             self.add_action(action)
+
+    def _on_search(self, _action: Gio.SimpleAction, _parameter: None) -> None:
+        self.search_bar.props.search_mode_enabled = True
+        self.search_entry.grab_focus()
 
     def _on_show_section(self, _action: Gio.SimpleAction, parameter: GLib.Variant) -> None:
         item = self._items.get(parameter.get_string())
