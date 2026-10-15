@@ -28,6 +28,7 @@ install_data(
   'core/_fields.py',
   'core/cache.py',
   'core/catalog.py',
+  'core/languages.py',
   'core/models.py',
   'core/opening.py',
   'core/popularity.py',

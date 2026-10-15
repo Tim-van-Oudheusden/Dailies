@@ -4,13 +4,13 @@ from datetime import UTC, datetime
 from gi.repository import Adw, Gio, GLib, GObject, Gtk
 
 from dailies import config
-from dailies.core import opening, sections
+from dailies.core import languages, opening, sections
 from dailies.core.models import Category, Game
 from dailies.core.opening import OpenMode
 from dailies.data.favorites import Favorites
 from dailies.data.store import Store
 from dailies.ui import library, opener
-from dailies.ui.filters import SearchFilter, SectionFilter, SectionSorter
+from dailies.ui.filters import LanguageFilter, SearchFilter, SectionFilter, SectionSorter
 from dailies.ui.game_object import GameObject
 from dailies.ui.tile import GameTile
 
@@ -28,7 +28,8 @@ class Window(Adw.ApplicationWindow):
 
     `section` is the id of the selected section (see `dailies.core.sections`); it is restored from and saved to the
     `last-section` key of the State settings, which also keep the window size. The grid shows the store's games through
-    the section filter and the section sorter, whose order the `sort-mode` setting overrides (`win.sort-mode`).
+    the section filter and the section sorter, whose order the `sort-mode` setting overrides (`win.sort-mode`); the
+    `show-other-languages` setting hides, outside Favorites, the games and categories not in the system's languages.
     """
 
     __gtype_name__ = "DailiesWindow"
@@ -81,6 +82,7 @@ class Window(Adw.ApplicationWindow):
         self._add_actions(application.settings)
 
         store.connect("notify::catalog", lambda *_args: self._update_categories())
+        self._settings.connect("changed::show-other-languages", lambda *_args: self._update_categories())
         for prop in ("popularity", "popularity-stale"):
             store.connect(f"notify::{prop}", lambda *_args: self._update_week())
         for prop in ("stale-banner", "last-success"):
@@ -152,15 +154,19 @@ class Window(Adw.ApplicationWindow):
         self._favorites = favorites
         self._section_filter = SectionFilter()
         self._search_filter = SearchFilter()
+        self._system_languages = languages.system_languages(GLib.get_language_names())
+        self._language_filter = LanguageFilter(self._system_languages)
         self._sorter = SectionSorter(favorites)
         # The store, connected first, has already updated the game's `favorite` when this runs.
         favorites.connect("changed", lambda *_args: self._section_filter.changed(Gtk.FilterChange.DIFFERENT))
-        for target in (self._section_filter, self._sorter):
+        for target in (self._section_filter, self._language_filter, self._sorter):
             self.bind_property("section", target, "section", GObject.BindingFlags.SYNC_CREATE)
         settings.bind("sort-mode", self._sorter, "sort-mode", Gio.SettingsBindFlags.GET)
+        settings.bind("show-other-languages", self._language_filter, "show-other-languages", Gio.SettingsBindFlags.GET)
         every = Gtk.EveryFilter()
         every.append(self._section_filter)
         every.append(self._search_filter)
+        every.append(self._language_filter)
         self._games = Gtk.SortListModel(
             model=Gtk.FilterListModel(model=self._store.model, filter=every), sorter=self._sorter
         )
@@ -278,7 +284,11 @@ class Window(Adw.ApplicationWindow):
         self._state.set_string("last-section", section)
 
     def _update_categories(self) -> None:
-        visible = sections.visible_categories(self._store.props.catalog)
+        visible = sections.visible_categories(
+            self._store.props.catalog,
+            system_languages=self._system_languages,
+            show_other=self._settings.get_boolean("show-other-languages"),
+        )
         for category in Category:
             self._items[category.value].props.visible = category in visible
         if not self._items[self.props.section].props.visible:

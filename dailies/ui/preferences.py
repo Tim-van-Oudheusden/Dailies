@@ -33,6 +33,7 @@ class PreferencesDialog(Adw.PreferencesDialog):
     clear_on_exit_row: Adw.SwitchRow = Gtk.Template.Child()
     clear_row: Adw.ButtonRow = Gtk.Template.Child()
     last_updated_row: Adw.ActionRow = Gtk.Template.Child()
+    show_other_languages_row: Adw.SwitchRow = Gtk.Template.Child()
 
     def __init__(self, *, settings: Gio.Settings, store: Store) -> None:
         super().__init__()
@@ -49,6 +50,7 @@ class PreferencesDialog(Adw.PreferencesDialog):
 
         self.browser_group.props.visible = self._have_webkit
         settings.bind("clear-web-data-on-exit", self.clear_on_exit_row, "active", Gio.SettingsBindFlags.DEFAULT)
+        settings.bind("show-other-languages", self.show_other_languages_row, "active", Gio.SettingsBindFlags.DEFAULT)
 
         self._show_last_updated()
         self._store_handler = store.connect("notify::last-success", lambda *_args: self._show_last_updated())
