@@ -1,0 +1,104 @@
+name: Add a game
+description: Propose a daily guessing game (a "-dle") for the Dailies catalog.
+title: "game: "
+labels: ["game-submission"]
+# The field ids below are read by stefanbuck/github-issue-parser (template-path mode) and by
+# scripts/validate_submission.py. Keep them stable: name, url, category, difficulty,
+# description, tags, language, checks.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for adding a daily! A bot checks this form shortly after you submit it
+        (the URL is reachable, the game is not already listed) and a maintainer approves it.
+        Please put the game's name after `game: ` in the title.
+  - type: input
+    id: name
+    attributes:
+      label: Name
+      description: The game's name as shown on its site.
+      placeholder: e.g. Worldle
+    validations:
+      required: true
+  - type: input
+    id: url
+    attributes:
+      label: URL
+      description: The page that starts today's puzzle. https only.
+      placeholder: https://
+    validations:
+      required: true
+  # Label -> catalog enum id (the validator maps these; keep both lists in sync):
+  #   Words -> words, Geography -> geography, Music -> music, Movies & TV -> movies-tv,
+  #   Video Games -> video-games, Numbers & Logic -> numbers-logic, Trivia -> trivia,
+  #   Pictures & Colors -> visual, Food -> food, Sports -> sports
+  # There is deliberately no "Other" (docs/research/dle-catalog.md §2.2).
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      description: Pick the one category that fits best; use Tags for anything else.
+      multiple: false
+      options:
+        - Words
+        - Geography
+        - Music
+        - Movies & TV
+        - Video Games
+        - Numbers & Logic
+        - Trivia
+        - Pictures & Colors
+        - Food
+        - Sports
+    validations:
+      required: true
+  # Label -> catalog enum id: Easy -> easy, Medium -> medium, Hard -> hard.
+  - type: dropdown
+    id: difficulty
+    attributes:
+      label: Difficulty
+      description: >-
+        How hard is a typical day for a newcomer?
+        Easy: most people solve it in under ~3 minutes with general knowledge.
+        Medium: needs some domain knowledge, or 5–10 minutes.
+        Hard: niche knowledge, or long sessions.
+      multiple: false
+      options:
+        - Easy
+        - Medium
+        - Hard
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: >-
+        One or two sentences, at least 20 characters. What do you guess, and how many tries
+        do you get?
+      placeholder: Guess the country from its silhouette in six tries; distance and direction hints.
+    validations:
+      required: true
+  - type: input
+    id: tags
+    attributes:
+      label: Tags
+      description: Optional, comma-separated, lower-kebab-case.
+      placeholder: e.g. countries, silhouette, wordle-like
+  - type: input
+    id: language
+    attributes:
+      label: Language
+      description: BCP 47 code of the game's language, e.g. en, nl, fr. Leave as en for English.
+      value: en
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: Publishes a new puzzle every day
+          required: true
+        - label: Playable without an account
+          required: true
+        - label: I am not the author, or I am and I consent to listing
+          required: true

@@ -1,0 +1,2 @@
+# Commits that only reformat the code base. `git config blame.ignoreRevsFile .git-blame-ignore-revs` makes local
+# `git blame` skip them; GitHub does so on its own. Add a commit here in the same PR that lands it.

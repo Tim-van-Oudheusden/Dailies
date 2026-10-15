@@ -1,0 +1,45 @@
+name: Coverage gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  # One live run per PR: a new push cancels the superseded run. Pushes to main
+  # get a per-commit group, so no main run is ever cancelled.
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  coverage:
+    # Required by the main ruleset (.github/rulesets/main.json); keep the name in sync.
+    name: Unit-test coverage floors
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Coverage covers dailies/core and scripts only; the floors per group live in .github/auto-qa-tuning.json.
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install test tools
+        run: python -m pip install pytest==9.1.1 pytest-cov==7.1.0
+      - name: Unit tests with coverage
+        run: pytest --cov=dailies/core --cov=scripts --cov-report=xml
+      - name: Check coverage floors
+        run: scripts/coverage-check.sh coverage.xml .github/auto-qa-tuning.json
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-report
+          path: coverage.xml
+          if-no-files-found: ignore
+          retention-days: 14

@@ -1,0 +1,14 @@
+# Python packages for the CI scripts in scripts/ only; the app itself has no pip dependencies.
+# Edit this file, then regenerate the hash-pinned lock from the repository root with Python 3.12, as in CI:
+#   pip-compile --generate-hashes --allow-unsafe --strip-extras --output-file=scripts/requirements.txt scripts/requirements.in
+# CI installs the lock with `pip install --require-hashes -r scripts/requirements.txt`; Dependabot keeps it current.
+
+# Validates data/v1/*.json against their JSON Schemas.
+check-jsonschema
+# HTTP for the link checker and the game-submission validator.
+requests
+# Registrable-domain comparison for submitted URLs (public suffix list).
+tldextract
+
+# Audits this lock in scripts/nightly-compliance.sh; pinned here so the auditor is hash-checked too.
+pip-audit

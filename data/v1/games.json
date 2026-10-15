@@ -1,0 +1,2795 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-10-15T12:00:00Z",
+  "games": [
+    {
+      "id": "absurdle",
+      "name": "Absurdle",
+      "url": "https://qntm.org/files/absurdle/absurdle.html",
+      "category": "words",
+      "difficulty": "hard",
+      "description": "Adversarial Wordle that changes its secret word to dodge your guesses; not strictly daily but endless.",
+      "tags": [
+        "wordle-like",
+        "adversarial",
+        "not-daily"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "qntm.org",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "actorle",
+      "name": "Actorle",
+      "url": "https://actorle.com/",
+      "category": "movies-tv",
+      "difficulty": "hard",
+      "description": "Guess the actor from a redacted filmography with years, genres and ratings.",
+      "tags": [
+        "actors",
+        "filmography"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "actorle.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "antiwordle",
+      "name": "Antiwordle",
+      "url": "https://www.antiwordle.com/",
+      "category": "words",
+      "difficulty": "medium",
+      "description": "Try NOT to guess the word; letters you reveal become mandatory.",
+      "tags": [
+        "wordle-like",
+        "inverted"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "antiwordle.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "artle",
+      "name": "Artle",
+      "url": "https://www.nga.gov/artle.html",
+      "category": "visual",
+      "difficulty": "hard",
+      "description": "Guess the artist from up to four works in the National Gallery of Art collection.",
+      "tags": [
+        "art",
+        "museum",
+        "bot-walled"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "nga.gov",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "bandle",
+      "name": "Bandle",
+      "url": "https://bandle.app/",
+      "category": "music",
+      "difficulty": "medium",
+      "description": "Guess the song as it is rebuilt one instrument at a time.",
+      "tags": [
+        "songs",
+        "audio"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "bandle.app",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "betweenle",
+      "name": "Betweenle",
+      "url": "https://betweenle.com/",
+      "category": "words",
+      "difficulty": "medium",
+      "description": "Find the secret word by narrowing it down alphabetically between your guesses.",
+      "tags": [
+        "alphabetical",
+        "bisection"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "betweenle.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "blossom",
+      "name": "Blossom",
+      "url": "https://www.merriam-webster.com/games/blossom-word-game",
+      "category": "words",
+      "difficulty": "easy",
+      "description": "Spelling Bee-style: build words from seven petals, scoring bonus for the highlighted letter.",
+      "tags": [
+        "merriam-webster",
+        "anagram"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "merriam-webster.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "box-office-game",
+      "name": "Box Office Game",
+      "url": "https://boxofficega.me/",
+      "category": "movies-tv",
+      "difficulty": "hard",
+      "description": "Identify the top five films at the box office for a given weekend from clues.",
+      "tags": [
+        "movies",
+        "trivia",
+        "box-office"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "boxofficega.me",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "bracket-city",
+      "name": "Bracket City",
+      "url": "https://www.theatlantic.com/games/bracket-city/",
+      "category": "words",
+      "difficulty": "medium",
+      "description": "Solve nested bracketed clues until a single sentence about a historic event remains (The Atlantic).",
+      "tags": [
+        "the-atlantic",
+        "clues",
+        "history"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "theatlantic.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "cemantix",
+      "name": "Cémantix",
+      "url": "https://cemantix.certitudes.org/",
+      "category": "words",
+      "difficulty": "hard",
+      "description": "French semantic word-guessing game (the original behind Pedantle/Pedantix).",
+      "tags": [
+        "semantic",
+        "french",
+        "non-english"
+      ],
+      "language": "fr",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "certitudes.org",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "chessguessr",
+      "name": "Chessguessr",
+      "url": "https://www.chessguessr.com/",
+      "category": "numbers-logic",
+      "difficulty": "hard",
+      "description": "Guess the next five moves of a real master game.",
+      "tags": [
+        "chess"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "chessguessr.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "chessle",
+      "name": "Chessle",
+      "url": "https://chessle.net/",
+      "category": "numbers-logic",
+      "difficulty": "hard",
+      "description": "Guess the chess opening sequence move by move with Wordle-style feedback.",
+      "tags": [
+        "chess",
+        "openings"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "chessle.net",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "chronophoto",
+      "name": "Chronophoto",
+      "url": "https://www.chronophoto.app/",
+      "category": "visual",
+      "difficulty": "medium",
+      "description": "Guess the year five photographs were taken.",
+      "tags": [
+        "photos",
+        "history"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "chronophoto.app",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "cine2nerdle",
+      "name": "Cine2Nerdle",
+      "url": "https://www.cinenerdle2.app/",
+      "category": "movies-tv",
+      "difficulty": "hard",
+      "description": "Connect two movies through shared cast and crew; also has a battle mode.",
+      "tags": [
+        "movies",
+        "connections",
+        "graph"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "cinenerdle2.app",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "cinematrix",
+      "name": "Cinematrix",
+      "url": "https://www.vulture.com/article/daily-movie-grid-trivia-game-cinematrix.html",
+      "category": "movies-tv",
+      "difficulty": "hard",
+      "description": "Vulture's 3x3 movie grid: name films matching each row and column criterion; new puzzle every weekday.",
+      "tags": [
+        "vulture",
+        "grid",
+        "movies",
+        "weekdays-only"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "vulture.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "clues-by-sam",
+      "name": "Clues By Sam",
+      "url": "https://cluesbysam.com/",
+      "category": "numbers-logic",
+      "difficulty": "medium",
+      "description": "Deduce which characters in a grid are innocent or criminal from chained clues.",
+      "tags": [
+        "deduction",
+        "logic"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "cluesbysam.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "colorfle",
+      "name": "Colorfle",
+      "url": "https://colorfle.com/",
+      "category": "visual",
+      "difficulty": "medium",
+      "description": "Mix three colours to match the target colour.",
+      "tags": [
+        "colors",
+        "mixing"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "colorfle.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "conexo",
+      "name": "Conexo",
+      "url": "https://conexo.ws/",
+      "category": "words",
+      "difficulty": "medium",
+      "description": "Connections-style grouping game available in several languages.",
+      "tags": [
+        "grouping",
+        "multilingual",
+        "non-english"
+      ],
+      "language": "pt-BR",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "conexo.ws",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "contexto",
+      "name": "Contexto",
+      "url": "https://contexto.me/",
+      "category": "words",
+      "difficulty": "medium",
+      "description": "Semantle-style: each guess is ranked by how contextually close it is to the secret word.",
+      "tags": [
+        "semantic"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "contexto.me",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "costcodle",
+      "name": "Costcodle",
+      "url": "https://costcodle.com/",
+      "category": "food",
+      "difficulty": "easy",
+      "description": "Guess the price of a Costco product within six tries.",
+      "tags": [
+        "estimation",
+        "prices",
+        "shopping"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "costcodle.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "countryle",
+      "name": "Countryle",
+      "url": "https://countryle.com/",
+      "category": "geography",
+      "difficulty": "medium",
+      "description": "Guess the country using hemisphere, continent, temperature and population hints.",
+      "tags": [
+        "countries",
+        "hints"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "countryle.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "crossover-grid",
+      "name": "Crossover Grid",
+      "url": "https://crossovergrid.com/",
+      "category": "sports",
+      "difficulty": "hard",
+      "description": "Daily sports trivia grids across several leagues.",
+      "tags": [
+        "grid",
+        "multi-sport"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "crossovergrid.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "crosswordle",
+      "name": "Crosswordle",
+      "url": "https://crosswordle.vercel.app/",
+      "category": "words",
+      "difficulty": "medium",
+      "description": "Reverse Wordle: given the coloured grid of a finished game, reconstruct the guesses.",
+      "tags": [
+        "wordle-like",
+        "deduction"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "crosswordle.vercel.app",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "daily-dozen-trivia",
+      "name": "The Dozen: Daily Trivia",
+      "url": "https://dailydozentrivia.com/",
+      "category": "trivia",
+      "difficulty": "medium",
+      "description": "Twelve general-knowledge questions a day.",
+      "tags": [
+        "quiz",
+        "general-knowledge"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "dailydozentrivia.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "dordle",
+      "name": "Dordle",
+      "url": "https://zaratustra.itch.io/dordle",
+      "category": "words",
+      "difficulty": "medium",
+      "description": "Two Wordle boards solved with the same guesses; the original multi-board variant.",
+      "tags": [
+        "wordle-like",
+        "multi-board",
+        "itch-io"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "itch.io",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "dotadle",
+      "name": "Dotadle",
+      "url": "https://dotadle.net/",
+      "category": "video-games",
+      "difficulty": "medium",
+      "description": "Guess the Dota 2 hero from attributes and abilities.",
+      "tags": [
+        "dota",
+        "fan-made"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "dotadle.net",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "dungleon",
+      "name": "Dungleon",
+      "url": "https://www.dungleon.com/",
+      "category": "numbers-logic",
+      "difficulty": "medium",
+      "description": "Wordle-like deduction with dungeon-crawler icons instead of letters.",
+      "tags": [
+        "deduction",
+        "wordle-like",
+        "pixel-art"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "dungleon.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "emovi",
+      "name": "Emovi",
+      "url": "https://emovi.teuteuf.fr/",
+      "category": "movies-tv",
+      "difficulty": "easy",
+      "description": "Guess the movie from an emoji summary (teuteuf).",
+      "tags": [
+        "teuteuf",
+        "emoji",
+        "movies"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "teuteuf.fr",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "factle",
+      "name": "Factle",
+      "url": "https://frontofficesports.com/trivia/factle/",
+      "category": "trivia",
+      "difficulty": "hard",
+      "description": "Rank the top five answers to a factual prompt in five guesses (now hosted by Front Office Sports).",
+      "tags": [
+        "ranking",
+        "lists"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "frontofficesports.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "flagle",
+      "name": "Flagle",
+      "url": "https://www.flagle.io/",
+      "category": "geography",
+      "difficulty": "easy",
+      "description": "Guess the country from a flag revealed one tile at a time.",
+      "tags": [
+        "flags",
+        "countries"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "flagle.io",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "flickle",
+      "name": "Flickle",
+      "url": "https://flickle.app/",
+      "category": "movies-tv",
+      "difficulty": "medium",
+      "description": "Guess the movie from short clips.",
+      "tags": [
+        "movies",
+        "clips"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "flickle.app",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "foodguessr",
+      "name": "FoodGuessr",
+      "url": "https://www.foodguessr.com/",
+      "category": "food",
+      "difficulty": "medium",
+      "description": "Guess the country a dish comes from in three rounds.",
+      "tags": [
+        "geography",
+        "cuisine"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "foodguessr.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "framed",
+      "name": "Framed",
+      "url": "https://framed.wtf/",
+      "category": "movies-tv",
+      "difficulty": "medium",
+      "description": "Guess the movie from up to six stills.",
+      "tags": [
+        "movies",
+        "stills"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "framed.wtf",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "gamedle",
+      "name": "Gamedle",
+      "url": "https://www.gamedle.wtf/",
+      "category": "video-games",
+      "difficulty": "medium",
+      "description": "Guess the video game from covers, characters, artwork or keywords; several modes.",
+      "tags": [
+        "covers",
+        "multi-mode"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "gamedle.wtf",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "geogrid",
+      "name": "GeoGrid",
+      "url": "https://www.geogridgame.com/",
+      "category": "geography",
+      "difficulty": "hard",
+      "description": "Immaculate-Grid-style 3x3 where each cell needs a country matching row and column criteria.",
+      "tags": [
+        "grid",
+        "countries",
+        "trivia"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "geogridgame.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "geoguessr-daily",
+      "name": "GeoGuessr Daily Challenge",
+      "url": "https://www.geoguessr.com/daily-challenges",
+      "category": "geography",
+      "difficulty": "hard",
+      "description": "Five Street View rounds that refresh daily; requires a free GeoGuessr account.",
+      "tags": [
+        "street-view",
+        "account-required"
+      ],
+      "language": "en",
+      "free_no_account": false,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "geoguessr.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "globle",
+      "name": "Globle",
+      "url": "https://globle-game.com/",
+      "category": "geography",
+      "difficulty": "medium",
+      "description": "Find the mystery country on a globe; guesses get hotter colours the closer they are.",
+      "tags": [
+        "countries",
+        "globe"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "globle-game.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "guess-the-game",
+      "name": "GuessThe.Game",
+      "url": "https://guessthe.game/",
+      "category": "video-games",
+      "difficulty": "medium",
+      "description": "Framed for video games: guess the title from up to six screenshots.",
+      "tags": [
+        "screenshots"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "guessthe.game",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "harmonies",
+      "name": "Harmonies",
+      "url": "https://harmonies.io/",
+      "category": "music",
+      "difficulty": "medium",
+      "description": "Connections for music: group 16 songs into four categories.",
+      "tags": [
+        "grouping",
+        "songs"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "harmonies.io",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "heardle-decades",
+      "name": "Heardle Decades",
+      "url": "https://heardledecades.com/",
+      "category": "music",
+      "difficulty": "medium",
+      "description": "Community-run Heardle successors: guess the song from its opening seconds, by decade.",
+      "tags": [
+        "audio",
+        "songs",
+        "heardle"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "heardledecades.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "hexcodle",
+      "name": "Hexcodle",
+      "url": "https://hexcodle.com/",
+      "category": "visual",
+      "difficulty": "hard",
+      "description": "Guess the hex colour code of the shown colour.",
+      "tags": [
+        "colors",
+        "hex"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "hexcodle.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "immaculate-footy",
+      "name": "Immaculate Footy",
+      "url": "https://www.immaculatefooty.com/",
+      "category": "sports",
+      "difficulty": "hard",
+      "description": "Immaculate Grid for football (soccer).",
+      "tags": [
+        "grid",
+        "soccer",
+        "bot-walled"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "immaculatefooty.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "immaculate-grid",
+      "name": "Immaculate Grid",
+      "url": "https://www.sports-reference.com/immaculate-grid/",
+      "category": "sports",
+      "difficulty": "hard",
+      "description": "Fill a 3x3 grid with players matching team and achievement criteria; baseball, football, basketball and hockey editions (Sports Reference).",
+      "tags": [
+        "grid",
+        "baseball",
+        "nfl",
+        "nba",
+        "nhl",
+        "bot-walled"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "sports-reference.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "jumblie",
+      "name": "Jumblie",
+      "url": "https://jumblie.com/",
+      "category": "words",
+      "difficulty": "easy",
+      "description": "Find four themed words hidden in a jumble of letters.",
+      "tags": [
+        "word-search",
+        "themed"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "jumblie.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "keyword",
+      "name": "Keyword",
+      "url": "https://www.washingtonpost.com/games/keyword/",
+      "category": "words",
+      "difficulty": "medium",
+      "description": "Find the target word by guessing the final letter of six vertical words (Washington Post).",
+      "tags": [
+        "washington-post",
+        "letter-reveal",
+        "unverified-live"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "washingtonpost.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "kilordle",
+      "name": "Kilordle",
+      "url": "https://jonesnxt.github.io/kilordle/",
+      "category": "words",
+      "difficulty": "hard",
+      "description": "One thousand Wordle boards at once; a marathon rather than a puzzle.",
+      "tags": [
+        "wordle-like",
+        "multi-board",
+        "marathon"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "jonesnxt.github.io",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "la-palabra-del-dia",
+      "name": "La palabra del día",
+      "url": "https://lapalabradeldia.com/",
+      "category": "words",
+      "difficulty": "easy",
+      "description": "Wordle in Spanish: guess the daily five-letter Spanish word in six tries.",
+      "tags": [
+        "wordle-like",
+        "spanish",
+        "non-english"
+      ],
+      "language": "es",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "lapalabradeldia.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "le-mot",
+      "name": "Le Mot",
+      "url": "https://wordle.louan.me/",
+      "category": "words",
+      "difficulty": "easy",
+      "description": "Wordle in French: guess the daily French word in six tries.",
+      "tags": [
+        "wordle-like",
+        "french",
+        "non-english"
+      ],
+      "language": "fr",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "louan.me",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "lingule",
+      "name": "Lingule",
+      "url": "https://lingule.xyz/",
+      "category": "trivia",
+      "difficulty": "medium",
+      "description": "Guess the language from a sample sentence, with geographic hints.",
+      "tags": [
+        "languages",
+        "geography"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "lingule.xyz",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "linkedin-pinpoint",
+      "name": "Pinpoint",
+      "url": "https://www.linkedin.com/games/pinpoint/",
+      "category": "words",
+      "difficulty": "easy",
+      "description": "Guess the category that links five words revealed one at a time (LinkedIn).",
+      "tags": [
+        "linkedin",
+        "grouping",
+        "account-for-streaks"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "linkedin.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "linkedin-queens",
+      "name": "Queens",
+      "url": "https://www.linkedin.com/games/queens/",
+      "category": "numbers-logic",
+      "difficulty": "medium",
+      "description": "Place one crown per row, column and colour region with no two touching (LinkedIn).",
+      "tags": [
+        "linkedin",
+        "logic",
+        "account-for-streaks"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "linkedin.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "loldle",
+      "name": "LoLdle",
+      "url": "https://loldle.net/",
+      "category": "video-games",
+      "difficulty": "medium",
+      "description": "Guess the League of Legends champion from attributes, quotes, abilities, emoji or splash art.",
+      "tags": [
+        "league-of-legends",
+        "fan-made",
+        "multi-mode"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "loldle.net",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "lyricle",
+      "name": "Lyricle",
+      "url": "https://www.lyricle.app/",
+      "category": "music",
+      "difficulty": "medium",
+      "description": "Guess the song from lyrics revealed one line at a time.",
+      "tags": [
+        "lyrics",
+        "songs"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "lyricle.app",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "mathler",
+      "name": "Mathler",
+      "url": "https://www.mathler.com/",
+      "category": "numbers-logic",
+      "difficulty": "medium",
+      "description": "Find the hidden calculation that equals the given number.",
+      "tags": [
+        "math",
+        "wordle-like"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "mathler.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "metaflora",
+      "name": "Metaflora",
+      "url": "https://flora.metazooa.com/",
+      "category": "trivia",
+      "difficulty": "hard",
+      "description": "Metazooa for plants: guess the mystery plant from its place on the tree of life.",
+      "tags": [
+        "nature",
+        "taxonomy",
+        "plants"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "metazooa.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "metazooa",
+      "name": "Metazooa",
+      "url": "https://metazooa.com/",
+      "category": "trivia",
+      "difficulty": "medium",
+      "description": "Guess the mystery animal; each guess shows where it sits on the tree of life relative to the answer.",
+      "tags": [
+        "nature",
+        "taxonomy",
+        "animals"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "metazooa.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "minute-cryptic",
+      "name": "Minute Cryptic",
+      "url": "https://www.minutecryptic.com/",
+      "category": "words",
+      "difficulty": "medium",
+      "description": "One cryptic crossword clue per day with a video explanation.",
+      "tags": [
+        "cryptic",
+        "crossword"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "minutecryptic.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "movie-grid",
+      "name": "Movie Grid",
+      "url": "https://moviegrid.io/",
+      "category": "movies-tv",
+      "difficulty": "hard",
+      "description": "Independent Immaculate-Grid-style movie trivia grid.",
+      "tags": [
+        "grid",
+        "movies"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "moviegrid.io",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "moviedle",
+      "name": "Moviedle",
+      "url": "https://moviedle.xyz/",
+      "category": "movies-tv",
+      "difficulty": "medium",
+      "description": "Guess the movie from its cast, revealed one actor at a time.",
+      "tags": [
+        "movies",
+        "cast"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "moviedle.xyz",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "murdle",
+      "name": "Murdle",
+      "url": "https://murdle.com/",
+      "category": "numbers-logic",
+      "difficulty": "medium",
+      "description": "Daily whodunit logic puzzle by G. T. Karber: deduce suspect, weapon and location.",
+      "tags": [
+        "deduction",
+        "mystery"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "murdle.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "narutodle",
+      "name": "Narutodle",
+      "url": "https://narutodle.net/",
+      "category": "movies-tv",
+      "difficulty": "medium",
+      "description": "Guess the Naruto character from attribute hints.",
+      "tags": [
+        "anime",
+        "fan-made"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "narutodle.net",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "nerdle",
+      "name": "Nerdle",
+      "url": "https://nerdlegame.com/",
+      "category": "numbers-logic",
+      "difficulty": "medium",
+      "description": "Wordle with equations: find the eight-character calculation in six tries.",
+      "tags": [
+        "math",
+        "wordle-like"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "nerdlegame.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "numble",
+      "name": "Numble",
+      "url": "https://numble.wtf/",
+      "category": "numbers-logic",
+      "difficulty": "medium",
+      "description": "Reach the target number using six given numbers and basic operators.",
+      "tags": [
+        "math",
+        "arithmetic"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "numble.wtf",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "nyt-connections",
+      "name": "Connections",
+      "url": "https://www.nytimes.com/games/connections",
+      "category": "words",
+      "difficulty": "medium",
+      "description": "Group 16 words into four hidden categories with at most four mistakes.",
+      "tags": [
+        "nyt",
+        "grouping"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "nytimes.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "nyt-letter-boxed",
+      "name": "Letter Boxed",
+      "url": "https://www.nytimes.com/puzzles/letter-boxed",
+      "category": "words",
+      "difficulty": "medium",
+      "description": "Chain words around a square of twelve letters, never using two letters from the same side in a row.",
+      "tags": [
+        "nyt",
+        "word-chain"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "nytimes.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "nyt-mini-crossword",
+      "name": "The Mini Crossword",
+      "url": "https://www.nytimes.com/crosswords/game/mini",
+      "category": "words",
+      "difficulty": "easy",
+      "description": "A 5x5 crossword meant to be solved in a minute or two.",
+      "tags": [
+        "nyt",
+        "crossword"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "nytimes.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "nyt-pips",
+      "name": "Pips",
+      "url": "https://www.nytimes.com/games/pips",
+      "category": "numbers-logic",
+      "difficulty": "medium",
+      "description": "Place dominoes on a board so each region satisfies its numeric rule; NYT's 2025 logic game.",
+      "tags": [
+        "nyt",
+        "dominoes",
+        "logic"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "nytimes.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "nyt-spelling-bee",
+      "name": "Spelling Bee",
+      "url": "https://www.nytimes.com/puzzles/spelling-bee",
+      "category": "words",
+      "difficulty": "hard",
+      "description": "Make as many words as possible from seven letters, always using the centre letter.",
+      "tags": [
+        "nyt",
+        "anagram",
+        "subscription-limited"
+      ],
+      "language": "en",
+      "free_no_account": false,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "nytimes.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "nyt-strands",
+      "name": "Strands",
+      "url": "https://www.nytimes.com/games/strands",
+      "category": "words",
+      "difficulty": "easy",
+      "description": "Themed word search where every letter is used exactly once, with a spangram spanning the board.",
+      "tags": [
+        "nyt",
+        "word-search"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "nytimes.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "nyt-sudoku",
+      "name": "NYT Sudoku",
+      "url": "https://www.nytimes.com/puzzles/sudoku",
+      "category": "numbers-logic",
+      "difficulty": "medium",
+      "description": "Daily sudoku at easy, medium and hard levels.",
+      "tags": [
+        "nyt",
+        "sudoku"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "nytimes.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "nyt-tiles",
+      "name": "Tiles",
+      "url": "https://www.nytimes.com/puzzles/tiles",
+      "category": "visual",
+      "difficulty": "easy",
+      "description": "Match layered patterns on tiles to clear the board in one long combo.",
+      "tags": [
+        "nyt",
+        "matching",
+        "relaxing"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "nytimes.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "octordle",
+      "name": "Octordle",
+      "url": "https://www.merriam-webster.com/games/octordle/",
+      "category": "words",
+      "difficulty": "hard",
+      "description": "Eight simultaneous Wordle boards solved with thirteen shared guesses.",
+      "tags": [
+        "merriam-webster",
+        "wordle-like",
+        "multi-board"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "merriam-webster.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "onepiecedle",
+      "name": "Onepiecedle",
+      "url": "https://onepiecedle.net/",
+      "category": "movies-tv",
+      "difficulty": "medium",
+      "description": "Guess the One Piece character from attribute hints.",
+      "tags": [
+        "anime",
+        "fan-made"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "onepiecedle.net",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "pedantle",
+      "name": "Pedantle",
+      "url": "https://pedantle.certitudes.org/",
+      "category": "words",
+      "difficulty": "hard",
+      "description": "English sibling of the French pedantix: reveal a redacted Wikipedia page by guessing words, with semantic hints.",
+      "tags": [
+        "wikipedia",
+        "redaction",
+        "semantic"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "certitudes.org",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "phrazle",
+      "name": "Phrazle",
+      "url": "https://solitaired.com/phrazle",
+      "category": "words",
+      "difficulty": "medium",
+      "description": "Wordle for whole phrases; two puzzles a day.",
+      "tags": [
+        "wordle-like",
+        "phrases"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "solitaired.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "plotwords",
+      "name": "Plotwords",
+      "url": "https://plotwords.com/",
+      "category": "movies-tv",
+      "difficulty": "medium",
+      "description": "Guess the movie from plot keywords revealed one by one.",
+      "tags": [
+        "movies",
+        "keywords"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "plotwords.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "poeltl",
+      "name": "Poeltl",
+      "url": "https://poeltl.nbpa.com/",
+      "category": "sports",
+      "difficulty": "medium",
+      "description": "Guess the NBA player from team, conference, position, height, age and number hints (NBPA).",
+      "tags": [
+        "nba",
+        "basketball"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "nbpa.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "pokedle",
+      "name": "Pokédle",
+      "url": "https://pokedle.net/",
+      "category": "video-games",
+      "difficulty": "medium",
+      "description": "Guess the Pokémon from attribute hints, silhouettes, cries or descriptions; multiple modes.",
+      "tags": [
+        "pokemon",
+        "fan-made",
+        "multi-mode"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "pokedle.net",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "pokedoku",
+      "name": "PokeDoku",
+      "url": "https://pokedoku.com/",
+      "category": "video-games",
+      "difficulty": "hard",
+      "description": "3x3 grid where each cell needs a Pokémon matching two criteria.",
+      "tags": [
+        "pokemon",
+        "grid",
+        "fan-made"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "pokedoku.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "primel",
+      "name": "Primel",
+      "url": "https://converged.yt/primel/",
+      "category": "numbers-logic",
+      "difficulty": "hard",
+      "description": "Wordle for five-digit prime numbers.",
+      "tags": [
+        "math",
+        "primes",
+        "wordle-like"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "converged.yt",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "puzzgrid",
+      "name": "PuzzGrid",
+      "url": "https://puzzgrid.com/",
+      "category": "trivia",
+      "difficulty": "medium",
+      "description": "User-made Only Connect-style walls; endless rather than one-a-day.",
+      "tags": [
+        "grouping",
+        "user-generated",
+        "not-daily"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "puzzgrid.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "puzzmo",
+      "name": "Puzzmo",
+      "url": "https://www.puzzmo.com/",
+      "category": "words",
+      "difficulty": "medium",
+      "description": "Daily puzzle hub (Crossword, SpellTower, Typeshift, Really Bad Chess, Pile-Up Poker and more) by Zach Gage.",
+      "tags": [
+        "hub",
+        "crossword",
+        "multi-game",
+        "account-optional"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "puzzmo.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "quordle",
+      "name": "Quordle",
+      "url": "https://www.merriam-webster.com/games/quordle/",
+      "category": "words",
+      "difficulty": "hard",
+      "description": "Solve four Wordle boards at once with nine shared guesses.",
+      "tags": [
+        "merriam-webster",
+        "wordle-like",
+        "multi-board"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "merriam-webster.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "rankdle",
+      "name": "Rankdle",
+      "url": "https://rankdle.com/",
+      "category": "video-games",
+      "difficulty": "medium",
+      "description": "Watch a gameplay clip and guess the player's competitive rank.",
+      "tags": [
+        "esports",
+        "clips"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "rankdle.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "redactle",
+      "name": "Redactle",
+      "url": "https://redactle.net/",
+      "category": "words",
+      "difficulty": "hard",
+      "description": "Un-redact a Wikipedia article one guessed word at a time to identify its title.",
+      "tags": [
+        "wikipedia",
+        "redaction"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "redactle.net",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "scrandle",
+      "name": "Scrandle",
+      "url": "https://scrandle.com/",
+      "category": "food",
+      "difficulty": "easy",
+      "description": "Daily food-comparison game: pick which 'scran' (stadium food) is rated higher by the crowd.",
+      "tags": [
+        "comparison",
+        "uk",
+        "higher-lower"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "scrandle.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "sedecordle",
+      "name": "Sedecordle",
+      "url": "https://sedecordle.com/",
+      "category": "words",
+      "difficulty": "hard",
+      "description": "Sixteen Wordle boards at once, solved with 21 shared guesses.",
+      "tags": [
+        "wordle-like",
+        "multi-board"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "sedecordle.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "semantle",
+      "name": "Semantle",
+      "url": "https://semantle.com/",
+      "category": "words",
+      "difficulty": "hard",
+      "description": "Guess the secret word by semantic similarity scores from a word-embedding model.",
+      "tags": [
+        "semantic",
+        "word-embeddings"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "semantle.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "smashdle",
+      "name": "Smashdle",
+      "url": "https://smashdle.net/",
+      "category": "video-games",
+      "difficulty": "medium",
+      "description": "LoLdle-style guessing for Super Smash Bros. fighters.",
+      "tags": [
+        "smash-bros",
+        "fan-made"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "smashdle.net",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "songless",
+      "name": "Songless",
+      "url": "https://lessgames.com/songless",
+      "category": "music",
+      "difficulty": "medium",
+      "description": "Heardle-style: identify a song from a very short clip, with more time per skip.",
+      "tags": [
+        "audio",
+        "songs",
+        "heardle"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "lessgames.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "spotle",
+      "name": "Spotle",
+      "url": "https://spotle.io/",
+      "category": "music",
+      "difficulty": "medium",
+      "description": "Guess the artist from attribute hints (debut year, group size, genre, popularity).",
+      "tags": [
+        "artists",
+        "hints"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "spotle.io",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "squardle",
+      "name": "Squardle",
+      "url": "https://fubargames.se/squardle/",
+      "category": "words",
+      "difficulty": "hard",
+      "description": "Wordle in two dimensions: fill a 5x5 grid of six intersecting words.",
+      "tags": [
+        "wordle-like",
+        "grid"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "fubargames.se",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "squaredle",
+      "name": "Squaredle",
+      "url": "https://squaredle.app/",
+      "category": "words",
+      "difficulty": "medium",
+      "description": "Boggle-style daily word search: find every word by connecting adjacent letters.",
+      "tags": [
+        "word-search",
+        "boggle"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "squaredle.app",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "statele",
+      "name": "Statele",
+      "url": "https://statele.teuteuf.fr/",
+      "category": "geography",
+      "difficulty": "medium",
+      "description": "Worldle for US states: identify a state from its silhouette, with distance and direction hints.",
+      "tags": [
+        "teuteuf",
+        "usa",
+        "silhouette"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "teuteuf.fr",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "summle",
+      "name": "Summle",
+      "url": "https://summle.net/",
+      "category": "numbers-logic",
+      "difficulty": "medium",
+      "description": "Combine given numbers with arithmetic to hit a target (Countdown-style).",
+      "tags": [
+        "math",
+        "arithmetic"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "summle.net",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "sumplete",
+      "name": "Sumplete",
+      "url": "https://sumplete.com/",
+      "category": "numbers-logic",
+      "difficulty": "easy",
+      "description": "Delete numbers from a grid so each row and column sums to its target.",
+      "tags": [
+        "math",
+        "grid",
+        "logic"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "sumplete.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "sutom",
+      "name": "SUTOM",
+      "url": "https://sutom.nocle.fr/",
+      "category": "words",
+      "difficulty": "medium",
+      "description": "French Motus-style daily word game with the first letter given.",
+      "tags": [
+        "wordle-like",
+        "french",
+        "non-english"
+      ],
+      "language": "fr",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "nocle.fr",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "termo",
+      "name": "Termo",
+      "url": "https://term.ooo/",
+      "category": "words",
+      "difficulty": "easy",
+      "description": "Brazilian Portuguese Wordle, with dueto/quarteto multi-board modes.",
+      "tags": [
+        "wordle-like",
+        "portuguese",
+        "non-english"
+      ],
+      "language": "pt-BR",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "term.ooo",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "thrice",
+      "name": "Thrice",
+      "url": "https://thrice.geekswhodrink.com/",
+      "category": "trivia",
+      "difficulty": "medium",
+      "description": "Pub-quiz style: each answer has three progressively easier clues (Geeks Who Drink).",
+      "tags": [
+        "quiz",
+        "clues"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "geekswhodrink.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "timeguessr",
+      "name": "TimeGuessr",
+      "url": "https://timeguessr.com/",
+      "category": "visual",
+      "difficulty": "medium",
+      "description": "Guess the year and location of five historical photos.",
+      "tags": [
+        "photos",
+        "history",
+        "geography"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "timeguessr.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "tradle",
+      "name": "OEC Tradle",
+      "url": "https://games.oec.world/en/tradle/",
+      "category": "geography",
+      "difficulty": "hard",
+      "description": "Guess the country from a treemap of its exports (Observatory of Economic Complexity).",
+      "tags": [
+        "economics",
+        "countries",
+        "oec"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "oec.world",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "travle",
+      "name": "Travle",
+      "url": "https://travle.earth/",
+      "category": "geography",
+      "difficulty": "medium",
+      "description": "Get from one country to another in as few bordering-country guesses as possible.",
+      "tags": [
+        "countries",
+        "borders",
+        "pathfinding"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "travle.earth",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "twofer-goofer",
+      "name": "Twofer Goofer",
+      "url": "https://www.merriam-webster.com/games/twofer-goofer",
+      "category": "words",
+      "difficulty": "easy",
+      "description": "Guess a rhyming two-word phrase from a clue.",
+      "tags": [
+        "merriam-webster",
+        "rhymes"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "merriam-webster.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "waffle",
+      "name": "Waffle",
+      "url": "https://wafflegame.net/",
+      "category": "words",
+      "difficulty": "medium",
+      "description": "Swap letters on a waffle-shaped grid to form six words in 15 swaps or fewer.",
+      "tags": [
+        "swap",
+        "grid"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "wafflegame.net",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "weaver",
+      "name": "Weaver",
+      "url": "https://wordwormdormdork.com/",
+      "category": "words",
+      "difficulty": "easy",
+      "description": "Word ladder: change one letter at a time to get from the start word to the end word.",
+      "tags": [
+        "word-ladder"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "wordwormdormdork.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "weddle",
+      "name": "Weddle",
+      "url": "https://www.weddlegame.com/",
+      "category": "sports",
+      "difficulty": "medium",
+      "description": "Poeltl for the NFL: guess the player from team, position and other attribute hints.",
+      "tags": [
+        "nfl",
+        "american-football"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "weddlegame.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "whentaken",
+      "name": "WhenTaken",
+      "url": "https://whentaken.com/",
+      "category": "visual",
+      "difficulty": "medium",
+      "description": "Guess when and where a photo was taken (teuteuf).",
+      "tags": [
+        "teuteuf",
+        "photos",
+        "history",
+        "geography"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "whentaken.com",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "wheredle",
+      "name": "Wheredle",
+      "url": "https://wheredle.xyz/",
+      "category": "geography",
+      "difficulty": "hard",
+      "description": "Detective-style Street View game: find clues to guess which US state you are in.",
+      "tags": [
+        "street-view",
+        "usa"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "wheredle.xyz",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "wheretaken",
+      "name": "WhereTaken",
+      "url": "https://wheretaken.teuteuf.fr/",
+      "category": "geography",
+      "difficulty": "medium",
+      "description": "Guess the country where a photo was taken, with distance and direction hints.",
+      "tags": [
+        "teuteuf",
+        "photos",
+        "countries"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "teuteuf.fr",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "woordle",
+      "name": "Woordle",
+      "url": "https://woordle.nl/",
+      "category": "words",
+      "difficulty": "easy",
+      "description": "Dutch daily word game in the Wordle mould.",
+      "tags": [
+        "wordle-like",
+        "dutch",
+        "non-english"
+      ],
+      "language": "nl",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "woordle.nl",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "word-peaks",
+      "name": "Word Peaks",
+      "url": "https://vegeta897.github.io/word-peaks/",
+      "category": "words",
+      "difficulty": "medium",
+      "description": "Wordle variant where tiles show whether each letter is alphabetically higher or lower.",
+      "tags": [
+        "wordle-like",
+        "alphabetical"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "vegeta897.github.io",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "wordle",
+      "name": "Wordle",
+      "url": "https://www.nytimes.com/games/wordle/index.html",
+      "category": "words",
+      "difficulty": "easy",
+      "description": "Guess the five-letter word in six tries; the game that started the -dle wave.",
+      "tags": [
+        "nyt",
+        "wordle-like",
+        "five-letter"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "nytimes.com",
+      "wikipedia": "Wordle",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "worldle",
+      "name": "Worldle",
+      "url": "https://worldle.teuteuf.fr/",
+      "category": "geography",
+      "difficulty": "easy",
+      "description": "Identify a country from its silhouette, with distance and direction hints.",
+      "tags": [
+        "teuteuf",
+        "countries",
+        "silhouette"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "teuteuf.fr",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "xordle",
+      "name": "Xordle",
+      "url": "https://xordle.org/",
+      "category": "words",
+      "difficulty": "hard",
+      "description": "Two secret words share one board and one set of colour clues.",
+      "tags": [
+        "wordle-like",
+        "deduction"
+      ],
+      "language": "en",
+      "free_no_account": true,
+      "added": "2026-10-15",
+      "status": "active",
+      "domain": "xordle.org",
+      "history": [
+        {
+          "date": "2026-10-15",
+          "event": "added",
+          "note": "seed"
+        }
+      ]
+    }
+  ]
+}

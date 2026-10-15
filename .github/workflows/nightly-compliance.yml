@@ -1,0 +1,57 @@
+name: Nightly compliance
+
+# Checks that can go stale without a code change: new Dependabot alerts, new
+# advisories against the CI scripts' pinned Python packages, the GNOME runtime
+# reaching end-of-life on Flathub, and the ACMM file layout Hive evaluates.
+# scripts/nightly-compliance.sh lists the checks; results land in the run's job
+# summary and as the nightly-compliance artifact.
+
+on:
+  schedule:
+    - cron: '23 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compliance:
+    name: Nightly compliance
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # vulnerability-alerts: read lets the GITHUB_TOKEN list Dependabot alerts.
+    permissions:
+      contents: read
+      vulnerability-alerts: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      # The setup steps may fail without stopping the job: the script then reports the
+      # check that needed them as failed, and still runs every other check.
+      - name: Install script dependencies
+        continue-on-error: true
+        run: python -m pip install --require-hashes -r scripts/requirements.txt
+      - name: Install Flatpak and the Flathub remote
+        continue-on-error: true
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends flatpak
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+      - name: Run compliance checks
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/nightly-compliance.sh > nightly-compliance.md
+      - name: Publish job summary
+        if: always()
+        run: cat nightly-compliance.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload compliance report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: nightly-compliance
+          path: nightly-compliance.md

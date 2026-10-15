@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tim-van-oudheusden.github.io/Dailies/v1/schema/catalog.schema.json",
+  "title": "Dailies catalog",
+  "description": "data/v1/games.json: every daily game Dailies knows about, sorted by id. Apps ignore unknown fields.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schema_version", "generated_at", "games"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "games": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/game" },
+      "uniqueItems": true
+    }
+  },
+  "$defs": {
+    "game": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id", "name", "url", "category", "difficulty", "description", "added", "status", "domain"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{1,48}$",
+          "description": "Stable slug. Never reused, never renamed."
+        },
+        "name": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "url": { "type": "string", "format": "uri", "pattern": "^https://" },
+        "category": {
+          "enum": [
+            "words",
+            "geography",
+            "music",
+            "movies-tv",
+            "video-games",
+            "numbers-logic",
+            "trivia",
+            "visual",
+            "food",
+            "sports"
+          ]
+        },
+        "difficulty": { "enum": ["easy", "medium", "hard"] },
+        "description": { "type": "string", "minLength": 20, "maxLength": 300 },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+          "maxItems": 10,
+          "uniqueItems": true
+        },
+        "language": { "type": "string", "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]+)*$", "default": "en" },
+        "free_no_account": {
+          "type": "boolean",
+          "description": "True when the daily puzzle can be played in full without an account or subscription."
+        },
+        "added": { "type": "string", "format": "date" },
+        "status": {
+          "enum": ["active", "broken", "retired"],
+          "description": "Soft delete: apps hide broken/retired entries but keep favourites."
+        },
+        "icon": {
+          "type": "string",
+          "pattern": "^icons/[a-z0-9-]+\\.png$",
+          "description": "Path relative to the catalog base URL."
+        },
+        "icon_source": { "enum": ["site", "google", "duckduckgo", "manual", "none"] },
+        "aliases": { "type": "array", "items": { "type": "string" } },
+        "domain": {
+          "type": "string",
+          "pattern": "^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]{2,63}$",
+          "description": "Registrable domain of url (eTLD+1), used for popularity lookups and redirect checks."
+        },
+        "wikipedia": { "type": "string", "description": "en.wikipedia article title for pageview lookups, if any." },
+        "source_issue": { "type": "integer", "minimum": 1 },
+        "notes": { "type": "string", "maxLength": 300 },
+        "history": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/history_event" },
+          "description": "Append-only log of what happened to the entry, oldest first."
+        }
+      }
+    },
+    "history_event": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["date", "event"],
+      "properties": {
+        "date": { "type": "string", "format": "date" },
+        "event": {
+          "type": "string",
+          "pattern": "^[a-z][a-z-]*$",
+          "description": "What happened, e.g. added, broken, retired, restored, renamed, url-changed."
+        },
+        "note": { "type": "string", "maxLength": 300 }
+      }
+    }
+  }
+}

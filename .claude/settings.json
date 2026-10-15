@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(meson *)",
+      "Bash(ninja *)",
+      "Bash(pytest)",
+      "Bash(pytest *)",
+      "Bash(ruff *)",
+      "Bash(flatpak-builder *)",
+      "Bash(flatpak run *)",
+      "Bash(blueprint-compiler *)",
+      "Bash(git status)",
+      "Bash(git status *)",
+      "Bash(git diff)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)"
+    ],
+    "ask": [
+      "Edit(./scripts/requirements.txt)",
+      "Edit(./build-aux/flatpak/**)",
+      "Edit(./data/v1/schema/**)",
+      "Edit(./.github/workflows/**)",
+      "Bash(pip install *)",
+      "Bash(flatpak install *)",
+      "Bash(flatpak uninstall *)",
+      "Bash(flatpak override *)",
+      "Bash(git tag *)",
+      "Bash(git push * --tags)",
+      "Bash(git rebase *)",
+      "Bash(git reset *)",
+      "Bash(git clean *)",
+      "Bash(git branch -D *)",
+      "Bash(gh pr merge *)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./**/.env)",
+      "Read(./**/.env.*)",
+      "Read(./**/*.pem)",
+      "Read(./**/*.key)",
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(git push * --force)",
+      "Bash(git push * -f)",
+      "Bash(git commit --no-verify *)",
+      "Bash(git commit * --no-verify *)",
+      "Bash(git commit * --no-verify)",
+      "Bash(rm -rf /)",
+      "Bash(rm -rf ~)",
+      "Bash(rm -rf ~/*)",
+      "Bash(sudo *)"
+    ]
+  }
+}
