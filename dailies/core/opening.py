@@ -19,6 +19,8 @@ class Notice(Enum):
 
     # The custom command was chosen but cannot run (no host access, no command, or it failed to start).
     CUSTOM_UNAVAILABLE = "custom-unavailable"
+    # The game, or a pop-up it opened, went to the default browser: "Opened in your browser".
+    OPENED_EXTERNALLY = "opened-externally"
 
 
 class OpenMode(Enum):
@@ -90,8 +92,17 @@ def custom_command_argv(command: Sequence[str], url: str, *, in_flatpak: bool) -
 def notice(mode: OpenMode, resolved: OpenMode, *, custom_notice_shown: bool) -> Notice | None:
     """What to tell the user after a game set to open with `mode` opened as `resolved`.
 
-    A custom command that could not run is mentioned once per session (`custom_notice_shown`).
+    A custom command that could not run is mentioned once per session (`custom_notice_shown`); after that, or for any
+    other external open, the user is told the game went to their browser. A pop-up handed to the browser is
+    `notice(EXTERNAL, EXTERNAL, ...)`.
     """
     if mode is OpenMode.CUSTOM and resolved is not OpenMode.CUSTOM and not custom_notice_shown:
         return Notice.CUSTOM_UNAVAILABLE
+    if resolved is OpenMode.EXTERNAL:
+        return Notice.OPENED_EXTERNALLY
     return None
+
+
+def offers_open_here(resolved: OpenMode, *, have_webkit: bool) -> bool:
+    """Whether the toast after opening as `resolved` offers "Open Here": an external open, with a built-in browser."""
+    return resolved is OpenMode.EXTERNAL and have_webkit

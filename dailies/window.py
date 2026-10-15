@@ -1,3 +1,4 @@
+import functools
 import logging
 from datetime import UTC, datetime
 
@@ -65,6 +66,7 @@ class Window(Adw.ApplicationWindow):
         # "Custom command unavailable" is said once per session.
         self._custom_notice_shown = False
         self.navigation_view.connect("popped", self._on_popped)
+        self.navigation_view.connect("notify::visible-page", self._on_visible_page)
         for key, prop in (("width", "default-width"), ("height", "default-height"), ("is-maximized", "maximized")):
             state.bind(key, self, prop, Gio.SettingsBindFlags.DEFAULT)
 
@@ -112,22 +114,27 @@ class Window(Adw.ApplicationWindow):
             self._open_in_app(game.url)
         else:
             self.open_external(game.url)
-        self._notify_opened(how)
+        self._notify_opened(OpenMode.from_id(self._settings.get_string("open-mode")), how, game.url)
 
-    def _notify_opened(self, how: OpenMode) -> None:
-        mode = OpenMode.from_id(self._settings.get_string("open-mode"))
-        shown = self._custom_notice_shown
-        if opening.notice(mode, how, custom_notice_shown=shown) is opening.Notice.CUSTOM_UNAVAILABLE:
+    def _notify_opened(self, mode: OpenMode, how: OpenMode, url: str) -> None:
+        """Toast where a game set to open with `mode` went (`how`); after an external open, offer "Open Here"."""
+        notice = opening.notice(mode, how, custom_notice_shown=self._custom_notice_shown)
+        if notice is None:
+            return
+        if notice is opening.Notice.CUSTOM_UNAVAILABLE:
             self._custom_notice_shown = True
-            if how is OpenMode.IN_APP:
-                title = _("Custom command unavailable — opened in the built-in browser")
-            else:
-                title = _("Custom command unavailable — opened in your browser")
-            self.toast_overlay.add_toast(Adw.Toast(title=title))
+        open_here = None
+        if opening.offers_open_here(how, have_webkit=opener.have_webkit()):
+            open_here = functools.partial(self._open_in_app, url)
+        self.toast_overlay.add_toast(opener.opened_toast(notice, how, open_here=open_here))
 
     def open_external(self, url: str) -> None:
         """Open `url` in the host's default browser."""
         opener.launch_external(self, url)
+
+    def _hand_off_pop_up(self, url: str) -> None:
+        self.open_external(url)
+        self._notify_opened(OpenMode.EXTERNAL, OpenMode.EXTERNAL, url)
 
     def _open_in_app(self, url: str) -> None:
         # Imported here: it loads WebKit, which a cold start must not.
@@ -135,7 +142,11 @@ class Window(Adw.ApplicationWindow):
 
         self._state.set_boolean("first-run-banner-dismissed", True)
         if self._browser_page is None:
-            self._browser_page = BrowserPage(open_external=self.open_external, add_toast=self.toast_overlay.add_toast)
+            self._browser_page = BrowserPage(
+                open_external=self.open_external,
+                hand_off_pop_up=self._hand_off_pop_up,
+                add_toast=self.toast_overlay.add_toast,
+            )
             # Loaded before it is pushed, so the page already has a title when it is shown.
             self._browser_page.load(url)
             self.navigation_view.push(self._browser_page)
@@ -146,6 +157,13 @@ class Window(Adw.ApplicationWindow):
         if page is self._browser_page:
             self._browser_page = None
             page.close()
+
+    def _on_visible_page(self, view: Adw.NavigationView, _pspec: GObject.ParamSpec) -> None:
+        # Toasts about the library (an undo, a refresh) are stale once the user leaves it; a toast about the page
+        # just opened is added after it is pushed.
+        page = view.props.visible_page
+        if page is not None and page.props.tag != "library":
+            self.toast_overlay.dismiss_all()
 
     @Gtk.Template.Callback()
     def on_sidebar_activated(self, _sidebar: Adw.Sidebar, _index: int) -> None:

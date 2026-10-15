@@ -7,17 +7,19 @@ custom command is probed the first time the custom mode needs it, once per sessi
 import functools
 import importlib
 import logging
+from collections.abc import Callable
 from pathlib import Path
 
 import gi
 
 gi.require_version("Gtk", "4.0")
+gi.require_version("Adw", "1")
 
-from gi.repository import Gio, GLib, Gtk
+from gi.repository import Adw, Gio, GLib, Gtk
 
 from dailies import config
 from dailies.core import opening
-from dailies.core.opening import OpenMode
+from dailies.core.opening import Notice, OpenMode
 
 log = logging.getLogger(__name__)
 
@@ -124,6 +126,22 @@ def launch_custom(command: str, url: str) -> bool:
 
     process.wait_check_async(None, on_exited)
     return True
+
+
+def opened_toast(notice: Notice, how: OpenMode, *, open_here: Callable[[], None] | None) -> Adw.Toast:
+    """The toast for `notice` after a game opened as `how`; with `open_here`, it offers "Open Here" to call it."""
+    if notice is Notice.CUSTOM_UNAVAILABLE:
+        if how is OpenMode.IN_APP:
+            title = _("Custom command unavailable — opened in the built-in browser")
+        else:
+            title = _("Custom command unavailable — opened in your browser")
+    else:
+        title = _("Opened in your browser")
+    toast = Adw.Toast(title=title)
+    if open_here is not None:
+        toast.props.button_label = _("Open Here")
+        toast.connect("button-clicked", lambda _toast: open_here())
+    return toast
 
 
 def launch_external(parent: Gtk.Window | None, url: str) -> None:

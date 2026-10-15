@@ -54,6 +54,7 @@ from gi.repository import Adw
 Adw.init()
 Gio.resources_register(Gio.Resource.load(os.environ["DAILIES_GRESOURCE"]))
 
+from dailies.core.opening import Notice, OpenMode
 from dailies.ui import opener
 from dailies.ui.preferences import PreferencesDialog
 
@@ -109,6 +110,34 @@ class CustomCommandTest(unittest.TestCase):
         self.addCleanup(opener.host_access.cache_clear)
 
         assert opener.host_access()
+
+
+class OpenedToastTest(unittest.TestCase):
+    def test_an_external_open_says_so_and_open_here_brings_it_back(self) -> None:
+        brought_back: list[bool] = []
+
+        toast = opener.opened_toast(
+            Notice.OPENED_EXTERNALLY, OpenMode.EXTERNAL, open_here=lambda: brought_back.append(True)
+        )
+
+        assert toast.props.title == "Opened in your browser"
+        assert toast.props.button_label == "Open Here"
+        assert toast.props.timeout == 5
+        toast.emit("button-clicked")
+        assert brought_back == [True]
+
+    def test_without_a_built_in_browser_there_is_no_open_here(self) -> None:
+        toast = opener.opened_toast(Notice.OPENED_EXTERNALLY, OpenMode.EXTERNAL, open_here=None)
+
+        assert toast.props.button_label is None
+
+    def test_an_unavailable_custom_command_says_where_the_game_opened_instead(self) -> None:
+        in_app = opener.opened_toast(Notice.CUSTOM_UNAVAILABLE, OpenMode.IN_APP, open_here=None)
+        external = opener.opened_toast(Notice.CUSTOM_UNAVAILABLE, OpenMode.EXTERNAL, open_here=None)
+
+        assert in_app.props.title == "Custom command unavailable — opened in the built-in browser"
+        assert external.props.title == "Custom command unavailable — opened in your browser"
+        assert in_app.props.timeout == external.props.timeout == 5
 
 
 class PreferencesTest(unittest.TestCase):

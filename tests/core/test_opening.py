@@ -7,6 +7,7 @@ from dailies.core.opening import (
     custom_command_argv,
     host_access_granted,
     notice,
+    offers_open_here,
     resolve,
     show_first_run_banner,
     shown_choice,
@@ -142,10 +143,35 @@ def test_no_shell_is_put_in_front_of_the_command() -> None:
         (CUSTOM, IN_APP, False, Notice.CUSTOM_UNAVAILABLE),
         (CUSTOM, EXTERNAL, False, Notice.CUSTOM_UNAVAILABLE),
         (CUSTOM, IN_APP, True, None),
-        # The command ran, or custom was never chosen: nothing to say.
+        # Opened externally, by choice or because WebKit is missing: say where it went.
+        (EXTERNAL, EXTERNAL, False, Notice.OPENED_EXTERNALLY),
+        (IN_APP, EXTERNAL, False, Notice.OPENED_EXTERNALLY),
+        (CUSTOM, EXTERNAL, True, Notice.OPENED_EXTERNALLY),
+        # The command ran, or the game opened here: nothing to say.
         (CUSTOM, CUSTOM, False, None),
         (IN_APP, IN_APP, False, None),
     ],
 )
 def test_notice_after_opening(mode: OpenMode, resolved: OpenMode, shown: bool, expected: Notice | None) -> None:
     assert notice(mode, resolved, custom_notice_shown=shown) is expected
+
+
+def test_a_pop_up_handed_to_the_browser_says_where_it_went() -> None:
+    assert notice(EXTERNAL, EXTERNAL, custom_notice_shown=True) is Notice.OPENED_EXTERNALLY
+
+
+@pytest.mark.parametrize(
+    ("resolved", "have_webkit", "expected"),
+    [
+        # "Open Here" takes an externally opened game into the built-in browser, when there is one.
+        (EXTERNAL, True, True),
+        (EXTERNAL, False, False),
+        # Already here, or in the user's own command.
+        (IN_APP, True, False),
+        (CUSTOM, True, False),
+    ],
+)
+def test_open_here_is_offered_after_an_external_open_with_webkit(
+    resolved: OpenMode, have_webkit: bool, expected: bool
+) -> None:
+    assert offers_open_here(resolved, have_webkit=have_webkit) is expected
