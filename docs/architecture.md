@@ -179,8 +179,11 @@ else:
 - The built-in page is an `Adw.NavigationPage` with back, forward, reload and a title showing the page title and host.
   One `WebKit.NetworkSession` is shared by all games (sibling games share a login); cookies are stored persistently;
   TLS errors fail; downloads are cancelled and handed to the external browser; permission requests are denied; WebRTC
-  and `data:` top-level navigation are off; pop-ups load in the same view. There are no injected scripts or styles, no
-  ad blocking and no user-agent spoofing. One `WebView` lives at a time and is destroyed when its page is popped.
+  and `data:` top-level navigation are off; `target="_blank"` links load in the same view, while script pop-ups
+  (`window.open`) and unsupported file types go to the external browser. There are no injected scripts or styles, no
+  ad blocking and no user-agent spoofing. One `WebView` lives at a time, in a `WebKit.WebContext` of its own; when its
+  page is popped the view is closed and dropped with its context, which ends its web processes (the shared network
+  session stays). Ctrl+R reloads while the page is shown and refreshes the game list on the library.
 
 ## Data and release pipelines
 

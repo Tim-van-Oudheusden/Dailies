@@ -1,0 +1,97 @@
+using Gtk 4.0;
+using Adw 1;
+
+// The WebKit.WebView is created in Python: its network session is construct-only and shared by every page, and the
+// UI file must load without WebKit installed.
+template $DailiesBrowserPage: Adw.NavigationPage {
+  tag: "browser";
+  title: bind window_title.title;
+
+  Adw.ToolbarView {
+    [top]
+    Adw.HeaderBar {
+      [start]
+      Box {
+        spacing: 6;
+
+        Button {
+          icon-name: "go-previous-symbolic";
+          tooltip-text: _("Previous Page");
+          action-name: "browser.back";
+        }
+
+        Button {
+          icon-name: "go-next-symbolic";
+          tooltip-text: _("Next Page");
+          action-name: "browser.forward";
+        }
+
+        Button reload_button {
+          icon-name: "view-refresh-symbolic";
+          tooltip-text: _("Reload");
+          action-name: "browser.reload";
+        }
+
+        Button {
+          icon-name: "process-stop-symbolic";
+          tooltip-text: _("Stop");
+          action-name: "browser.stop";
+          visible: bind reload_button.visible inverted;
+        }
+      }
+
+      // The real host is always visible; clicking it (or Ctrl+L) shows the full address, selected for copying.
+      title-widget: MenuButton url_button {
+        tooltip-text: _("Show Address");
+
+        popover: Popover {
+          Entry url_entry {
+            editable: false;
+            width-chars: 40;
+
+            accessibility {
+              label: _("Page Address");
+            }
+          }
+        };
+
+        child: Adw.WindowTitle window_title {};
+
+        styles [
+          "flat",
+        ]
+      };
+
+      [end]
+      MenuButton {
+        icon-name: "view-more-symbolic";
+        tooltip-text: _("Page Menu");
+        menu-model: browser_menu;
+      }
+    }
+
+    content: Overlay overlay {
+      [overlay]
+      ProgressBar progress_bar {
+        valign: start;
+        can-target: false;
+        visible: false;
+
+        styles [
+          "osd",
+        ]
+      }
+    };
+  }
+}
+
+menu browser_menu {
+  section {
+    item (_("_Open in Browser"), "browser.open-external")
+    item (_("_Copy Link"), "browser.copy-link")
+  }
+
+  section {
+    item (_("C_lear Data for This Site"), "browser.clear-site-data")
+  }
+}

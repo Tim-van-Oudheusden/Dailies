@@ -35,6 +35,9 @@ class Window(Adw.ApplicationWindow):
 
     section = GObject.Property(type=str, default=sections.FAVORITES)
 
+    toast_overlay: Adw.ToastOverlay = Gtk.Template.Child()
+    navigation_view: Adw.NavigationView = Gtk.Template.Child()
+
     split_view: Adw.NavigationSplitView = Gtk.Template.Child()
     sidebar: Adw.Sidebar = Gtk.Template.Child()
     favorites_item: Adw.SidebarItem = Gtk.Template.Child()
@@ -47,7 +50,6 @@ class Window(Adw.ApplicationWindow):
     content_stack: Gtk.Stack = Gtk.Template.Child()
     grid_view: Gtk.GridView = Gtk.Template.Child()
     empty_section_page: Adw.StatusPage = Gtk.Template.Child()
-    toast_overlay: Adw.ToastOverlay = Gtk.Template.Child()
     search_bar: Gtk.SearchBar = Gtk.Template.Child()
     search_entry: Gtk.SearchEntry = Gtk.Template.Child()
     first_run_banner: Adw.Banner = Gtk.Template.Child()
@@ -57,6 +59,9 @@ class Window(Adw.ApplicationWindow):
         self._store = store
         self._state = state
         self._settings: Gio.Settings = application.settings
+        # The one live browser page (and so the one live web view), while it is pushed.
+        self._browser_page: Adw.NavigationPage | None = None
+        self.navigation_view.connect("popped", self._on_popped)
         for key, prop in (("width", "default-width"), ("height", "default-height"), ("is-maximized", "maximized")):
             state.bind(key, self, prop, Gio.SettingsBindFlags.DEFAULT)
 
@@ -93,12 +98,33 @@ class Window(Adw.ApplicationWindow):
         self.sidebar.connect("notify::selected-item", lambda sidebar, _pspec: self._show(sidebar.props.selected_item))
 
     def open_game(self, game: Game) -> None:
-        """Open `game` the way the `open-mode` setting says."""
-        self.open_external(game.url)
+        """Open `game` the way the `open-mode` setting says: in the built-in browser or the default browser."""
+        if opener.resolve(self._settings) is OpenMode.IN_APP:
+            self._open_in_app(game.url)
+        else:
+            self.open_external(game.url)
 
     def open_external(self, url: str) -> None:
         """Open `url` in the host's default browser."""
         opener.launch_external(self, url)
+
+    def _open_in_app(self, url: str) -> None:
+        # Imported here: it loads WebKit, which a cold start must not.
+        from dailies.ui.browser_page import BrowserPage
+
+        self._state.set_boolean("first-run-banner-dismissed", True)
+        if self._browser_page is None:
+            self._browser_page = BrowserPage(open_external=self.open_external, add_toast=self.toast_overlay.add_toast)
+            # Loaded before it is pushed, so the page already has a title when it is shown.
+            self._browser_page.load(url)
+            self.navigation_view.push(self._browser_page)
+        else:
+            self._browser_page.load(url)
+
+    def _on_popped(self, _view: Adw.NavigationView, page: Adw.NavigationPage) -> None:
+        if page is self._browser_page:
+            self._browser_page = None
+            page.close()
 
     @Gtk.Template.Callback()
     def on_sidebar_activated(self, _sidebar: Adw.Sidebar, _index: int) -> None:

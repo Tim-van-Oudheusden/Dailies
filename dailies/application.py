@@ -18,6 +18,7 @@ from dailies.core.cache import CacheDir
 from dailies.data.favorites import Favorites
 from dailies.data.fetcher import Fetcher
 from dailies.data.store import Store
+from dailies.ui import opener
 
 
 class Application(Adw.Application):
@@ -70,6 +71,14 @@ class Application(Adw.Application):
             GLib.timeout_add(500, self.quit)
             return
         self.store.refresh_all()
+
+    def do_shutdown(self) -> None:
+        """Clear the built-in browser's website data when the user asked for that on exit."""
+        if self.settings.get_boolean("clear-web-data-on-exit") and opener.have_webkit():
+            from dailies.ui import browser_page
+
+            browser_page.clear_all_blocking()
+        Adw.Application.do_shutdown(self)
 
 
 def _data_urls() -> list[str]:
