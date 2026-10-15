@@ -207,6 +207,32 @@ week's trend.
 | `domains_requested` | integer | no | Domains asked for |
 | `error` | string | no | What went wrong, when `ok` is `false` |
 
+### How `method_version: 1` is computed
+
+Two scripts produce the file; every number is deterministic, so the same inputs and `--now` give byte-identical
+output:
+
+```sh
+python -I scripts/popularity/collect.py --catalog data/v1/games.json --out raw/
+python -I scripts/popularity/compute.py --catalog data/v1/games.json --raw raw/ \
+    --out data/v1/popularity.json --summary summary.json
+```
+
+- `collect.py` asks Tranco once per distinct `domain` of the active games (1 request per second, one retry on a 5xx
+  answer, up to three on a 429; about two minutes for the seed catalog) and writes `raw/tranco.json` with each
+  domain's daily ranks and the source's health.
+- `compute.py` scores each domain `clamp(1 − (log10(rank) − 2) / 4.5, 0, 1)` on the mean of its last seven daily
+  ranks (no rank scores 0). Games sharing a domain split that score equally, unless the optional
+  `data/v1/domain_weights.json` (`{"nytimes.com": {"wordle": 0.4, …}}`) sets their shares; the script rejects that file
+  unless each domain's weights are numbers that sum to 1 and name existing games on that domain. A game whose domain
+  could not be fetched keeps last week's `popularity` (`reason: "carried_forward"`). `trend` and `history` come from the
+  previous `popularity.json` (`--previous`, by default the `--out` file).
+- Shelves hold `N = max(5, min(12, 10 % of active games))` items. Popular is sorted by `popularity`, ties by `id`.
+  Trending takes games with `trend > 0.02` outside the top five Popular, sorted by `trend` (which is also their
+  `score`); with fewer than three, the newest games fill it to three with `reason: "new"` and `score: 0`.
+- If Tranco failed for more than 20 % of the domains, `compute.py` exits 1 and writes nothing. It also writes
+  `summary.json` (shelves with names, top movers, source health), the input for the weekly report.
+
 ## Rules beyond the schemas
 
 `tests/data/test_catalog_file.py` enforces these on every pull request:
