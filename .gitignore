@@ -42,3 +42,7 @@ worktrees/
 
 # Claude Code personal settings (project settings in .claude/settings.json are tracked)
 .claude/settings.local.json
+
+# Local quality report output (scripts/quality-report.sh, scripts/auto-qa-tuner.sh)
+quality-report.md
+floor-tuning.md

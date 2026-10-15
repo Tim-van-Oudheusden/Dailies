@@ -6,7 +6,7 @@ How Dailies' tests and quality checks run, and where each one can run.
 
 | Layer | What | Where it runs | Gate |
 | --- | --- | --- | --- |
-| Unit (pure Python) | `tests/core/`: catalog parsing, including tolerance of an unknown category or status; popularity parsing and staleness; search folding. `tests/scripts/`: the submission validator (with fixtures for dead and hijacked domains), the popularity computation on synthetic ranking data, the shared-domain split, the fail-closed threshold, the link checker | `ubuntu-latest`, plain pytest, seconds | `Build, lint, test`; coverage floors on `dailies/core` and `scripts` |
+| Unit (pure Python) | `tests/core/`: catalog parsing, including tolerance of an unknown category or status; popularity parsing and staleness; search folding. `tests/scripts/`: the submission validator (with fixtures for dead and hijacked domains), the popularity computation on synthetic ranking data, the shared-domain split, the fail-closed threshold, the link checker; the CI scripts (coverage gate, quality report, floor tuner, PR metrics, review-suggestion applier, nightly compliance) run against fixtures and stub tools | `ubuntu-latest`, plain pytest, seconds | `Build, lint, test`; coverage floors on `dailies/core` and `scripts` |
 | Data | `tests/data/test_catalog_file.py`: schema, sorted unique ids, unique normalised URLs, every `domain` matches its `url`, enum membership, every id in `popularity.json` exists in the catalog | same | `Build, lint, test` |
 | Tooling | `tests/tooling/test_workflows.py` (PyYAML): top-level and per-job permissions, `timeout-minutes` on every job, actions pinned to 40-hex SHAs with version comments, no `${{ github.event.* }}` in `run:`, `pull_request_target` only in `labeler.yml` and without a checkout, labeler and risk-tier policy parity, every `data/v1/*.json` published by `pages.yml` | same | `Build, lint, test` |
 | Build validation | Meson tests: `desktop-file-validate`, `appstreamcli validate --no-net --explain`, `glib-compile-schemas --strict --dry-run`, and the Blueprint compile of every `.blp` (a syntax error fails the build) | inside `flatpak-builder --run-tests` | `Flatpak (x86_64)` |
@@ -83,11 +83,14 @@ scripts/coverage-check.sh coverage.xml .github/auto-qa-tuning.json
 
 `.github/workflows/quality-report.yml` (job **Quality report**: every push to `main`, weekly on Monday at 06:17 UTC,
 and on demand) runs `scripts/quality-report.sh > quality-report.md`. The script runs each gate of `Build, lint, test`
-separately (`ruff check`, `ruff format --check`, `pytest`, `check-jsonschema`), then the coverage run for every module
-in `.github/auto-qa-tuning.json`, and prints a Markdown report: pass/fail per gate and line and branch coverage per group. Every gate
-and coverage run happens even when an earlier one fails. A module whose coverage run fails, or leaves no report, shows
-`❌ n/a`; a report left by an earlier run is deleted first, so it never stands in for the current run. Tool output goes
-to stderr. The script exits 1 if anything failed, 2 if the floors file lists no module.
+separately (`ruff check`, `ruff format --check`, `pytest`, `check-jsonschema` on each data file), then one coverage run
+(`pytest --cov=dailies/core --cov=scripts --cov-report=xml`) whose Cobertura report, read through
+`scripts/lib/coverage.sh`, gives every module in `.github/auto-qa-tuning.json`, and prints a Markdown report: pass/fail
+per gate and line and branch coverage per group. Every gate and the coverage run happen even when an earlier one fails.
+If the coverage run fails, or leaves no report, every module shows `❌ n/a`; a report left by an earlier run is deleted
+first, so it never stands in for the current run. A module with no measured lines shows `no code yet`, and one with
+lines but no branches shows `no branches` for them; neither fails the report. Tool output goes to stderr. The script
+exits 1 if anything failed, 2 if the floors file lists no module.
 
 The workflow appends the floor tuning below (even when a gate failed), publishes the result to the job summary and
 uploads it as the `quality-report` artifact. Run it locally:
@@ -99,12 +102,13 @@ scripts/quality-report.sh > quality-report.md
 ## Coverage floor self-tuning
 
 `scripts/auto-qa-tuner.sh --report quality-report.md [--config .github/auto-qa-tuning.json] [--write]` reads the
-coverage rows of a quality report and proposes, per module, the floor raised to the observed coverage minus the
-config's `margin` (in percentage points), rounded down to a whole percent. Floors only ratchet up: a proposal below the
-current floor keeps the floor, and a module reported as `n/a` keeps its floor. It prints the proposals as a Markdown
-table (`⬆️` marks a raise); `--write` saves them to the config, keeping every other key. It exits 2 for a missing report
-or a malformed config (a floor outside 0–100, a negative or missing margin, no modules) and then leaves the config
-untouched.
+coverage rows of a quality report and proposes, per module and metric (lines, branches), the floor raised to the
+observed coverage minus the config's `margin` (in percentage points), rounded down to a whole percent; coverage of
+exactly floor + margin proposes no change. Floors only ratchet up: a proposal below the current floor keeps the floor
+(a fractional floor is never rounded down), and a metric reported without a percentage (`n/a`, `no code yet`,
+`no branches`) keeps its floor. It prints the proposals as a Markdown table (`⬆️` marks a raise); `--write` saves them
+to the config, keeping every other key. It exits 2 for a missing report or a malformed config (a floor outside 0–100, a
+negative or missing margin, no modules) and then leaves the config untouched.
 
 The quality report workflow runs it with `--write` and uploads the tuned file as the `auto-qa-tuning` artifact. Nothing
 is committed automatically: to adopt the proposal, download the artifact, review the diff and commit it in a PR.
