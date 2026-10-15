@@ -1,3 +1,5 @@
+subdir('icons')
+
 blueprints = custom_target(
   'blueprints',
   input: files('ui/window.blp'),

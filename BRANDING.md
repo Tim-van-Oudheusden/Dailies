@@ -46,14 +46,14 @@ clone of any game, and not affiliated with any game's publisher.
   [app icon guidelines](https://developer.gnome.org/hig/guidelines/app-icons.html) for shape, perspective and detail.
 - **Icon ("Daily Grid"):** a tear-off desk-calendar card whose page is a guessing game's feedback grid, so it shows the
   name (a daily page) and the purpose (guessing games) in one object. Square base shape on the HIG grid: a header band
-  in Blue 3 `#3584e4` with a Blue 4 `#1c71d8` edge, two binder rings in Dark 2 `#5e5c64`, the page in Light 2 `#f6f5f4`
-  over a Light 4 `#c0bfbc` chin. On the page, a 3×2 grid of tiles: the solved row Blue 4 `#1c71d8`, Orange 3 `#ff7800`,
-  Blue 4; the unsolved row Light 3 `#deddda` ×3, today's game still to play. Blue and orange rather than green and
-  yellow keep the icon clear of Wordle's trade dress; the grid stays 3×2 and is never drawn as 5×6. No letters, no
-  outer shadow, no clip paths, masks or filters.
-- **Symbolic icon:** the header bar and the 2×3 tiles at 16 px.
-- **Devel icon and window:** the Devel build uses the striped icon that App Icon Preview generates and libadwaita's
-  striped `.devel` header bar.
+  in Blue 3 `#3584e4` with a Blue 4 `#1c71d8` edge, two binder rings in Dark 2 `#5e5c64` (shaded from Dark 1 to Dark 3
+  across their curve), the page in Light 2 `#f6f5f4` over a Light 4 `#c0bfbc` chin. On the page, a 3×2 grid of tiles:
+  the solved row Blue 4 `#1c71d8`, Orange 3 `#ff7800`, Blue 4; the unsolved row Light 3 `#deddda` ×3, today's game
+  still to play. Blue and orange rather than green and yellow keep the icon clear of Wordle's trade dress; the grid
+  stays 3×2 and is never drawn as 5×6. No letters, no outer shadow, no clip paths, masks or filters.
+- **Symbolic icon:** the header bar and the 2×3 tiles at 16 px: 4 px tiles with 1 px gaps on the pixel grid.
+- **Devel icon and window:** the Devel build uses App Icon Preview's stripes overlay (Yellow 1 to Yellow 4 with dark
+  stripes, baked to the icon's outline instead of masked) and libadwaita's striped `.devel` header bar.
 - **Brand colours:** Blue 1 `#99c1f1` (light) and Blue 5 `#1a5fb4` (dark), set in the metainfo's `<branding>`; they are
   lighter and darker versions of the icon's header blue.
 - **Tiles:** each game is a card with its category's symbolic glyph (from the GNOME Icon Development Kit where one
@@ -66,6 +66,13 @@ clone of any game, and not affiliated with any game's publisher.
 
 ## 7. Assets
 
-The app icon, its Devel and symbolic variants and the App Icon Preview source (`<id>.Source.svg`) live in
-[`data/icons/`](data/icons/); category glyphs in `data/icons/categories/`; screenshots in `data/screenshots/`, linked
-from the metainfo by tag URL.
+The App Icon Preview project [`data/icons/<id>.Source.svg`](data/icons/io.github.tim_van_oudheusden.Dailies.Source.svg)
+holds the icon and its symbolic variant; it is not installed. The exported icons are
+[`<id>.svg`](data/icons/hicolor/scalable/apps/io.github.tim_van_oudheusden.Dailies.svg) and
+[`<id>.Devel.svg`](data/icons/hicolor/scalable/apps/io.github.tim_van_oudheusden.Dailies.Devel.svg) in
+`data/icons/hicolor/scalable/apps/`, and
+[`<id>-symbolic.svg`](data/icons/hicolor/symbolic/apps/io.github.tim_van_oudheusden.Dailies-symbolic.svg) in
+`data/icons/hicolor/symbolic/apps/`. [`data/icons/meson.build`](data/icons/meson.build) installs the profile's icon
+under the profile's app ID: the plain icon for release builds, the striped one as `<id>.Devel.svg` for development
+builds. Category glyphs live in `data/icons/categories/`; screenshots in `data/screenshots/`, linked from the metainfo
+by tag URL.
