@@ -4,11 +4,12 @@ from datetime import UTC, datetime
 from gi.repository import Adw, Gio, GLib, GObject, Gtk
 
 from dailies import config
-from dailies.core import sections
+from dailies.core import opening, sections
 from dailies.core.models import Category, Game
+from dailies.core.opening import OpenMode
 from dailies.data.favorites import Favorites
 from dailies.data.store import Store
-from dailies.ui import library
+from dailies.ui import library, opener
 from dailies.ui.filters import SearchFilter, SectionFilter, SectionSorter
 from dailies.ui.game_object import GameObject
 from dailies.ui.tile import GameTile
@@ -49,11 +50,13 @@ class Window(Adw.ApplicationWindow):
     toast_overlay: Adw.ToastOverlay = Gtk.Template.Child()
     search_bar: Gtk.SearchBar = Gtk.Template.Child()
     search_entry: Gtk.SearchEntry = Gtk.Template.Child()
+    first_run_banner: Adw.Banner = Gtk.Template.Child()
 
     def __init__(self, *, application: Adw.Application, store: Store, state: Gio.Settings) -> None:
         super().__init__(application=application)
         self._store = store
         self._state = state
+        self._settings: Gio.Settings = application.settings
         for key, prop in (("width", "default-width"), ("height", "default-height"), ("is-maximized", "maximized")):
             state.bind(key, self, prop, Gio.SettingsBindFlags.DEFAULT)
 
@@ -80,6 +83,9 @@ class Window(Adw.ApplicationWindow):
         self._update_categories()
         self._update_week()
         self._update_banner()
+        self._settings.connect("changed::open-mode", lambda *_args: self._update_first_run_banner())
+        state.connect("changed::first-run-banner-dismissed", lambda *_args: self._update_first_run_banner())
+        self._update_first_run_banner()
 
         visible = [section for section, item in self._items.items() if item.props.visible]
         self._select(sections.restore(state.get_string("last-section"), visible))
@@ -87,8 +93,12 @@ class Window(Adw.ApplicationWindow):
         self.sidebar.connect("notify::selected-item", lambda sidebar, _pspec: self._show(sidebar.props.selected_item))
 
     def open_game(self, game: Game) -> None:
-        """Open `game`; the single entry point for opening a game."""
-        log.info("opening %s", game.url)
+        """Open `game` the way the `open-mode` setting says."""
+        self.open_external(game.url)
+
+    def open_external(self, url: str) -> None:
+        """Open `url` in the host's default browser."""
+        opener.launch_external(self, url)
 
     @Gtk.Template.Callback()
     def on_sidebar_activated(self, _sidebar: Adw.Sidebar, _index: int) -> None:
@@ -110,7 +120,7 @@ class Window(Adw.ApplicationWindow):
     @Gtk.Template.Callback()
     def on_suggest_clicked(self, _button: Gtk.Button) -> None:
         """Open the "Add a game" issue form, always in the host browser."""
-        Gtk.UriLauncher(uri=SUGGEST_GAME_URL).launch(self, None, self._on_launched)
+        self.open_external(SUGGEST_GAME_URL)
 
     def _setup_grid(self, settings: Gio.Settings, favorites: Favorites) -> None:
         self._favorites = favorites
@@ -207,12 +217,6 @@ class Window(Adw.ApplicationWindow):
         toast.connect("button-clicked", lambda _toast: self._favorites.add(game_id, index))
         self.toast_overlay.add_toast(toast)
 
-    def _on_launched(self, launcher: Gtk.UriLauncher, result: Gio.AsyncResult) -> None:
-        try:
-            launcher.launch_finish(result)
-        except GLib.Error as e:
-            log.warning("could not open %s: %s", launcher.props.uri, e.message)
-
     def _refilter(self) -> None:
         self._section_filter.changed(Gtk.FilterChange.DIFFERENT)
         self._sorter.changed(Gtk.SorterChange.DIFFERENT)
@@ -223,6 +227,18 @@ class Window(Adw.ApplicationWindow):
         self.content_stack.props.visible_child_name = page.value
         if page is sections.Page.EMPTY_SECTION:
             self.empty_section_page.props.icon_name = self._items[self.props.section].props.icon_name
+
+    @Gtk.Template.Callback()
+    def on_first_run_banner_clicked(self, _banner: Adw.Banner) -> None:
+        """The banner's button opens Preferences (its action); that also dismisses the banner for good."""
+        self._state.set_boolean("first-run-banner-dismissed", True)
+
+    def _update_first_run_banner(self) -> None:
+        self.first_run_banner.props.revealed = opening.show_first_run_banner(
+            OpenMode.from_id(self._settings.get_string("open-mode")),
+            have_webkit=opener.webkit_installed(),
+            dismissed=self._state.get_boolean("first-run-banner-dismissed"),
+        )
 
     def _select(self, section: str) -> None:
         self.sidebar.props.selected = self._items[section].get_index()

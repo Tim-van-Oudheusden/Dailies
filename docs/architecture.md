@@ -21,7 +21,7 @@ runtime: HTTP is libsoup 3, JSON is the standard library, images are GTK.
 
 The window is an `Adw.NavigationSplitView`: a sidebar (Favorites first, then this week's Popular and Trending shelves,
 then ten fixed categories) beside a grid of game tiles, each with a star to pin it to Favorites. A game opens in a
-built-in WebKitGTK page by default (pending [#9][issue-9]) or in the system browser through the OpenURI portal.
+built-in WebKitGTK page by default ([#9][issue-9]) or in the system browser through the OpenURI portal.
 
 The data is two JSON files in this repository, `data/v1/games.json` (the catalog) and `data/v1/popularity.json` (the
 weekly shelves). A snapshot ships inside the Flatpak so the app works offline from the first start; the app revalidates
@@ -133,14 +133,14 @@ GSettings schema `io.github.tim_van_oudheusden.Dailies` (the Devel build gets it
 | Key | Type | Default | Meaning |
 |---|---|---|---|
 | `favorites` | `as` | `[]` | Favourite game ids in display order |
-| `open-mode` | enum `in-app`, `external`, `custom` | `in-app` (pending [#9][issue-9]) | How a game opens |
+| `open-mode` | enum `in-app`, `external`, `custom` | `in-app` ([#9][issue-9]) | How a game opens |
 | `external-browser-command` | `s` | `''` | Host command for `custom`; inert unless the user granted host access |
 | `clear-web-data-on-exit` | `b` | `false` | Clear the built-in browser's website data when the app quits |
 | `sort-mode` | enum `default`, `name`, `difficulty` | `default` | `default` is shelf rank, favourite order or name, depending on the section |
 | `show-other-languages` | `b` | `true` | Show games whose language differs from the system locale |
 
-A `State` child schema keeps `width`, `height`, `is-maximized` and `last-section`. New keys are additive and need no
-migration.
+A `State` child schema keeps `width`, `height`, `is-maximized`, `last-section` and `first-run-banner-dismissed`. New
+keys are additive and need no migration.
 
 ### Window
 
@@ -172,6 +172,9 @@ else:
   through `Gio.Subprocess`. **Custom command** is hidden in Preferences until access is detected, and **Built-in
   browser** is hidden when WebKit is missing. [`CONTRIBUTING.md`](../CONTRIBUTING.md#custom-browser-command) has the
   `flatpak override` lines.
+- While games open in-app, the library shows a first-run `Adw.Banner` ("Games open inside Dailies…") with a
+  **Preferences** button; pressing it, or opening a game in-app, dismisses it for good (`first-run-banner-dismissed`).
+- WebKit is imported the first time a game opens or Preferences needs to know, never at startup.
 - Every in-app page has **Open in Browser** (Ctrl+Shift+O) and **Copy Link** in its menu.
 - The built-in page is an `Adw.NavigationPage` with back, forward, reload and a title showing the page title and host.
   One `WebKit.NetworkSession` is shared by all games (sibling games share a login); cookies are stored persistently;
@@ -253,10 +256,10 @@ a build step that concatenates them, for nothing a solo maintainer needs. Per-en
 needs no schema versioning, is stored by GLib in the app's sandboxed config directory and survives reinstalls, and
 Cartridges shows collections in GSettings work well. Export and import can come later as a menu action writing JSON.
 
-**Decision:** proposed: in-app; pending [#9][issue-9]. Games would open in the built-in browser by default. Why:
-the built-in browser is what sets Dailies apart from a bookmarks folder, and a shared session keeps logins and streaks
-across sibling games. **Default browser** is one setting away and every in-app page has **Open in Browser**. The owner
-has not decided yet; the alternative is `external` by default, on publisher terms-of-service grounds.
+**Decision:** games open in the built-in browser by default (`open-mode` `in-app`, [#9][issue-9]). Why: the built-in
+browser is what sets Dailies apart from a bookmarks folder, and a shared session keeps logins and streaks across sibling
+games. **Default browser** is one setting away, a first-run banner says so, and every in-app page has **Open in
+Browser**. The rejected alternative was `external` by default, on publisher terms-of-service grounds.
 
 **Decision:** releases are cut by pushing a `vX.Y.Z` tag ([#12][issue-12]), not by a push to `main` that changes a
 version file. Why: a Flatpak release needs the metainfo release entry and the tag to exist together, and `v*` tags are

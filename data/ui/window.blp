@@ -138,6 +138,14 @@ template $DailiesWindow: Adw.ApplicationWindow {
               [top]
               Adw.Banner stale_banner {}
 
+              [top]
+              Adw.Banner first_run_banner {
+                title: _("Games open inside Dailies. You can change this in Preferences.");
+                button-label: _("Preferences");
+                action-name: "app.preferences";
+                button-clicked => $on_first_run_banner_clicked();
+              }
+
               content: Stack content_stack {
                 transition-type: crossfade;
 

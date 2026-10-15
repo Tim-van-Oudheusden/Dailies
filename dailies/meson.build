@@ -29,6 +29,7 @@ install_data(
   'core/cache.py',
   'core/catalog.py',
   'core/models.py',
+  'core/opening.py',
   'core/popularity.py',
   'core/sections.py',
   'core/search.py',
@@ -46,6 +47,7 @@ install_data(
   'ui/filters.py',
   'ui/game_object.py',
   'ui/library.py',
+  'ui/opener.py',
   'ui/tile.py',
   install_dir: moduledir / 'ui',
 )
