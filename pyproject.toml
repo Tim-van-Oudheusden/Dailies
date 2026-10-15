@@ -1,0 +1,88 @@
+# Tool configuration only: Dailies is built and installed by Meson, not as a Python distribution.
+[project]
+name = "dailies"
+version = "0.1.0"
+description = "Play your daily guessing games in one place"
+license = "GPL-3.0-or-later"
+requires-python = ">= 3.12"
+# No runtime dependencies: HTTP is libsoup via GI, JSON is the standard library.
+dependencies = []
+
+[dependency-groups]
+dev = ["pre-commit", "pytest", "pytest-cov", "ruff"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+# gettext's _() is installed as a builtin by the application.
+builtins = ["_"]
+# The research and proposal documents quote other projects' code verbatim; they are not formatted.
+extend-exclude = ["_build", "_flatpak", ".flatpak-builder", "subprojects", "docs/research", "docs/proposals", "docs/plans"]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ruff.lint]
+select = ["ALL"]
+# Based on Cartridges' `rewrite` list, trimmed to what this code base needs. Rules that conflict with the formatter
+# (COM812, D206, D300, E111, E114, E117, Q000-Q003, W191) stay off, as ruff recommends.
+ignore = [
+  "C901",    # complexity is reviewed, not counted
+  "CPY",     # the licence is declared once, in LICENSE and the metainfo
+  "COM812",  # formatter conflict
+  "D100",    # module docstrings are optional
+  "D104",    # package docstrings are optional
+  "D105",    # magic-method docstrings are optional
+  "D107",    # __init__ docstrings are optional
+  "D203",    # conflicts with D211
+  "D206",    # formatter conflict
+  "D213",    # conflicts with D212
+  "D300",    # formatter conflict
+  "E111",    # formatter conflict
+  "E114",    # formatter conflict
+  "E117",    # formatter conflict
+  "FBT",     # GTK callbacks and properties take positional booleans
+  "FIX",     # TODOs are tracked as issues, not banned
+  "PLC0415", # WebKit is imported lazily on purpose
+  "Q000",    # formatter conflict
+  "Q001",    # formatter conflict
+  "Q002",    # formatter conflict
+  "Q003",    # formatter conflict
+  "TD",      # see FIX
+  "W191",    # formatter conflict
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests: plain asserts, literal expected values, no docstrings, no packages.
+"tests/**" = ["D", "INP001", "PLR2004", "S101"]
+# Standalone CI scripts are not part of a package.
+"scripts/**" = ["INP001"]
+
+[tool.ruff.lint.flake8-annotations]
+allow-star-arg-any = true
+suppress-dummy-args = true
+suppress-none-returning = true
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+property-decorators = ["gi.repository.GObject.Property"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["e2e: needs a display and the installed app"]
+# End-to-end tests run inside the Flatpak build (Meson test), never in a plain `pytest`.
+addopts = ["-m", "not e2e", "--strict-markers", "--import-mode=importlib"]
+pythonpath = ["."]
+
+# Coverage floors apply to the pure-Python core and the CI scripts only; the gi-bound UI is covered by the e2e smoke
+# test. CI writes Cobertura XML with `pytest --cov --cov-report=xml`.
+[tool.coverage.run]
+source = ["dailies/core", "scripts"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+
+[tool.coverage.xml]
+output = "coverage.xml"

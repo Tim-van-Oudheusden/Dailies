@@ -1,0 +1,44 @@
+# Meson / Flatpak build output
+_build/
+_flatpak/
+build/
+.flatpak-builder/
+repo/
+*.flatpak
+subprojects/blueprint-compiler/
+subprojects/packagecache/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Environment and secrets
+.env
+.env.*
+*.gpg
+*.pem
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local agent/sandbox state
+.tmp/
+.superpowers/
+worktrees/
+
+# Claude Code personal settings (project settings in .claude/settings.json are tracked)
+.claude/settings.local.json

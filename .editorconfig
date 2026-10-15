@@ -1,0 +1,32 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{yml,yaml,toml}]
+indent_size = 2
+
+# Flatpak manifests and the data files are 2-space JSON, as in Cartridges and Bazaar.
+[*.json]
+indent_size = 2
+
+[*.py]
+indent_size = 4
+max_line_length = 120
+
+[meson.build]
+indent_size = 2
+
+[*.blp]
+indent_size = 2
+
+[*.{xml,xml.in,ui}]
+indent_size = 2

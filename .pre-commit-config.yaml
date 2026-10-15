@@ -1,0 +1,40 @@
+# Run `pre-commit install` once; `pre-commit run --all-files` checks the whole tree.
+# Hooks are pinned by tag; bump them with `pre-commit autoupdate` in their own PR.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-json
+      - id: check-toml
+      - id: check-yaml
+      - id: trailing-whitespace
+        exclude_types: [markdown]
+      - id: end-of-file-fixer
+        exclude_types: [svg]
+      - id: file-contents-sorter
+        files: po/LINGUAS|po/POTFILES\.in
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.1
+    hooks:
+      - id: ruff-check
+        args: [--select, I, --fix] # Only fix unsorted imports automatically
+      - id: ruff-check
+      - id: ruff-format
+
+  - repo: local
+    hooks:
+      # blueprint-compiler ships in org.gnome.Sdk//51 (or subprojects/blueprint-compiler for native builds).
+      - id: blueprint-format
+        name: blueprint-compiler format
+        language: system
+        files: \.blp$
+        entry: blueprint-compiler format --fix --no-diff
+
+      - id: meson-format
+        name: meson format
+        language: python
+        additional_dependencies: [meson==1.12.1]
+        files: (^|/)meson\.build$|^meson_options\.txt$
+        entry: meson format --inplace

@@ -1,0 +1,6 @@
+* text=auto eol=lf
+
+# Binaries are never diffed or normalised.
+*.png binary
+*.webp binary
+*.flatpak binary
