@@ -73,7 +73,7 @@ def simple(count: int) -> tuple[dict[str, Any], dict[str, Any]]:
     return catalog(*games), data
 
 
-def previous(week: str, scores: dict[str, tuple[float, list[float]]], method_version: int = 1) -> dict[str, Any]:
+def previous(week: str, scores: dict[str, tuple[float, list[float]]], method_version: int = 2) -> dict[str, Any]:
     return {
         "schema_version": 1,
         "method_version": method_version,
@@ -128,17 +128,13 @@ def test_unranked_domain_scores_zero() -> None:
 # --- shared domains -------------------------------------------------------------------------------------------------
 
 
-def test_equal_split_across_four_nyt_games() -> None:
+def test_four_games_on_one_domain_all_score_the_full_domain_score() -> None:
     games = [game(game_id, "nytimes.com") for game_id in NYT]
-    popularity, _ = compute.compute(catalog(*games), raw({"nytimes.com": ranks(100)}), None, {}, NOW)
+    popularity, _ = compute.compute(catalog(*games), raw({"nytimes.com": ranks(1000)}), None, {}, NOW)
+    expected = round(1 - (math.log10(1000) - 2) / 4.5, 4)
     for game_id in NYT:
-        assert popularity["scores"][game_id]["popularity"] == 0.25
-        assert popularity["scores"][game_id]["shared_domain_weight"] == 0.25
-
-
-def test_unshared_domain_has_no_weight() -> None:
-    popularity, _ = compute.compute(catalog(game("solo")), raw({"solo.com": ranks(100)}), None, {}, NOW)
-    assert "shared_domain_weight" not in popularity["scores"]["solo"]
+        assert popularity["scores"][game_id]["popularity"] == expected
+        assert "shared_domain_weight" not in popularity["scores"][game_id]
 
 
 def test_inactive_games_do_not_share_the_domain() -> None:
@@ -148,21 +144,89 @@ def test_inactive_games_do_not_share_the_domain() -> None:
     assert "nyt-old" not in popularity["scores"]
 
 
-def test_override_file_is_respected(tmp_path: Path) -> None:
-    games = [game(game_id, "nytimes.com") for game_id in NYT]
-    weights = {"nytimes.com": {"wordle": 0.4, "nyt-connections": 0.3, "nyt-strands": 0.2, "nyt-spelling-bee": 0.1}}
-    path = tmp_path / "domain_weights.json"
-    path.write_text(json.dumps(weights), encoding="utf-8")
-    overrides = compute.load_weights(path, catalog(*games))
-    popularity, _ = compute.compute(catalog(*games), raw({"nytimes.com": ranks(100)}), None, overrides, NOW)
-    assert [item["id"] for item in popularity["popular"]] == [
-        "wordle",
-        "nyt-connections",
-        "nyt-strands",
-        "nyt-spelling-bee",
+# nytimes.com outranks everything. Its weights put wordle first, then nyt-connections and nyt-strands (a tie broken by
+# id); nyt-mini-crossword and nyt-spelling-bee are unlisted. merriam-webster.com lists only octordle, so blossom and
+# quordle follow it by id.
+WEIGHTS = {
+    "nytimes.com": {"wordle": 0.5, "nyt-strands": 0.25, "nyt-connections": 0.25},
+    "merriam-webster.com": {"octordle": 1},
+}
+CAPPED_NYT = [*NYT, "nyt-mini-crossword"]
+MW = ["blossom", "octordle", "quordle"]
+
+
+def capped_catalog(added: dict[str, str] | None = None) -> tuple[dict[str, Any], dict[str, Any]]:
+    """5 nytimes.com games, 3 merriam-webster.com games, then solo-0 to solo-5 on domains of their own."""
+    added = added or {}
+    games = [game(game_id, "nytimes.com", added.get(game_id, "2026-10-01")) for game_id in CAPPED_NYT]
+    games += [game(game_id, "merriam-webster.com", added.get(game_id, "2026-10-01")) for game_id in MW]
+    games += [game(f"solo-{index}", added=added.get(f"solo-{index}", "2026-10-01")) for index in range(6)]
+    data = raw(
+        {
+            "nytimes.com": ranks(100),
+            "merriam-webster.com": ranks(200),
+            **{f"solo-{index}.com": ranks(400 * 2**index) for index in range(6)},
+        }
+    )
+    return catalog(*games), data
+
+
+def risen(cat: dict[str, Any], data: dict[str, Any], rises: dict[str, float]) -> dict[str, Any]:
+    """Last week's file: four steady weeks at this week's popularity minus each game's rise."""
+    scores = compute.compute(cat, data, None, {}, NOW)[0]["scores"]
+    before = {key: round(value["popularity"] - rises.get(key, 0), 4) for key, value in scores.items()}
+    return previous("2026-W42", {key: (value, [value] * 3) for key, value in before.items()})
+
+
+def test_popular_keeps_two_games_per_domain_by_weight_then_id() -> None:
+    cat, data = capped_catalog()
+    popularity, _ = compute.compute(cat, data, None, WEIGHTS, NOW)
+    # The cap frees three nytimes.com slots: two go to merriam-webster.com (listed octordle first), one to solo-0.
+    assert [(item["id"], item["rank"]) for item in popularity["popular"]] == [
+        ("wordle", 1),
+        ("nyt-connections", 2),
+        ("octordle", 3),
+        ("blossom", 4),
+        ("solo-0", 5),
     ]
-    assert popularity["scores"]["wordle"]["popularity"] == 0.4
-    assert popularity["scores"]["nyt-spelling-bee"]["shared_domain_weight"] == 0.1
+    assert popularity["scores"]["nyt-strands"]["popularity"] == 1.0
+
+
+def test_trending_keeps_two_games_per_domain_by_weight_then_id() -> None:
+    cat, data = capped_catalog()
+    # Three nytimes.com games rise outside the top five; listed nyt-strands first, then the unlisted ones by id.
+    rises = {"nyt-strands": 0.1, "nyt-mini-crossword": 0.1, "nyt-spelling-bee": 0.1}
+    rises |= {f"solo-{index}": 0.05 for index in range(1, 6)}
+    popularity, _ = compute.compute(cat, data, risen(cat, data, rises), WEIGHTS, NOW)
+    assert [(item["id"], item["delta"], item["reason"]) for item in popularity["trending"]] == [
+        ("nyt-strands", 0.1, "score"),
+        ("nyt-mini-crossword", 0.1, "score"),
+        ("solo-1", 0.05, "score"),
+        ("solo-2", 0.05, "score"),
+        ("solo-3", 0.05, "score"),
+    ]
+
+
+def test_trending_excludes_the_capped_top_five_and_caps_the_new_backfill() -> None:
+    newest = {"nyt-mini-crossword": "2026-10-12", "nyt-spelling-bee": "2026-10-12", "quordle": "2026-10-10"}
+    cat, data = capped_catalog(newest)
+    # The top five of the capped shelf rise but cannot trend. nyt-strands, pushed off it by the cap, can; the two newest
+    # nytimes.com games would then make three from one domain, so the backfill skips nyt-spelling-bee for quordle.
+    rises = dict.fromkeys(["wordle", "nyt-connections", "octordle", "blossom", "solo-0", "nyt-strands"], 0.1)
+    popularity, _ = compute.compute(cat, data, risen(cat, data, rises), WEIGHTS, NOW)
+    assert [(item["id"], item["score"], item["reason"]) for item in popularity["trending"]] == [
+        ("nyt-strands", 0.1, "score"),
+        ("nyt-mini-crossword", 0.0, "new"),
+        ("quordle", 0.0, "new"),
+    ]
+
+
+def test_committed_weights_file_is_valid_and_puts_wordle_and_connections_first() -> None:
+    games = json.loads((ROOT / "data" / "v1" / "games.json").read_text(encoding="utf-8"))
+    weights = compute.load_weights(ROOT / "data" / "v1" / "domain_weights.json", games)
+    assert {"nytimes.com", "merriam-webster.com", "teuteuf.fr"} <= weights.keys()
+    nyt = sorted(weights["nytimes.com"], key=lambda game_id: (-weights["nytimes.com"][game_id], game_id))
+    assert nyt[:2] == ["wordle", "nyt-connections"]
 
 
 def test_missing_override_file_means_no_overrides(tmp_path: Path) -> None:
@@ -226,8 +290,9 @@ def test_rerun_in_the_same_week_does_not_count_that_week_twice() -> None:
     assert popularity["scores"]["game-00"]["trend"] == 0.5
 
 
-def test_history_from_another_method_version_is_ignored() -> None:
-    last = previous("2026-W42", {"game-00": (0.5, [0.5])}, method_version=0)
+@pytest.mark.parametrize("method_version", [0, 1])
+def test_history_from_another_method_version_is_ignored(method_version: int) -> None:
+    last = previous("2026-W42", {"game-00": (0.5, [0.5])}, method_version=method_version)
     popularity, _ = compute.compute(*simple(1), last, {}, NOW)
     assert popularity["scores"]["game-00"]["history"] == []
 
@@ -392,7 +457,7 @@ def test_output_validates_against_the_schema() -> None:
 def test_output_header() -> None:
     popularity, _ = compute.compute(*simple(6), None, {}, NOW)
     assert popularity["schema_version"] == 1
-    assert popularity["method_version"] == 1
+    assert popularity["method_version"] == 2
     assert popularity["week"] == "2026-W43"
     assert popularity["generated_at"] == "2026-10-19T04:21:09Z"
     assert popularity["valid_until"] == "2026-10-29T04:21:09Z"

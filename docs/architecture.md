@@ -222,10 +222,11 @@ B. A weekly link check (Sundays, in the nightly compliance workflow) opens one i
 a `status` change, never a deletion.
 
 **Popularity.** Numbers are computed by deterministic Python; a language model may only write prose. The only source in
-the MVP is the Tranco rank of each game's registrable domain, smoothed over seven days and log-scaled; games sharing a
-domain split its score. `popular` holds the top `max(5, min(12, 10 % of active games))`; `trending` holds rising games
-outside the top five, topped up with the newest games (`reason: "new"`) so the shelf is never empty. If Tranco fails for
-more than 20 % of domains the job fails and the old file stays. The current `popularity.json` is hand-written
+the MVP is the Tranco rank of each game's registrable domain, smoothed over seven days and log-scaled; every game on a
+domain gets its full score, and a shelf holds at most two games of one domain, picked in the order of
+`data/v1/domain_weights.json`. `popular` holds the top `max(5, min(12, 10 % of active games))`; `trending` holds rising
+games outside the top five, topped up with the newest games (`reason: "new"`) so the shelf is never empty. If Tranco
+fails for more than 20 % of domains the job fails and the old file stays. The current `popularity.json` is hand-written
 (`method_version: 0`).
 
 **Publishing.** `pages.yml` publishes `data/v1/` (schemas included) and, once it exists, `docs/popularity/` to GitHub
@@ -289,6 +290,17 @@ genre's green and yellow. Why: the launcher gains nothing from Wordle's trade dr
 `fan-made` tag ([#10][issue-10]). Why: a curated list keeps quality and link health manageable for one maintainer, and
 the tag makes a "hide fan-made games" filter trivial if takedowns become a problem.
 
+**Decision (superseded by [#88][issue-88]):** games sharing a registrable domain split its Tranco score equally, unless
+`data/v1/domain_weights.json` overrides the shares ([#13][issue-13]). Why it was dropped: `nytimes.com` is split nine
+ways, so no New York Times game reached Popular, and even a 35 % share left Wordle below eleventh place
+(`method_version: 1`).
+
+**Decision:** every game gets its domain's full score, and Popular and Trending each hold at most two games of one
+registrable domain ([#88][issue-88], `method_version: 2`). `domain_weights.json` keeps its format and checks but now
+orders a domain's games (highest weight first, unlisted games last) instead of splitting the score. Why: Tranco ranks
+domains, not pages; without a split the best domains' games show up, and the cap keeps one publisher from filling a
+shelf. Rejected: no split without a cap (LinkedIn plus all nine NYT games), and 1/√n damping (still no NYT game).
+
 ## Measurements
 
 To be filled in by [#52][issue-52] once the app builds as a Flatpak. Nothing here is measured yet. The proposal names
@@ -300,5 +312,7 @@ results here.
 [issue-9]: https://github.com/Tim-van-Oudheusden/Dailies/issues/9
 [issue-10]: https://github.com/Tim-van-Oudheusden/Dailies/issues/10
 [issue-12]: https://github.com/Tim-van-Oudheusden/Dailies/issues/12
+[issue-13]: https://github.com/Tim-van-Oudheusden/Dailies/issues/13
 [issue-16]: https://github.com/Tim-van-Oudheusden/Dailies/issues/16
 [issue-52]: https://github.com/Tim-van-Oudheusden/Dailies/issues/52
+[issue-88]: https://github.com/Tim-van-Oudheusden/Dailies/issues/88
