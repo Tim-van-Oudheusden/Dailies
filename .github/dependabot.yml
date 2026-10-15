@@ -1,0 +1,27 @@
+# Weekly update PRs for the workflow actions and the CI scripts' Python packages.
+# Dependabot only proposes changes; every PR still goes through CI and review.
+# Majors stay as one PR each, so every major upgrade is reviewed on its own.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+    groups:
+      github-actions:
+        update-types: [minor, patch]
+
+  # Reads scripts/requirements.in and regenerates the hash-pinned scripts/requirements.txt with pip-compile.
+  # The app itself has no pip dependencies: HTTP is libsoup, JSON is the standard library.
+  - package-ecosystem: pip
+    directory: /scripts
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build(deps)
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
