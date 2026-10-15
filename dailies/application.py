@@ -29,6 +29,14 @@ class Application(Adw.Application):
             flags=Gio.ApplicationFlags.DEFAULT_FLAGS,
             resource_base_path=config.PREFIX,
         )
+        # For tests/e2e/test_smoke.py: skip the network refresh and quit once the window has mapped.
+        self._smoke = False
+        self.add_main_option("smoke", 0, GLib.OptionFlags.HIDDEN, GLib.OptionArg.NONE, "", None)
+
+    def do_handle_local_options(self, options: GLib.VariantDict) -> int:
+        """Note `--smoke`; -1 lets the application carry on starting up."""
+        self._smoke = options.contains("smoke")
+        return -1
 
     def do_startup(self) -> None:
         """Load the game list from the cache or the bundled snapshot, before any window is shown."""
@@ -55,6 +63,10 @@ class Application(Adw.Application):
 
     def _on_first_map(self, window: Adw.ApplicationWindow) -> None:
         window.disconnect_by_func(self._on_first_map)
+        if self._smoke:
+            # Give the first frame time to draw, so errors while rendering it reach the test too.
+            GLib.timeout_add(500, self.quit)
+            return
         self.store.refresh_all()
 
 

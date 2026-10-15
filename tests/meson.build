@@ -19,3 +19,14 @@ if glib_compile_schemas.found()
     )
   endforeach
 endif
+
+# The e2e smoke test starts the installed app, so it only passes after `meson install` (flatpak-builder runs the tests
+# after installing); otherwise it reports SKIP.
+test(
+  'smoke',
+  py,
+  args: [files('e2e' / 'test_smoke.py')],
+  env: {'DAILIES_BIN': bindir / 'dailies'},
+  suite: 'e2e',
+  timeout: 60,
+)
