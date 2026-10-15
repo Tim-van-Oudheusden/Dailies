@@ -47,30 +47,34 @@ the UI is covered by the build validation and the smoke test instead.
 pytest --cov=dailies/core --cov=scripts --cov-report=xml
 ```
 
-writes a Cobertura-format report to `coverage.xml`. The floors live in `.github/auto-qa-tuning.json`, per module, as
-line coverage in percent:
+writes a Cobertura-format report to `coverage.xml`. The floors live in `.github/auto-qa-tuning.json`, per group, as
+line and branch coverage in percent:
 
 ```json
-{ "margin": 2, "floors": { "core": { "lines": 70 }, "scripts": { "lines": 70 } } }
+{ "margin": 2, "floors": { "core": { "lines": 70, "branches": 50 }, "scripts": { "lines": 70, "branches": 50 } } }
 ```
 
-`scripts/coverage-check.sh <module> <lines>` reads the module's line coverage from `coverage.xml` (through
-`scripts/lib/coverage.sh`) and compares it with the floor. It prints the observed coverage next to the floor and exits 1
-if it is below, 2 if the report is missing or the floor is not a percentage between 0 and 100. The comparison uses the
-exact ratio, so 69.999 % does not pass a 70 % floor.
+`scripts/coverage-check.sh coverage.xml .github/auto-qa-tuning.json` sums the covered and valid lines and branches of
+every file in each group (`core` = `dailies/core`, `scripts` = `scripts`) from the Cobertura report, through
+`scripts/lib/coverage.sh`, and compares them with the floors. It prints the observed coverage next to each floor and
+exits 1 if a group is below a floor (`::error::<group> <lines|branches> coverage X% is below its floor of Y%`), 2 for a
+usage error, an unreadable or malformed report, or a malformed floors file. A group with no measured lines yet is
+reported as "no code yet" and passes; so does a missing report, but only while neither group folder holds any Python.
+The comparison uses the exact ratio, so 69.999 % does not pass a 70 % floor. `scripts/coverage-check.test.sh` covers
+these cases against the fixtures in `tests/scripts/fixtures/coverage/`, and `pytest` runs it.
 
 `.github/workflows/coverage-gate.yml` (job **Unit-test coverage floors**, every PR and push to `main`) runs the check
-for every module listed in the floors file and is a required status check in the `main` ruleset. Adding a module to the
-gate means adding it to `.github/auto-qa-tuning.json` and to the `--cov` list. Apply the ruleset entry to the live
-ruleset only after the workflow has run on `main` once; a required check that never reports blocks every PR.
+for every group in the floors file and is a required status check in the `main` ruleset. Adding a group to the gate
+means adding it to `.github/auto-qa-tuning.json`, to the `--cov` list and to `scripts/lib/coverage.sh`. Apply the
+ruleset entry to the live ruleset only after the workflow has run on `main` once; a required check that never reports
+blocks every PR.
 
-Raise a floor when coverage rises; never lower one to make a PR pass. Add tests instead. Both floors start at 70 %
-lines and are ratcheted up by the self-tuning below. Run the check locally:
+Raise a floor when coverage rises; never lower one to make a PR pass. Add tests instead. The floors start at 70 % lines
+and 50 % branches and are ratcheted up by the self-tuning below. Run the check locally:
 
 ```sh
 pytest --cov=dailies/core --cov=scripts --cov-report=xml
-scripts/coverage-check.sh core 70
-scripts/coverage-check.sh scripts 70
+scripts/coverage-check.sh coverage.xml .github/auto-qa-tuning.json
 ```
 
 `pytest --cov=dailies/core --cov=scripts --cov-report=html` writes a browsable report to `htmlcov/`.
@@ -80,7 +84,7 @@ scripts/coverage-check.sh scripts 70
 `.github/workflows/quality-report.yml` (job **Quality report**: every push to `main`, weekly on Monday at 06:17 UTC,
 and on demand) runs `scripts/quality-report.sh > quality-report.md`. The script runs each gate of `Build, lint, test`
 separately (`ruff check`, `ruff format --check`, `pytest`, `check-jsonschema`), then the coverage run for every module
-in `.github/auto-qa-tuning.json`, and prints a Markdown report: pass/fail per gate and line coverage per module. Every gate
+in `.github/auto-qa-tuning.json`, and prints a Markdown report: pass/fail per gate and line and branch coverage per group. Every gate
 and coverage run happens even when an earlier one fails. A module whose coverage run fails, or leaves no report, shows
 `❌ n/a`; a report left by an earlier run is deleted first, so it never stands in for the current run. Tool output goes
 to stderr. The script exits 1 if anything failed, 2 if the floors file lists no module.

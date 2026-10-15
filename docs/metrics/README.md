@@ -26,7 +26,7 @@ To add a metric:
 | Metric | Measures | Source | Cadence | Published as |
 | --- | --- | --- | --- | --- |
 | [Quality gates](#quality-gates) | Pass/fail of each `Build, lint, test` gate | `scripts/quality-report.sh` via `quality-report.yml` | Push to `main`, weekly (Mon 06:17 UTC), manual | Job summary + `quality-report` artifact |
-| [Unit-test coverage](#unit-test-coverage) | Line coverage of `core` and `scripts` | `scripts/quality-report.sh` via `quality-report.yml` | Same as above | Job summary + `quality-report` artifact |
+| [Unit-test coverage](#unit-test-coverage) | Line and branch coverage of `core` and `scripts` | `scripts/quality-report.sh` via `quality-report.yml` | Same as above | Job summary + `quality-report` artifact |
 | [Coverage floors](#coverage-floors) | Minimum coverage each module must keep | `.github/auto-qa-tuning.json`, enforced by `coverage-gate.yml` | Every PR and push to `main` | `Unit-test coverage floors` check; proposed floors as `auto-qa-tuning` artifact |
 | [PR acceptance rate](#pr-acceptance-rate) | Merged vs. closed-unmerged PRs, agent vs. other | `scripts/pr-metrics.sh` via `pr-metrics.yml` | Weekly (Mon 06:17 UTC), manual | Job summary |
 | [Nightly compliance](#nightly-compliance) | Checks that can go stale without a code change | `scripts/nightly-compliance.sh` via `nightly-compliance.yml` | Nightly (03:23 UTC), manual | Job summary + `nightly-compliance` artifact |
@@ -45,19 +45,19 @@ scripts/quality-report.sh > quality-report.md
 ## Unit-test coverage
 
 Part of the same report: pytest-cov runs the unit tests with `--cov=dailies/core --cov=scripts --cov-report=xml`, and
-the report records each module's line percentage from the Cobertura file. A failing test run reports `n/a` rather than
+the report records each group's line and branch percentages from the Cobertura file. A failing test run reports `n/a` rather than
 a misleading number. See [`docs/testing.md`](../testing.md#coverage-floors) for the coverage tooling.
 
 ## Coverage floors
 
-`.github/auto-qa-tuning.json` holds a line floor per module (`{"margin": 2, "floors": {"<module>": {"lines": N}}}`),
-starting at 70 % for `core` and `scripts`. The `Unit-test coverage floors` job of `coverage-gate.yml` fails a PR or push
+`.github/auto-qa-tuning.json` holds a line and a branch floor per group
+(`{"margin": 2, "floors": {"<group>": {"lines": N, "branches": M}}}`), starting at 70 % lines and 50 % branches for `core`
+and `scripts`. The `Unit-test coverage floors` job of `coverage-gate.yml` fails a PR or push
 that drops a module below its floor:
 
 ```sh
 pytest --cov=dailies/core --cov=scripts --cov-report=xml
-scripts/coverage-check.sh core <lines>
-scripts/coverage-check.sh scripts <lines>
+scripts/coverage-check.sh coverage.xml .github/auto-qa-tuning.json
 ```
 
 The floors ratchet: on each quality-report run, `scripts/auto-qa-tuner.sh` proposes raising each floor to observed

@@ -1,0 +1,14 @@
+<?xml version="1.0" ?>
+<coverage version="7.16.2" timestamp="1792080000000" lines-valid="4" lines-covered="3" line-rate="0.75" branches-covered="1" branches-valid="2" branch-rate="0.5" complexity="0">
+  <!-- Truncated mid-write: not well-formed XML. -->
+  <sources>
+    <source>/home/runner/work/Dailies/Dailies/dailies/core</source>
+  </sources>
+  <packages>
+    <package name="." line-rate="0.75" branch-rate="0.5" complexity="0">
+      <classes>
+        <class name="catalog.py" filename="catalog.py" complexity="0" line-rate="0.75" branch-rate="0.5">
+          <methods/>
+          <lines>
+            <line number="1" hits="1"/>
+            <line number="2" hits="1" branch="true" condition-co

@@ -135,8 +135,8 @@ the `Flatpak (x86_64)` job runs the Flatpak gate in the `gnome-51` image with `f
 the exported repo. [`docs/testing.md`](docs/testing.md) says which test runs where.
 
 The `main` ruleset also requires the **Unit-test coverage floors** check (`.github/workflows/coverage-gate.yml`): it
-runs `pytest --cov=dailies/core --cov=scripts --cov-report=xml` and fails the PR if the line coverage of `core` or
-`scripts` drops below its floor in `.github/auto-qa-tuning.json`. See
+runs `pytest --cov=dailies/core --cov=scripts --cov-report=xml` and fails the PR if the line or branch coverage of
+`core` or `scripts` drops below its floor in `.github/auto-qa-tuning.json`. See
 [`docs/testing.md`](docs/testing.md#coverage-floors) to run it locally.
 
 ### Shell scripts and workflows

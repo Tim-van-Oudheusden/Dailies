@@ -1,0 +1,13 @@
+{
+  "margin": 2,
+  "floors": {
+    "core": {
+      "lines": 70,
+      "branches": 50
+    },
+    "scripts": {
+      "lines": 70,
+      "branches": 50
+    }
+  }
+}
