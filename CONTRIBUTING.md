@@ -240,7 +240,8 @@ python3 scripts/release_check.py notes
 2. Open a second pull request (`build(flatpak): pin release manifest to X.Y.Z (#N)`) that sets the `dailies` module's
    `commit` in the release manifest to the merge commit from step 1, and merge it with nothing else merged in
    between. The pin cannot go into the first pull request: a commit cannot name its own hash. It holds only a
-   `commit`; a `tag` would have to point at that same commit, which the tag in step 4 does not.
+   `commit`, so remove the `tag` that step 6 of the previous release added; a `tag` would have to point at that same
+   commit, which the tag in step 4 does not.
 3. Run the manual checklist below on the Devel bundle that CI built from the merge commit.
 4. Tag the merge commit of step 2 and push the tag:
 
@@ -251,6 +252,12 @@ python3 scripts/release_check.py notes
    ```
 
 5. The `Release` workflow under **Actions** publishes the release, which then appears under **Releases**.
+6. `.github/workflows/external-data-checker.yml` runs `flatpak-external-data-checker` every Monday (or dispatch it
+   from **Actions**). It finds the new tag through the release manifest's `x-checker-data` and opens a pull request
+   that pins the manifest to the tag's `tag` and `commit`, the form a Flathub manifest uses. A pull request opened
+   with the workflow's `GITHUB_TOKEN` starts no CI, so close and reopen it to run the required checks, then merge it.
+   With nothing to update the run does nothing. If it runs between steps 2 and 4, it proposes the previous tag
+   instead: close that pull request.
 
 To retry a failed run, re-run its failed jobs from the Actions tab. If the tag points at the wrong commit, or Verify
 reports that the pinned commit differs from the tag, delete the tag (`git push origin :refs/tags/vX.Y.Z`) and any
