@@ -2,6 +2,7 @@ import importlib.util
 import json
 import re
 import socket
+import sys
 from datetime import date
 from pathlib import Path
 from types import ModuleType
@@ -548,7 +549,7 @@ def test_get_that_redirects_to_another_site_fails() -> None:
 def test_page_that_takes_longer_than_10_s_in_total_to_load_fails(monkeypatch: pytest.MonkeyPatch) -> None:
     # Every chunk arrives within the per-read timeout, but the clock passes 10 s before the title.
     clock = iter(range(0, 1000, 4))
-    monkeypatch.setattr(vs, "monotonic", lambda: next(clock))
+    monkeypatch.setattr(sys.modules["urlcheck"], "monotonic", lambda: next(clock))
     page = "<html><head>" + " " * (256 * 1024) + "<title>Countryle</title></head></html>"
     session = FakeSession(
         {
