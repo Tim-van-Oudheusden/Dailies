@@ -7,4 +7,21 @@
     <!-- Adw.Application loads style.css from its resource base path on its own. -->
     <file alias="style.css">ui/style.css</file>
   </gresource>
+  <!-- Gtk.Application adds <resource base path>/icons to the icon theme, so these resolve by name. -->
+  <gresource prefix="@PREFIX_PATH@/icons/scalable/actions">
+    <file alias="dailies-category-food-symbolic.svg" preprocess="xml-stripblanks">icons/categories/dailies-category-food-symbolic.svg</file>
+    <file alias="dailies-category-geography-symbolic.svg" preprocess="xml-stripblanks">icons/categories/dailies-category-geography-symbolic.svg</file>
+    <file alias="dailies-category-movies-tv-symbolic.svg" preprocess="xml-stripblanks">icons/categories/dailies-category-movies-tv-symbolic.svg</file>
+    <file alias="dailies-category-music-symbolic.svg" preprocess="xml-stripblanks">icons/categories/dailies-category-music-symbolic.svg</file>
+    <file alias="dailies-category-numbers-logic-symbolic.svg" preprocess="xml-stripblanks">icons/categories/dailies-category-numbers-logic-symbolic.svg</file>
+    <file alias="dailies-category-sports-symbolic.svg" preprocess="xml-stripblanks">icons/categories/dailies-category-sports-symbolic.svg</file>
+    <file alias="dailies-category-trivia-symbolic.svg" preprocess="xml-stripblanks">icons/categories/dailies-category-trivia-symbolic.svg</file>
+    <file alias="dailies-category-video-games-symbolic.svg" preprocess="xml-stripblanks">icons/categories/dailies-category-video-games-symbolic.svg</file>
+    <file alias="dailies-category-visual-symbolic.svg" preprocess="xml-stripblanks">icons/categories/dailies-category-visual-symbolic.svg</file>
+    <file alias="dailies-category-words-symbolic.svg" preprocess="xml-stripblanks">icons/categories/dailies-category-words-symbolic.svg</file>
+    <file alias="dailies-non-starred-symbolic.svg" preprocess="xml-stripblanks">icons/categories/dailies-non-starred-symbolic.svg</file>
+    <file alias="dailies-popular-symbolic.svg" preprocess="xml-stripblanks">icons/categories/dailies-popular-symbolic.svg</file>
+    <file alias="dailies-starred-symbolic.svg" preprocess="xml-stripblanks">icons/categories/dailies-starred-symbolic.svg</file>
+    <file alias="dailies-trending-symbolic.svg" preprocess="xml-stripblanks">icons/categories/dailies-trending-symbolic.svg</file>
+  </gresource>
 </gresources>

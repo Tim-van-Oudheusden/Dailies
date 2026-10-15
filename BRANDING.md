@@ -74,5 +74,6 @@ holds the icon and its symbolic variant; it is not installed. The exported icons
 [`<id>-symbolic.svg`](data/icons/hicolor/symbolic/apps/io.github.tim_van_oudheusden.Dailies-symbolic.svg) in
 `data/icons/hicolor/symbolic/apps/`. [`data/icons/meson.build`](data/icons/meson.build) installs the profile's icon
 under the profile's app ID: the plain icon for release builds, the striped one as `<id>.Devel.svg` for development
-builds. Category glyphs live in `data/icons/categories/`; screenshots in `data/screenshots/`, linked from the metainfo
-by tag URL.
+builds. Category glyphs and the other bundled symbolic icons live in `data/icons/categories/`, with each icon's
+source and licence in [its README](data/icons/categories/README.md); screenshots in `data/screenshots/`, linked from
+the metainfo by tag URL.

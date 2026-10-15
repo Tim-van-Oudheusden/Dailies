@@ -55,7 +55,7 @@ configure_file(
   install_dir: get_option('datadir') / 'glib-2.0' / 'schemas',
 )
 
-gnome.compile_resources(
+resources = gnome.compile_resources(
   'dailies',
   configure_file(
     input: 'dailies.gresource.xml.in',
@@ -92,3 +92,12 @@ if glib_compile_schemas.found()
     args: ['--strict', '--dry-run', meson.current_build_dir()],
   )
 endif
+
+# Every icon the UI looks up by name (the Category glyphs in dailies/core/models.py and the sidebar/favourite icons)
+# must resolve from the bundled gresource.
+test(
+  'Bundled icons resolve',
+  py,
+  args: [files('../tests/icons/check_icons.py'), resources, prefix_path],
+  env: {'PYTHONPATH': meson.project_source_root()},
+)
