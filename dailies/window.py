@@ -62,6 +62,8 @@ class Window(Adw.ApplicationWindow):
         self._settings: Gio.Settings = application.settings
         # The one live browser page (and so the one live web view), while it is pushed.
         self._browser_page: Adw.NavigationPage | None = None
+        # "Custom command unavailable" is said once per session.
+        self._custom_notice_shown = False
         self.navigation_view.connect("popped", self._on_popped)
         for key, prop in (("width", "default-width"), ("height", "default-height"), ("is-maximized", "maximized")):
             state.bind(key, self, prop, Gio.SettingsBindFlags.DEFAULT)
@@ -100,11 +102,28 @@ class Window(Adw.ApplicationWindow):
         self.sidebar.connect("notify::selected-item", lambda sidebar, _pspec: self._show(sidebar.props.selected_item))
 
     def open_game(self, game: Game) -> None:
-        """Open `game` the way the `open-mode` setting says: in the built-in browser or the default browser."""
-        if opener.resolve(self._settings) is OpenMode.IN_APP:
+        """Open `game` the way the `open-mode` setting says: the custom command, the built-in or the default browser."""
+        how = opener.resolve(self._settings)
+        if how is OpenMode.CUSTOM:
+            if opener.launch_custom(self._settings.get_string("external-browser-command"), game.url):
+                return
+            how = opener.resolve(self._settings, custom_failed=True)
+        if how is OpenMode.IN_APP:
             self._open_in_app(game.url)
         else:
             self.open_external(game.url)
+        self._notify_opened(how)
+
+    def _notify_opened(self, how: OpenMode) -> None:
+        mode = OpenMode.from_id(self._settings.get_string("open-mode"))
+        shown = self._custom_notice_shown
+        if opening.notice(mode, how, custom_notice_shown=shown) is opening.Notice.CUSTOM_UNAVAILABLE:
+            self._custom_notice_shown = True
+            if how is OpenMode.IN_APP:
+                title = _("Custom command unavailable — opened in the built-in browser")
+            else:
+                title = _("Custom command unavailable — opened in your browser")
+            self.toast_overlay.add_toast(Adw.Toast(title=title))
 
     def open_external(self, url: str) -> None:
         """Open `url` in the host's default browser."""

@@ -23,12 +23,15 @@ class PreferencesDialog(Adw.PreferencesDialog):
     """The app's settings; the built-in browser's rows only show when WebKit is available.
 
     "Open games" offers only what this installation can do (`dailies.core.opening.choices`); the combo row's index is
-    mapped to the `open-mode` nick by hand, as PyGObject has no closure mapping for it.
+    mapped to the `open-mode` nick by hand, as PyGObject has no closure mapping for it. "Custom command" is offered
+    once host access is detected (`opener.host_access`), and its command row shows while it is chosen.
     """
 
     __gtype_name__ = "DailiesPreferencesDialog"
 
     open_mode_row: Adw.ComboRow = Gtk.Template.Child()
+    command_row: Adw.EntryRow = Gtk.Template.Child()
+    custom_help_label: Gtk.Label = Gtk.Template.Child()
     browser_group: Adw.PreferencesGroup = Gtk.Template.Child()
     clear_on_exit_row: Adw.SwitchRow = Gtk.Template.Child()
     clear_row: Adw.ButtonRow = Gtk.Template.Child()
@@ -40,13 +43,17 @@ class PreferencesDialog(Adw.PreferencesDialog):
         self._settings = settings
         self._store = store
         self._have_webkit = opener.have_webkit()
-        # Host access for the custom command is detected in #63; until then "Custom command" stays hidden.
-        self._choices = opening.choices(have_webkit=self._have_webkit, host_access=False)
+        self._host_access = opener.host_access()
+        self._choices = opening.choices(have_webkit=self._have_webkit, host_access=self._host_access)
 
         self.open_mode_row.props.model = Gtk.StringList.new([_choice_title(mode) for mode in self._choices])
         self._show_open_mode()
+        self._update_command_row()
         self.open_mode_row.connect("notify::selected", self._on_open_mode_selected)
         self._mode_handler = settings.connect("changed::open-mode", lambda *_args: self._show_open_mode())
+        self.command_row.props.text = settings.get_string("external-browser-command")
+        # Outside Flatpak the command needs no host access, so there is nothing to explain.
+        self.custom_help_label.props.visible = opener.in_flatpak()
 
         self.browser_group.props.visible = self._have_webkit
         settings.bind("clear-web-data-on-exit", self.clear_on_exit_row, "active", Gio.SettingsBindFlags.DEFAULT)
@@ -63,7 +70,7 @@ class PreferencesDialog(Adw.PreferencesDialog):
 
     def _shown_choice(self) -> OpenMode:
         mode = OpenMode.from_id(self._settings.get_string("open-mode"))
-        return opening.shown_choice(mode, have_webkit=self._have_webkit, host_access=False)
+        return opening.shown_choice(mode, have_webkit=self._have_webkit, host_access=self._host_access)
 
     def _show_open_mode(self) -> None:
         index = self._choices.index(self._shown_choice())
@@ -73,10 +80,21 @@ class PreferencesDialog(Adw.PreferencesDialog):
     def _on_open_mode_selected(self, row: Adw.ComboRow, _pspec: object) -> None:
         if row.props.selected == Gtk.INVALID_LIST_POSITION:
             return
+        self._update_command_row()
         chosen = self._choices[row.props.selected]
-        # Selecting what is already shown keeps the setting, so a hidden mode (custom, before #63) is not overwritten.
+        # Selecting what is already shown keeps the setting, so a hidden mode (custom without host access) is kept.
         if chosen is not self._shown_choice():
             self._settings.set_string("open-mode", chosen.value)
+
+    def _update_command_row(self) -> None:
+        selected = self.open_mode_row.props.selected
+        custom = selected != Gtk.INVALID_LIST_POSITION and self._choices[selected] is OpenMode.CUSTOM
+        self.command_row.props.visible = custom
+
+    @Gtk.Template.Callback()
+    def on_command_applied(self, row: Adw.EntryRow) -> None:
+        """Save the command only when applied, so a half-typed command never runs."""
+        self._settings.set_string("external-browser-command", row.props.text.strip())
 
     def _show_last_updated(self) -> None:
         last_success = self._store.props.last_success

@@ -283,8 +283,10 @@ flatpak override --user --talk-name=org.freedesktop.Flatpak io.github.tim_van_ou
 
 **This is a sandbox escape that you choose.** Access to `org.freedesktop.Flatpak` lets Dailies run any command on your
 host as your user, outside the sandbox; Flatpak documents it as a sandbox escape allowing arbitrary code execution. Only
-grant it if you accept that. Once granted, **Custom command** appears under **Preferences → Opening games**; until
-then it is hidden and inert. To take the access back:
+grant it if you accept that. Dailies checks for the access once per run, so restart it after granting; then **Custom
+command** appears under **Preferences → Opening games**, with a **Command** row for the command. Until then it is
+hidden and inert, and a game set to it opens in the built-in or the default browser with a "Custom command
+unavailable" toast. To take the access back:
 
 ```sh
 flatpak override --user --no-talk-name=org.freedesktop.Flatpak io.github.tim_van_oudheusden.Dailies
@@ -292,6 +294,11 @@ flatpak override --user --no-talk-name=org.freedesktop.Flatpak io.github.tim_van
 
 For the Devel build, use `io.github.tim_van_oudheusden.Dailies.Devel` in both commands. Outside Flatpak (a native
 Meson build) the command runs directly and needs no override.
+
+The command is split like a shell would split it (`GLib.shell_parse_argv`, so quotes work), and the game's URL is
+appended as one more argument; no shell runs, so nothing in the command or the URL is interpreted. Inside Flatpak it
+runs as `flatpak-spawn --host -- <command…> <url>`. [Opening games](docs/architecture.md#opening-games) explains how
+the access is detected.
 
 ## Code style
 

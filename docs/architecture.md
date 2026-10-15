@@ -160,7 +160,7 @@ escape to the user.
 ```text
 mode = settings["open-mode"]
 if mode == custom and host access granted and command != "":
-    flatpak-spawn --host <command> <url>     # only after the user ran `flatpak override --talk-name=...`
+    flatpak-spawn --host -- <argv…> <url>    # only after the user ran `flatpak override --talk-name=...`
 elif mode in (in-app, custom) and HAVE_WEBKIT:
     push BrowserPage(url)                    # built-in browser
 else:
@@ -168,10 +168,22 @@ else:
     on error: Gio.AppInfo.launch_default_for_uri_async(url)
 ```
 
-- Host access is probed once per session; outside Flatpak (no `/.flatpak-info`) the custom command runs directly
-  through `Gio.Subprocess`. **Custom command** is hidden in Preferences until access is detected, and **Built-in
-  browser** is hidden when WebKit is missing. [`CONTRIBUTING.md`](../CONTRIBUTING.md#custom-browser-command) has the
-  `flatpak override` lines.
+- Host access is probed once per session, the first time the custom mode or Preferences needs it (`ui/opener.py`):
+  a call to `org.freedesktop.Flatpak.Development.HostCommand` on the session bus with no arguments, which can never
+  run anything. Observed with Flatpak 1.18.4: without the override the sandbox's D-Bus proxy answers
+  `org.freedesktop.DBus.Error.ServiceUnknown`; with it `flatpak-session-helper` answers
+  `org.freedesktop.DBus.Error.InvalidArgs` (`Type of message, “()”, does not match expected type
+  “(ayaaya{uh}a{ss}u)”`). Only `InvalidArgs` counts as granted (`core/opening.py: host_access_granted`); every other
+  outcome, `AccessDenied` included, means not granted.
+- Outside Flatpak (no `/.flatpak-info`) the custom command is always available and runs directly through
+  `Gio.Subprocess`. The command is split with `GLib.shell_parse_argv` and the URL appended as one more argv element
+  (`core/opening.py: custom_command_argv`); no shell runs, so `;`, `$()`, backticks and spaces in a URL stay literal.
+  A command that does not parse or start falls back like an unavailable one, and the toast "Custom command
+  unavailable — opened in …" says so once per session.
+- **Custom command** is hidden in Preferences until access is detected, and **Built-in browser** is hidden when WebKit
+  is missing; while **Custom command** is chosen a monospace **Command** entry row (applied with its apply button)
+  shows. [`CONTRIBUTING.md`](../CONTRIBUTING.md#custom-browser-command) and the
+  [README](../README.md#custom-browser-command) have the `flatpak override` lines.
 - While games open in-app, the library shows a first-run `Adw.Banner` ("Games open inside Dailies…") with a
   **Preferences** button; pressing it, or opening a game in-app, dismisses it for good (`first-run-banner-dismissed`).
 - WebKit is imported the first time a game opens or Preferences needs to know, never at startup.
