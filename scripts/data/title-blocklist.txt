@@ -1,0 +1,33 @@
+# Gambling keywords for scripts/validate_submission.py: a submitted page whose <title> contains one of these fails.
+# Hijacked dle domains (docs/research/dle-catalog.md §1.4) mostly land on online-casino and Indonesian slot sites.
+#
+# One keyword or phrase per line, matched case-insensitively as whole words: "bet" matches "Bet now" but not
+# "Alphabet", so list inflections ("bets", "betting") separately. Blank lines and lines starting with "#" are ignored.
+
+# English
+baccarat
+bet
+bets
+betting
+blackjack
+bookmaker
+bookmakers
+casino
+casinos
+gamble
+gambling
+jackpot
+jackpots
+poker
+roulette
+slot
+slots
+sportsbook
+sportsbooks
+
+# Indonesian and Malay slot sites ("gacor" = paying out, "judi" = gambling, "togel" = lottery)
+gacor
+judi
+maxwin
+slot88
+togel
