@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2026 Tim van Oudheusden -->
+<component type="desktop-application">
+  <id>@APP_ID@</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+
+  <name>Dailies</name>
+  <summary>Play your daily guessing games in one place</summary>
+  <description>
+    <p>
+      Dailies collects daily guessing games like Wordle and Connections in one window. Pick a game from a category, keep
+      your favourites at the top, and see which games are popular this week.
+    </p>
+  </description>
+
+  <developer id="io.github.tim_van_oudheusden">
+    <name translate="no">Tim van Oudheusden</name>
+  </developer>
+
+  <launchable type="desktop-id">@APP_ID@.desktop</launchable>
+  <translation type="gettext">dailies</translation>
+
+  <url type="homepage">https://github.com/Tim-van-Oudheusden/Dailies</url>
+  <url type="bugtracker">https://github.com/Tim-van-Oudheusden/Dailies/issues</url>
+  <url type="vcs-browser">https://github.com/Tim-van-Oudheusden/Dailies</url>
+
+  <content_rating type="oars-1.1"/>
+
+  <releases>
+    <release version="0.1.0" date="2026-10-15">
+      <description>
+        <p>First release.</p>
+      </description>
+    </release>
+  </releases>
+</component>

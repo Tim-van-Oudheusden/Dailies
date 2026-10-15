@@ -1,0 +1,6 @@
+dailies/application.py
+dailies/window.py
+data/io.github.tim_van_oudheusden.Dailies.desktop.in
+data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in
+data/io.github.tim_van_oudheusden.Dailies.metainfo.xml.in
+data/ui/window.blp

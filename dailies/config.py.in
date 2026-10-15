@@ -1,0 +1,9 @@
+APP_ID = "@APP_ID@"
+VERSION = "@VERSION@"
+PREFIX = "@PREFIX_PATH@"
+PROFILE = "@PROFILE@"
+PKGDATADIR = "@PKGDATADIR@"
+LOCALEDIR = "@LOCALEDIR@"
+HAVE_WEBKIT = @HAVE_WEBKIT@
+# Tried in order; GitHub Pages is prepended once it serves data/v1 (#56).
+DATA_URLS = ["https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/main/data/v1/"]

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="dailies">
+  <!-- Preferences and favourites; #38 adds the keys. -->
+  <schema id="@APP_ID@" path="@PREFIX_PATH@/">
+  </schema>
+  <!-- Window and navigation state that is restored, not configured; #38 adds the keys. -->
+  <schema id="@APP_ID@.State" path="@PREFIX_PATH@/State/">
+  </schema>
+</schemalist>

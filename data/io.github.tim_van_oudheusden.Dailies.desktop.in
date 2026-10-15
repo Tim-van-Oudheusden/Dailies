@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=Dailies
+Comment=Play your daily guessing games in one place
+Exec=dailies
+Icon=@APP_ID@
+Terminal=false
+Type=Application
+Categories=Game;
+# Translators: Search terms to find this application. Do NOT translate or localize the semicolons. The list MUST also end with a semicolon.
+Keywords=daily;puzzle;wordle;guessing;game;dle;
+StartupNotify=true
+DBusActivatable=true

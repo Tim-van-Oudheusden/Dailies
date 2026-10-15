@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="@PREFIX_PATH@">
+    <!-- Read by Adw.AboutDialog.new_from_appdata(). -->
+    <file preprocess="xml-stripblanks">@APP_ID@.metainfo.xml</file>
+    <file preprocess="xml-stripblanks">ui/window.ui</file>
+    <!-- Adw.Application loads style.css from its resource base path on its own. -->
+    <file alias="style.css">ui/style.css</file>
+  </gresource>
+</gresources>

@@ -41,6 +41,7 @@ ignore = [
   "E111",    # formatter conflict
   "E114",    # formatter conflict
   "E117",    # formatter conflict
+  "E402",    # gi.require_version() has to run before `from gi.repository import ...`
   "FBT",     # GTK callbacks and properties take positional booleans
   "FIX",     # TODOs are tracked as issues, not banned
   "PLC0415", # WebKit is imported lazily on purpose

@@ -1,0 +1,20 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $DailiesWindow: Adw.ApplicationWindow {
+  title: _("Dailies");
+  default-width: 1100;
+  default-height: 760;
+  width-request: 360;
+  height-request: 294;
+
+  content: Adw.ToolbarView {
+    [top]
+    Adw.HeaderBar {}
+
+    content: Adw.StatusPage {
+      title: _("Dailies");
+      description: _("Play your daily guessing games in one place");
+    };
+  };
+}
