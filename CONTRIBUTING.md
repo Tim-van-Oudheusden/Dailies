@@ -28,13 +28,14 @@ python3 -m pip install --user ruff pytest pytest-cov pyyaml check-jsonschema
 If your distribution does not ship the GNOME 51 libraries, skip the native build: the Flatpak gate runs the same Meson
 tests inside the SDK.
 
-`scripts/dev.sh` wraps the everyday Flatpak commands, so you rarely type a manifest path:
+`scripts/dev.sh` wraps the everyday Flatpak commands, so you rarely type a manifest path. It uses `flatpak-builder` and
+`flatpak-builder-lint` from your `PATH`, or the `org.flatpak.Builder` Flatpak when they are not installed:
 
 ```sh
-scripts/dev.sh build-devel   # build the Devel manifest and install it for your user
+scripts/dev.sh build-devel   # build the Devel manifest into repo/ and install it for your user
 scripts/dev.sh run           # run the installed Devel build
-scripts/dev.sh bundle        # export the Devel build as a .flatpak bundle
-scripts/dev.sh lint          # ruff, shellcheck, actionlint and flatpak-builder-lint
+scripts/dev.sh bundle        # export the Devel build as Dailies-Devel-x86_64.flatpak
+scripts/dev.sh lint          # flatpak-builder-lint on both manifests and on repo/
 ```
 
 The Devel build has its own app ID, `io.github.tim_van_oudheusden.Dailies.Devel`, so it installs next to a release
