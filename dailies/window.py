@@ -46,6 +46,7 @@ class Window(Adw.ApplicationWindow):
     content_stack: Gtk.Stack = Gtk.Template.Child()
     grid_view: Gtk.GridView = Gtk.Template.Child()
     empty_section_page: Adw.StatusPage = Gtk.Template.Child()
+    toast_overlay: Adw.ToastOverlay = Gtk.Template.Child()
 
     def __init__(self, *, application: Adw.Application, store: Store, state: Gio.Settings) -> None:
         super().__init__(application=application)
@@ -97,9 +98,12 @@ class Window(Adw.ApplicationWindow):
         Gtk.UriLauncher(uri=SUGGEST_GAME_URL).launch(self, None, self._on_launched)
 
     def _setup_grid(self, settings: Gio.Settings, favorites: Favorites) -> None:
+        self._favorites = favorites
         self._section_filter = SectionFilter()
         self._search_filter = SearchFilter()
         self._sorter = SectionSorter(favorites)
+        # The store, connected first, has already updated the game's `favorite` when this runs.
+        favorites.connect("changed", lambda *_args: self._section_filter.changed(Gtk.FilterChange.DIFFERENT))
         for target in (self._section_filter, self._sorter):
             self.bind_property("section", target, "section", GObject.BindingFlags.SYNC_CREATE)
         settings.bind("sort-mode", self._sorter, "sort-mode", Gio.SettingsBindFlags.GET)
@@ -117,12 +121,17 @@ class Window(Adw.ApplicationWindow):
 
     def _add_actions(self, settings: Gio.Settings) -> None:
         self.add_action(settings.create_action("sort-mode"))
-        show_section = Gio.SimpleAction(name="show-section", parameter_type=GLib.VariantType("s"))
-        show_section.connect("activate", self._on_show_section)
-        self.add_action(show_section)
-        open_game = Gio.SimpleAction(name="open-game", parameter_type=GLib.VariantType("s"))
-        open_game.connect("activate", self._on_open_game)
-        self.add_action(open_game)
+        for name, parameter_type, callback in (
+            ("show-section", "s", self._on_show_section),
+            ("open-game", "s", self._on_open_game),
+            ("toggle-game-favorite", "s", self._on_toggle_game_favorite),
+            ("toggle-favorite", None, self._on_toggle_favorite),
+        ):
+            action = Gio.SimpleAction(
+                name=name, parameter_type=GLib.VariantType(parameter_type) if parameter_type else None
+            )
+            action.connect("activate", callback)
+            self.add_action(action)
 
     def _on_show_section(self, _action: Gio.SimpleAction, parameter: GLib.Variant) -> None:
         item = self._items.get(parameter.get_string())
@@ -139,8 +148,44 @@ class Window(Adw.ApplicationWindow):
         self._open_item(self._store.get(parameter.get_string()))
 
     def _open_item(self, item: GameObject | None) -> None:
-        if item is not None:
+        if item is None:
+            return
+        if item.props.available:
             self.open_game(item.props.game)
+            return
+        # Only a favourite can be unavailable and still shown.
+        game_id = item.props.game.id
+        toast = Adw.Toast(title=_("This game is no longer available"), button_label=_("Remove from Favorites"))
+        toast.connect("button-clicked", lambda _toast: self._remove_favorite(game_id))
+        self.toast_overlay.add_toast(toast)
+
+    def _on_toggle_game_favorite(self, _action: Gio.SimpleAction, parameter: GLib.Variant) -> None:
+        self._toggle_favorite(parameter.get_string())
+
+    def _on_toggle_favorite(self, _action: Gio.SimpleAction, _parameter: None) -> None:
+        # The focus is on a grid item, whose child is the tile, or on a tile's star.
+        tile = self.get_focus()
+        while tile is not None and not isinstance(tile, GameTile):
+            child = tile.get_first_child()
+            tile = child if isinstance(child, GameTile) else tile.get_parent()
+        if tile is not None and tile.props.game is not None:
+            self._toggle_favorite(tile.props.game.props.game.id)
+
+    def _toggle_favorite(self, game_id: str) -> None:
+        if self._favorites.is_favorite(game_id):
+            self._remove_favorite(game_id)
+        else:
+            self._favorites.add(game_id)
+
+    def _remove_favorite(self, game_id: str) -> None:
+        """Remove `game_id` from Favorites, offering to undo it: undo puts it back where it was."""
+        if not self._favorites.is_favorite(game_id):
+            return
+        index = self._favorites.order().index(game_id)
+        self._favorites.toggle(game_id)
+        toast = Adw.Toast(title=_("Removed from Favorites"), button_label=_("Undo"))
+        toast.connect("button-clicked", lambda _toast: self._favorites.add(game_id, index))
+        self.toast_overlay.add_toast(toast)
 
     def _on_launched(self, launcher: Gtk.UriLauncher, result: Gio.AsyncResult) -> None:
         try:

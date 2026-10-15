@@ -75,10 +75,12 @@ class GameTileTest(unittest.TestCase):
         self.item = GameObject(worldle())
         self.tile = GameTile(game=self.item)
         self.opened: list[str] = []
+        self.toggled: list[str] = []
         actions = Gio.SimpleActionGroup()
-        action = Gio.SimpleAction(name="open-game", parameter_type=GLib.VariantType("s"))
-        action.connect("activate", lambda _action, parameter: self.opened.append(parameter.get_string()))
-        actions.add_action(action)
+        for name, calls in (("open-game", self.opened), ("toggle-game-favorite", self.toggled)):
+            action = Gio.SimpleAction(name=name, parameter_type=GLib.VariantType("s"))
+            action.connect("activate", lambda _action, parameter, calls=calls: calls.append(parameter.get_string()))
+            actions.add_action(action)
         self.window = Gtk.Window(child=self.tile)
         self.window.insert_action_group("win", actions)
         self.addCleanup(self.window.destroy)
@@ -109,6 +111,30 @@ class GameTileTest(unittest.TestCase):
     def test_pressing_the_card_opens_the_game(self) -> None:
         self.tile.open_button.emit("clicked")
         assert self.opened == ["worldle"]
+
+    def test_the_star_shows_whether_the_game_is_a_favorite(self) -> None:
+        star = self.tile.favorite_button
+        assert not star.props.active
+        assert star.props.icon_name == "dailies-non-starred-symbolic"
+        assert star.props.tooltip_text == "Add to Favorites"
+        self.item.props.favorite = True
+        assert star.props.active
+        assert star.props.icon_name == "dailies-starred-symbolic"
+        assert star.props.tooltip_text == "Remove from Favorites"
+        assert self.toggled == []
+
+    def test_pressing_the_star_toggles_the_favorite(self) -> None:
+        self.tile.favorite_button.emit("clicked")
+        assert self.toggled == ["worldle"]
+        self.item.props.favorite = True
+        self.tile.favorite_button.emit("clicked")
+        assert self.toggled == ["worldle", "worldle"]
+
+    def test_an_unavailable_game_says_so(self) -> None:
+        assert not self.tile.unavailable_label.get_visible()
+        self.item.update(game=worldle(status=Status.BROKEN), favorite=True, popular_rank=0, trending_rank=0)
+        assert self.tile.unavailable_label.get_visible()
+        assert self.tile.unavailable_label.props.label == "Unavailable"
 
     def test_the_star_is_a_separate_labelled_button(self) -> None:
         star = self.tile.favorite_button

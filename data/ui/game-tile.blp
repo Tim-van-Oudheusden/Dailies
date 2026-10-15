@@ -69,18 +69,29 @@ template $DailiesGameTile: Overlay {
           ]
         }
       }
+
+      // A broken or retired favourite stays in Favorites, marked with this pill.
+      Label unavailable_label {
+        label: _("Unavailable");
+        visible: false;
+        halign: start;
+
+        styles [
+          "caption-heading",
+          "unavailable-badge",
+        ]
+      }
     };
   };
 
-  // Wired up in #43.
+  // Always shown, not only on hover, so touch and keyboard users reach it too. Its icon and tooltip follow it in code.
   [overlay]
   ToggleButton favorite_button {
     halign: end;
     valign: start;
     margin-top: 12;
     margin-end: 12;
-    icon-name: "dailies-non-starred-symbolic";
-    tooltip-text: _("Add to Favorites");
+    active: bind template.favorite bidirectional;
 
     accessibility {
       label: _("Favorite");

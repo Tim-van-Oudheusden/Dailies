@@ -47,6 +47,7 @@ class Application(Adw.Application):
         fetcher = Fetcher(cache_dir, _data_urls(), config.VERSION)
         self.store = Store(cache_dir, Path(config.PKGDATADIR) / "data" / "v1", self.favorites, fetcher)
         self.store.load_initial()
+        self.set_accels_for_action("win.toggle-favorite", ["<Control>d"])
 
     def do_activate(self) -> None:
         """Present the main window, creating it on first activation; the game list is refreshed once it maps."""

@@ -1,5 +1,6 @@
 dailies/application.py
 dailies/ui/library.py
+dailies/ui/tile.py
 dailies/window.py
 data/io.github.tim_van_oudheusden.Dailies.desktop.in
 data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in

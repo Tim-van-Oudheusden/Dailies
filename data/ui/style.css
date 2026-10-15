@@ -53,3 +53,9 @@
 .difficulty-easy { background-color: var(--success-bg-color); color: var(--success-fg-color); }
 .difficulty-medium { background-color: var(--warning-bg-color); color: var(--warning-fg-color); }
 .difficulty-hard { background-color: var(--error-bg-color); color: var(--error-fg-color); }
+
+.unavailable-badge {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background-color: color-mix(in srgb, currentColor 12%, transparent);
+}

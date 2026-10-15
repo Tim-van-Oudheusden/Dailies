@@ -41,6 +41,14 @@ def caption(category_label: str, difficulty_label: str) -> str:
     return _("{category} · {difficulty}").format(category=category_label, difficulty=difficulty_label)
 
 
+def tile_description(caption: str, *, available: bool) -> str:
+    """Return what screen readers say after a tile's name: its caption, and that it is unavailable when it is."""
+    if available:
+        return caption
+    # Translators: a tile's caption, e.g. "Geography · Easy", for a game that no longer works.
+    return _("{caption}, unavailable").format(caption=caption)
+
+
 def week_subtitle(week: str, as_of: date | None) -> str:
     """Return the This Week subtitle: "Week 2026-W42", or "Week 2026-W42 (as of 12 Oct)" when the shelves are stale."""
     if as_of is None:
