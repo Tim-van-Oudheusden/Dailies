@@ -1,0 +1,46 @@
+name: PR review rubric
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  rubric:
+    # Required by the main ruleset (.github/rulesets/main.json); keep the name in sync.
+    name: PR review rubric
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check title and issue link
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: scripts/pr-review-check.sh
+      - name: Reviewer rubric
+        if: always()
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          ## Reviewer rubric
+
+          Automated above: Conventional Commits title, linked issue. CI covers
+          ruff, pytest, the data schemas, shellcheck, actionlint, coverage floors
+          and the Devel Flatpak build with its Meson tests.
+
+          Check by hand:
+
+          - [ ] **TDD evidence** — the PR shows a test that failed before the change and passes after.
+          - [ ] **Behaviour, not implementation** — tests assert observable output, not private state.
+          - [ ] **No test tampering** — existing tests were not weakened, skipped or xfailed to pass; no `# noqa` added to silence failures.
+          - [ ] **Scope** — one issue per PR; unrelated changes split out.
+          - [ ] **Dependencies** — none added without approval; script dependencies pinned with hashes in `scripts/requirements.txt`.
+          - [ ] **Looks like libadwaita / follows HIG** — stock widgets and style classes, no colour-only information; fully usable with the keyboard alone.
+          - [ ] **No new finish-args** — `build-aux/flatpak/*.json` grants no new permission, or the PR justifies it for the maintainer.
+          - [ ] **Catalog change validated** — `data/v1/` edits pass the schema check and every new URL's final domain matches its `domain`, or there is no catalog change.
+          EOF
