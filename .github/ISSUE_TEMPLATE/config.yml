@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a broken game link
+    url: https://github.com/Tim-van-Oudheusden/Dailies/issues/new?template=issue.yml&labels=data
+    about: A game in the catalog no longer loads or points somewhere else? Use the general issue form and name the game.

@@ -1,0 +1,88 @@
+name: Issue
+description: Report a bug, request a feature, or file a task
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for contributing! Please keep the title in
+        [Conventional Commits](https://www.conventionalcommits.org/) style,
+        e.g. `fix(opener): ...`, `feat(library): ...`, `chore: ...`, and
+        apply the labels shown in brackets after filing.
+        Want a new game in the catalog? Use the "Add a game" form instead.
+  - type: dropdown
+    id: type
+    attributes:
+      label: Type
+      description: What kind of issue is this?
+      multiple: false
+      options:
+        - Bug (type::bug)
+        - Feature (type::feature)
+        - Task (type::task)
+        - Chore (type::chore)
+        - Refactor
+    validations:
+      required: true
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      description: Which part of the repository is affected?
+      multiple: false
+      options:
+        - App (app)
+        - Game catalog / data (data)
+        - Flatpak packaging (flatpak)
+        - Tooling / CI (ci)
+        - Documentation (documentation)
+        - Other (no label)
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      multiple: false
+      options:
+        - Critical (priority::critical)
+        - High (priority::high)
+        - Medium (priority::medium)
+        - Low (priority::low)
+      default: 2
+  - type: textarea
+    id: environment
+    attributes:
+      label: Flatpak version and desktop
+      description: >-
+        For bugs, paste the output of `flatpak info io.github.tim_van_oudheusden.Dailies`
+        and name your desktop environment and version (e.g. GNOME 51, KDE Plasma 6.5).
+      placeholder: |
+        Version: 0.1.0
+        Commit: ...
+        Runtime: org.gnome.Platform/x86_64/51
+        Desktop: GNOME 51 (Wayland)
+      render: text
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What is the problem, or what should be done?
+      placeholder: |
+        - What's wrong or what's needed
+        - Why it matters
+        - Steps to reproduce, if a bug
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: How do we know this issue is done?
+      placeholder: |
+        - [ ] Behaviour or deliverable that proves completion
+        - [ ] Verification steps, if applicable
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: Followed the workflow in AGENTS.md (issues via GitHub API, Conventional Commits)
+          required: false
