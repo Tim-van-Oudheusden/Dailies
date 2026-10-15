@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import re
 import socket
 from datetime import date
 from pathlib import Path
@@ -610,3 +611,24 @@ def test_report_renders_untrusted_text_inert() -> None:
     detail = f'the page title "{title}" contains the gambling keyword "casino"'
     assert f"| Page title | ❌ fail | ```{detail}``` |" in text
     assert '- `the name is close to "Worldle" (worldle); check it is not the same game`' in text
+
+
+SHELL_PAYLOADS = ["$(id)", "`id`", '"; rm -rf /']
+
+
+def test_cli_report_quotes_shell_payloads_as_code(tmp_path: Path) -> None:
+    payload = " ".join(SHELL_PAYLOADS)
+    fields = form(name=f"Countryle {payload}", description=f"Guess {payload}", tags=f"countries, {payload}")
+
+    code, _out, report = run_cli(tmp_path, fields, site("https://countryle.com/", title=f"Casino {payload}"))
+
+    assert code == 1
+    head, fence, entry = report.read_text(encoding="utf-8").partition("\nCandidate entry:\n")
+    assert fence
+    assert entry.startswith("\n```json\n")
+    assert json.dumps(f"Guess {payload}") in entry
+    assert "$(id)" in head
+    # Outside the fenced candidate entry, form and page text only appears inside inline code spans.
+    prose = re.sub(r"(?<!`)(`+)(?!`).*?(?<!`)\1(?!`)", "", head)
+    for fragment in SHELL_PAYLOADS:
+        assert fragment not in prose
