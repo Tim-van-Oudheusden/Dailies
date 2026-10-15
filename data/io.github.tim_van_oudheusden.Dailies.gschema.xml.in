@@ -28,5 +28,7 @@
     <key name="height" type="i"><default>760</default></key>
     <key name="is-maximized" type="b"><default>false</default></key>
     <key name="last-section" type="s"><default>'favorites'</default></key>
+    <key name="first-run-banner-dismissed" type="b"><default>false</default>
+      <summary>Whether the library stopped telling that games open inside Dailies</summary></key>
   </schema>
 </schemalist>

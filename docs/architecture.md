@@ -21,7 +21,7 @@ runtime: HTTP is libsoup 3, JSON is the standard library, images are GTK.
 
 The window is an `Adw.NavigationSplitView`: a sidebar (Favorites first, then this week's Popular and Trending shelves,
 then ten fixed categories) beside a grid of game tiles, each with a star to pin it to Favorites. A game opens in a
-built-in WebKitGTK page by default (pending [#9][issue-9]) or in the system browser through the OpenURI portal.
+built-in WebKitGTK page by default ([#9][issue-9]) or in the system browser through the OpenURI portal.
 
 The data is two JSON files in this repository, `data/v1/games.json` (the catalog) and `data/v1/popularity.json` (the
 weekly shelves). A snapshot ships inside the Flatpak so the app works offline from the first start; the app revalidates
@@ -84,16 +84,17 @@ machine, and the coverage floors apply to `dailies/core` and `scripts/` only.
 | `core/models.py` | no | Frozen `Game` dataclass; `Category` enum (ten ids, display names, glyph names); `Difficulty` enum. An unknown category maps to `trivia` so a newer catalog never crashes an older app |
 | `core/catalog.py` | no | `parse(bytes) -> Catalog`: structural check (`schema_version == 1`, required keys, tolerant enums), `is_newer()` by `generated_at`; hides entries whose `status` is not `active` but keeps them so favourites still resolve |
 | `core/popularity.py` | no | `parse(bytes) -> Popularity` (week, `valid_until`, `popular`, `trending`), `rank_of(id)`, `is_stale(now)` |
-| `core/search.py` | no | Case- and accent-folded substring match over name, description, tags and category label |
-| `core/sections.py` | no | The sidebar's section ids (Favorites, Popular, Trending, then the category ids), which categories have active games, the section to restore, and the "as of" date of stale shelves |
+| `core/search.py` | no | Case- and accent-folded substring match over name, description, tags and category label; whether a new query narrows or widens the matches |
+| `core/sections.py` | no | The sidebar's section ids (Favorites, Popular, Trending, then the category ids), which categories have active games, the section to restore, the "as of" date of stale shelves; what each section holds, the sort keys (shelf rank, favourite order, name, or the `sort-mode` override), the empty-state page, the tiles' colour classes |
 | `core/cache.py` | no | The cache directory (`<name>.json`, `.etag`, `.fetched`, atomic writes) and the decisions of one refresh: skip while younger than the maximum age, `If-None-Match`, fall-through order of the data URLs, `Retry-After` backoff, validate before writing; the stale-banner rule |
 | `data/fetcher.py` | Soup, Gio, GLib | Thin asynchronous libsoup 3 shell over `core/cache.py`: one `Soup.Session` with `User-Agent: Dailies/<version> (+https://github.com/Tim-van-Oudheusden/Dailies)` sends the requests a refresh asks for, one at a time, and never retries in a loop |
 | `data/favorites.py` | Gio | Wraps the `favorites` string-array key: `is_favorite`, `toggle`, order (newest last); emits `changed(id)` |
 | `data/store.py` | Gio | Owns the `Gio.ListStore` of `GameObject`; applies catalog, popularity and favourites; `reload()` diffs by id so the grid keeps its scroll position |
-| `ui/game_object.py` | GObject | `GameObject` with `game`, `favorite`, `popular_rank` and `trending_rank` properties for Blueprint bindings and filters |
+| `ui/game_object.py` | GObject | `GameObject` with `game`, `name`, `category-label`, `difficulty-label`, `caption`, `available`, `favorite`, `popular-rank` and `trending-rank` properties for Blueprint bindings and filters |
 | `ui/filters.py` | Gtk | `SectionFilter` (Favorites, Popular, Trending or a category) and `SearchFilter`, combined in a `Gtk.EveryFilter`; `SectionSorter` orders shelves by rank, Favorites by favourite order, categories by name |
-| `ui/tile.py` | Gtk, Adw | `GameTile`: a `.card` button (category glyph, name, "Category · Difficulty" caption, difficulty pill) with an overlaid star toggle, never a button inside a button |
-| `ui/library.py` | Adw | Window, sidebar, grid, search bar, empty states, toasts |
+| `ui/tile.py` | Gtk, Adw | `GameTile`: a `.card` button (tinted category glyph, name, category, difficulty pill; screen readers hear "Name, Category · Difficulty") with an overlaid star toggle, never a button inside a button |
+| `ui/library.py` | GLib | The library's translated texts: category and difficulty names, tile captions, the This Week subtitle, the stale banner |
+| `window.py` | Adw | Window, sidebar, grid, search bar, empty states, toasts; `open_game()` is the one way a game is opened |
 | `ui/browser_page.py` | WebKit | The in-app browser page; only imported when `HAVE_WEBKIT` |
 | `ui/opener.py` | Gtk, Gio | Turns the `open-mode` setting into an action (see [Opening games](#opening-games)) |
 | `ui/preferences.py` | Adw | `Adw.PreferencesDialog`: open mode, website data, catalog options |
@@ -132,14 +133,14 @@ GSettings schema `io.github.tim_van_oudheusden.Dailies` (the Devel build gets it
 | Key | Type | Default | Meaning |
 |---|---|---|---|
 | `favorites` | `as` | `[]` | Favourite game ids in display order |
-| `open-mode` | enum `in-app`, `external`, `custom` | `in-app` (pending [#9][issue-9]) | How a game opens |
+| `open-mode` | enum `in-app`, `external`, `custom` | `in-app` ([#9][issue-9]) | How a game opens |
 | `external-browser-command` | `s` | `''` | Host command for `custom`; inert unless the user granted host access |
 | `clear-web-data-on-exit` | `b` | `false` | Clear the built-in browser's website data when the app quits |
 | `sort-mode` | enum `default`, `name`, `difficulty` | `default` | `default` is shelf rank, favourite order or name, depending on the section |
 | `show-other-languages` | `b` | `true` | Show games whose language differs from the system locale |
 
-A `State` child schema keeps `width`, `height`, `is-maximized` and `last-section`. New keys are additive and need no
-migration.
+A `State` child schema keeps `width`, `height`, `is-maximized`, `last-section` and `first-run-banner-dismissed`. New
+keys are additive and need no migration.
 
 ### Window
 
@@ -171,12 +172,18 @@ else:
   through `Gio.Subprocess`. **Custom command** is hidden in Preferences until access is detected, and **Built-in
   browser** is hidden when WebKit is missing. [`CONTRIBUTING.md`](../CONTRIBUTING.md#custom-browser-command) has the
   `flatpak override` lines.
+- While games open in-app, the library shows a first-run `Adw.Banner` ("Games open inside Dailies…") with a
+  **Preferences** button; pressing it, or opening a game in-app, dismisses it for good (`first-run-banner-dismissed`).
+- WebKit is imported the first time a game opens or Preferences needs to know, never at startup.
 - Every in-app page has **Open in Browser** (Ctrl+Shift+O) and **Copy Link** in its menu.
 - The built-in page is an `Adw.NavigationPage` with back, forward, reload and a title showing the page title and host.
   One `WebKit.NetworkSession` is shared by all games (sibling games share a login); cookies are stored persistently;
   TLS errors fail; downloads are cancelled and handed to the external browser; permission requests are denied; WebRTC
-  and `data:` top-level navigation are off; pop-ups load in the same view. There are no injected scripts or styles, no
-  ad blocking and no user-agent spoofing. One `WebView` lives at a time and is destroyed when its page is popped.
+  and `data:` top-level navigation are off; `target="_blank"` links load in the same view, while script pop-ups
+  (`window.open`) and unsupported file types go to the external browser. There are no injected scripts or styles, no
+  ad blocking and no user-agent spoofing. One `WebView` lives at a time, in a `WebKit.WebContext` of its own; when its
+  page is popped the view is closed and dropped with its context, which ends its web processes (the shared network
+  session stays). Ctrl+R reloads while the page is shown and refreshes the game list on the library.
 
 ## Data and release pipelines
 
@@ -252,10 +259,10 @@ a build step that concatenates them, for nothing a solo maintainer needs. Per-en
 needs no schema versioning, is stored by GLib in the app's sandboxed config directory and survives reinstalls, and
 Cartridges shows collections in GSettings work well. Export and import can come later as a menu action writing JSON.
 
-**Decision:** proposed: in-app; pending [#9][issue-9]. Games would open in the built-in browser by default. Why:
-the built-in browser is what sets Dailies apart from a bookmarks folder, and a shared session keeps logins and streaks
-across sibling games. **Default browser** is one setting away and every in-app page has **Open in Browser**. The owner
-has not decided yet; the alternative is `external` by default, on publisher terms-of-service grounds.
+**Decision:** games open in the built-in browser by default (`open-mode` `in-app`, [#9][issue-9]). Why: the built-in
+browser is what sets Dailies apart from a bookmarks folder, and a shared session keeps logins and streaks across sibling
+games. **Default browser** is one setting away, a first-run banner says so, and every in-app page has **Open in
+Browser**. The rejected alternative was `external` by default, on publisher terms-of-service grounds.
 
 **Decision:** releases are cut by pushing a `vX.Y.Z` tag ([#12][issue-12]), not by a push to `main` that changes a
 version file. Why: a Flatpak release needs the metainfo release entry and the tag to exist together, and `v*` tags are
@@ -265,7 +272,11 @@ what the manifest's `x-checker-data` and a later Flathub manifest consume.
 any command on the host, Flatpak calls it a sandbox escape, and Flathub grants it only with strong justification.
 Without it a specific host browser cannot be started, so the **Custom command** mode stays hidden and inert until the
 user grants the permission with `flatpak override`, a choice they make knowingly. The finish-args are network, IPC,
-fallback X11, Wayland and DRI; no filesystem access and no D-Bus names.
+fallback X11, Wayland, PulseAudio and DRI; no filesystem access and no D-Bus names.
+
+**Decision:** the manifests request `--socket=pulseaudio` from the first release ([#16][issue-16]). Why: music games
+(Bandle, Heardle Decades, Songless) play their clips in the built-in browser, and WebKitGTK has no other route to the
+sound server. The socket is used for playback only; Dailies itself makes no sound.
 
 **Decision:** `dailies/core` never imports `gi`. Why: parsing, ranking and search are then tested with plain pytest
 on any runner in seconds, without the GNOME SDK; the GTK layers stay thin and are covered by the build checks and the
@@ -289,4 +300,5 @@ results here.
 [issue-9]: https://github.com/Tim-van-Oudheusden/Dailies/issues/9
 [issue-10]: https://github.com/Tim-van-Oudheusden/Dailies/issues/10
 [issue-12]: https://github.com/Tim-van-Oudheusden/Dailies/issues/12
+[issue-16]: https://github.com/Tim-van-Oudheusden/Dailies/issues/16
 [issue-52]: https://github.com/Tim-van-Oudheusden/Dailies/issues/52

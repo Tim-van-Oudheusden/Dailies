@@ -3,7 +3,7 @@ from datetime import date
 import pytest
 
 from dailies.core.models import Category, Difficulty, Game, Status
-from dailies.core.search import matches
+from dailies.core.search import Change, change, matches
 
 POKEDLE = Game(
     id="pokedle",
@@ -75,3 +75,20 @@ def test_folding_handles_compatibility_forms_and_special_cases() -> None:
 def test_an_empty_query_matches_everything(query: str) -> None:
     assert matches(POKEDLE, query, Category.VIDEO_GAMES.label)
     assert matches(WORLDLE, query, Category.GEOGRAPHY.label)
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "expected"),
+    [
+        ("pok", "poké", Change.MORE_STRICT),
+        ("", "w", Change.MORE_STRICT),
+        ("world", "wor", Change.LESS_STRICT),
+        ("world", " ", Change.LESS_STRICT),
+        ("world", "globe", Change.DIFFERENT),
+        ("Poké", "poke ", Change.SAME),
+    ],
+)
+def test_a_query_change_says_whether_it_can_only_narrow_or_widen_the_matches(
+    old: str, new: str, expected: Change
+) -> None:
+    assert change(old, new) is expected

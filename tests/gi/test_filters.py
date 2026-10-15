@@ -1,0 +1,156 @@
+"""The library's list pipeline (section filter, search filter, sorter) over GameObjects; run by Meson."""
+
+import gettext
+import os
+import unittest
+from datetime import date
+
+import gi
+
+gi.require_version("Gtk", "4.0")
+
+from gi.repository import Gio, Gtk
+
+from dailies.core.models import Category, Difficulty, Game, Status
+from dailies.data.favorites import Favorites
+from dailies.ui.filters import SearchFilter, SectionFilter, SectionSorter
+from dailies.ui.game_object import GameObject
+
+gettext.install("dailies")
+SCHEMA_ID = os.environ["DAILIES_SCHEMA_ID"]
+
+
+def game(
+    game_id: str,
+    name: str,
+    category: Category = Category.WORDS,
+    difficulty: Difficulty = Difficulty.MEDIUM,
+    status: Status = Status.ACTIVE,
+) -> Game:
+    return Game(
+        id=game_id,
+        name=name,
+        url=f"https://{game_id}.example/",
+        category=category,
+        difficulty=difficulty,
+        description="A daily guessing game.",
+        added=date(2026, 10, 1),
+        status=status,
+        domain=f"{game_id}.example",
+    )
+
+
+class PipelineTest(unittest.TestCase):
+    def setUp(self) -> None:
+        settings = Gio.Settings.new(SCHEMA_ID)
+        settings.reset("favorites")
+        self.favorites = Favorites(settings)
+        self.games = Gio.ListStore(item_type=GameObject)
+        self.section = SectionFilter()
+        self.search = SearchFilter()
+        self.sorter = SectionSorter(self.favorites)
+        every = Gtk.EveryFilter()
+        every.append(self.section)
+        every.append(self.search)
+        self.view = Gtk.SortListModel(model=Gtk.FilterListModel(model=self.games, filter=every), sorter=self.sorter)
+        for item, popular, trending in (
+            (game("wordle", "Wordle", difficulty=Difficulty.EASY), 1, 0),
+            (game("pokedle", "Pokédle", Category.VIDEO_GAMES, Difficulty.HARD), 3, 1),
+            (game("worldle", "Worldle", Category.GEOGRAPHY, Difficulty.EASY), 2, 0),
+            (game("globle", "Globle", Category.GEOGRAPHY, status=Status.BROKEN), 0, 2),
+            (game("absurdle", "absurdle", difficulty=Difficulty.HARD), 0, 0),
+        ):
+            obj = GameObject(item)
+            obj.update(game=item, favorite=False, popular_rank=popular, trending_rank=trending)
+            self.games.append(obj)
+
+    def shown(self) -> list[str]:
+        return [item.props.game.id for item in self.view]
+
+    def item(self, game_id: str) -> GameObject:
+        return next(item for item in self.games if item.props.game.id == game_id)
+
+    def star(self, game_id: str) -> None:
+        self.favorites.toggle(game_id)
+        self.item(game_id).props.favorite = self.favorites.is_favorite(game_id)
+        self.section.changed(Gtk.FilterChange.DIFFERENT)
+
+    def show(self, section: str) -> None:
+        self.section.props.section = section
+        self.sorter.props.section = section
+
+    def test_the_shelves_list_their_games_in_rank_order(self) -> None:
+        self.show("popular")
+        assert self.shown() == ["wordle", "worldle", "pokedle"]
+        self.show("trending")
+        assert self.shown() == ["pokedle", "globle"]
+
+    def test_a_category_lists_its_available_games_by_name(self) -> None:
+        self.show("words")
+        assert self.shown() == ["absurdle", "wordle"]
+        self.show("geography")
+        assert self.shown() == ["worldle"]
+
+    def test_favorites_keep_their_order_and_unavailable_games(self) -> None:
+        self.show("favorites")
+        assert self.shown() == []
+        for game_id in ("worldle", "globle", "absurdle"):
+            self.star(game_id)
+        assert self.shown() == ["worldle", "globle", "absurdle"]
+        self.star("worldle")
+        assert self.shown() == ["globle", "absurdle"]
+        self.favorites.add("worldle", 0)
+        self.item("worldle").props.favorite = True
+        self.section.changed(Gtk.FilterChange.LESS_STRICT)
+        assert self.shown() == ["worldle", "globle", "absurdle"]
+
+    def test_the_sort_mode_overrides_the_section_order(self) -> None:
+        self.show("popular")
+        self.sorter.props.sort_mode = "name"
+        assert self.shown() == ["pokedle", "wordle", "worldle"]
+        self.sorter.props.sort_mode = "difficulty"
+        assert self.shown() == ["wordle", "worldle", "pokedle"]
+        self.sorter.props.sort_mode = "default"
+        assert self.shown() == ["wordle", "worldle", "pokedle"]
+
+    def test_search_folds_accents_and_narrows_the_current_section(self) -> None:
+        self.show("popular")
+        self.search.props.text = "pokedle"
+        assert self.shown() == ["pokedle"]
+        self.search.props.text = "w"
+        assert self.shown() == ["wordle", "worldle"]
+        self.search.props.text = "wor"
+        assert self.shown() == ["wordle", "worldle"]
+        self.search.props.text = "world"
+        assert self.shown() == ["worldle"]
+        self.show("words")
+        assert self.shown() == []
+        self.search.props.text = ""
+        assert self.shown() == ["absurdle", "wordle"]
+
+    def test_search_matches_the_translated_category_label(self) -> None:
+        self.show("trending")
+        self.search.props.text = "video"
+        assert self.shown() == ["pokedle"]
+
+
+class GameObjectTest(unittest.TestCase):
+    def test_the_derived_properties_follow_the_game(self) -> None:
+        obj = GameObject(game("worldle", "Worldle", Category.GEOGRAPHY, Difficulty.EASY))
+        assert obj.props.name == "Worldle"
+        assert obj.props.category_label == "Geography"
+        assert obj.props.difficulty_label == "Easy"
+        assert obj.props.caption == "Geography · Easy"
+        assert obj.props.available
+
+        notified: list[str] = []
+        obj.connect("notify", lambda _obj, pspec: notified.append(pspec.name))
+        broken = game("worldle", "Worldle", Category.GEOGRAPHY, Difficulty.HARD, Status.BROKEN)
+        obj.update(game=broken, favorite=False, popular_rank=0, trending_rank=0)
+        assert not obj.props.available
+        assert obj.props.caption == "Geography · Hard"
+        assert sorted(notified) == ["available", "caption", "difficulty-label", "game"]
+
+
+if __name__ == "__main__":
+    unittest.main()

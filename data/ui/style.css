@@ -1,1 +1,61 @@
 /* Application styles. Use libadwaita's style classes and colour variables before adding rules here. */
+
+/* The grid sits on the window background, like the cards' surroundings elsewhere. */
+#grid {
+  background: none;
+}
+
+/* The grid's children are bare: the tile's card draws the background, the focus ring and the hover state. */
+#grid > child {
+  padding: 0;
+  background: none;
+  outline: none;
+  box-shadow: none;
+}
+
+.game-tile {
+  margin: 6px;
+  padding: 12px;
+}
+
+/* The category glyph sits in a rounded square tinted with the category's colour, mixed towards the text colour so
+ * that it keeps its contrast in light, dark and high-contrast styles. */
+.tile-glyph {
+  border-radius: 16px;
+  color: color-mix(in srgb, var(--category-color) 75%, var(--card-fg-color));
+  background-color: color-mix(in srgb, var(--category-color) 18%, transparent);
+}
+
+@media (prefers-contrast: more) {
+  .tile-glyph {
+    color: var(--card-fg-color);
+    box-shadow: inset 0 0 0 1px currentColor;
+  }
+}
+
+.cat-words { --category-color: var(--accent-blue); }
+.cat-geography { --category-color: var(--accent-green); }
+.cat-music { --category-color: var(--accent-purple); }
+.cat-movies-tv { --category-color: var(--accent-red); }
+.cat-video-games { --category-color: var(--accent-pink); }
+.cat-numbers-logic { --category-color: var(--accent-teal); }
+.cat-trivia { --category-color: var(--accent-orange); }
+.cat-visual { --category-color: var(--accent-yellow); }
+.cat-food { --category-color: var(--brown-3); }
+.cat-sports { --category-color: var(--accent-slate); }
+
+/* The difficulty pill always carries its name: the colour only repeats it. */
+.difficulty-badge {
+  padding: 1px 8px;
+  border-radius: 999px;
+}
+
+.difficulty-easy { background-color: var(--success-bg-color); color: var(--success-fg-color); }
+.difficulty-medium { background-color: var(--warning-bg-color); color: var(--warning-fg-color); }
+.difficulty-hard { background-color: var(--error-bg-color); color: var(--error-fg-color); }
+
+.unavailable-badge {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background-color: color-mix(in srgb, currentColor 12%, transparent);
+}

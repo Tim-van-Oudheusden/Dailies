@@ -1,6 +1,7 @@
 """Library search: a case- and accent-insensitive substring match."""
 
 import unicodedata
+from enum import Enum
 
 from dailies.core.models import Game
 
@@ -23,3 +24,27 @@ def matches(game: Game, query: str, category_label: str) -> bool:
     if not needle:
         return True
     return any(needle in fold(text) for text in (game.name, game.description, *game.tags, category_label))
+
+
+class Change(Enum):
+    """How a new query relates to the previous one, so a list filter knows which games it has to test again."""
+
+    SAME = "same"
+    MORE_STRICT = "more-strict"
+    LESS_STRICT = "less-strict"
+    DIFFERENT = "different"
+
+
+def change(old: str, new: str) -> Change:
+    """Return how replacing the query `old` by `new` changes the matches.
+
+    A query that contains the old one can only drop matches; one contained in the old one can only add matches.
+    """
+    old, new = fold(old.strip()), fold(new.strip())
+    if old == new:
+        return Change.SAME
+    if old in new:
+        return Change.MORE_STRICT
+    if new in old:
+        return Change.LESS_STRICT
+    return Change.DIFFERENT

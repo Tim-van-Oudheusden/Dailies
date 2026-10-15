@@ -29,9 +29,11 @@ install_data(
   'core/cache.py',
   'core/catalog.py',
   'core/models.py',
+  'core/opening.py',
   'core/popularity.py',
   'core/sections.py',
   'core/search.py',
+  'core/web.py',
   install_dir: moduledir / 'core',
 )
 install_data(
@@ -43,7 +45,12 @@ install_data(
 )
 install_data(
   'ui/__init__.py',
+  'ui/browser_page.py',
+  'ui/filters.py',
   'ui/game_object.py',
   'ui/library.py',
+  'ui/opener.py',
+  'ui/preferences.py',
+  'ui/tile.py',
   install_dir: moduledir / 'ui',
 )

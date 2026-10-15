@@ -1,5 +1,6 @@
 """Store against the bundled snapshot in a temporary cache; run by Meson (see tests/meson.build)."""
 
+import gettext
 import json
 import os
 import tempfile
@@ -19,6 +20,7 @@ from dailies.core.cache import CacheDir
 from dailies.data.favorites import Favorites
 from dailies.data.store import Store
 
+gettext.install("dailies")
 BUNDLE = Path(__file__).resolve().parents[2] / "data" / "v1"
 SCHEMA_ID = os.environ["DAILIES_SCHEMA_ID"]
 
@@ -94,6 +96,11 @@ class StoreTest(unittest.TestCase):
         self.store.load_initial()
         self.favorites.toggle("wordle")
         assert self.item("wordle").props.favorite
+
+    def test_a_game_object_is_found_by_id(self) -> None:
+        self.store.load_initial()
+        assert self.store.get("wordle") is self.item("wordle")
+        assert self.store.get("no-such-game") is None
 
     def test_the_popularity_week_and_staleness_are_exposed(self) -> None:
         self.store.load_initial()

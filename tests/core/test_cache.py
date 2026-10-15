@@ -372,3 +372,21 @@ def test_the_stale_banner_needs_an_old_success_and_a_network() -> None:
 
 def test_no_stale_banner_before_the_first_success() -> None:
     assert not cache.needs_stale_banner(None, NOW, online=True)
+
+
+@pytest.mark.parametrize(
+    ("outcomes", "expected"),
+    [
+        ({"games": Outcome.UPDATED, "popularity": Outcome.NOT_MODIFIED}, Outcome.UPDATED),
+        ({"games": Outcome.NOT_MODIFIED, "popularity": Outcome.UPDATED}, Outcome.UPDATED),
+        ({"games": Outcome.NOT_MODIFIED, "popularity": Outcome.FRESH}, Outcome.NOT_MODIFIED),
+        ({"games": Outcome.FRESH, "popularity": Outcome.FRESH}, Outcome.NOT_MODIFIED),
+        ({"games": Outcome.FAILED, "popularity": Outcome.NOT_MODIFIED}, Outcome.FAILED),
+        # A failure wins over an update: the user should know that trying again may help.
+        ({"games": Outcome.UPDATED, "popularity": Outcome.FAILED}, Outcome.FAILED),
+        ({"games": Outcome.SKIPPED, "popularity": Outcome.SKIPPED}, Outcome.SKIPPED),
+        ({"games": Outcome.SKIPPED, "popularity": Outcome.UPDATED}, Outcome.UPDATED),
+    ],
+)
+def test_summarize_refresh_outcomes(outcomes: dict[str, Outcome], expected: Outcome) -> None:
+    assert cache.summarize(outcomes) is expected

@@ -1,0 +1,62 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $DailiesPreferencesDialog: Adw.PreferencesDialog {
+  search-enabled: true;
+
+  Adw.PreferencesPage {
+    title: _("General");
+    icon-name: "preferences-system-symbolic";
+
+    Adw.PreferencesGroup {
+      title: _("Opening games");
+      description: _("Games open inside Dailies by default. You can always open the current game in your browser from its menu.");
+
+      // The model is filled in Python: only the choices this installation can do are offered.
+      Adw.ComboRow open_mode_row {
+        title: _("Open games");
+      }
+    }
+
+    Adw.PreferencesGroup browser_group {
+      title: _("Built-in browser");
+
+      Adw.SwitchRow clear_on_exit_row {
+        title: _("Clear website data on exit");
+      }
+
+      Adw.ButtonRow clear_row {
+        title: _("Clear website data…");
+        activated => $on_clear_activated();
+
+        styles [
+          "destructive-action",
+        ]
+      }
+    }
+
+    Adw.PreferencesGroup {
+      title: _("Catalog");
+
+      Adw.ActionRow last_updated_row {
+        title: _("Last updated");
+
+        [suffix]
+        Button {
+          icon-name: "view-refresh-symbolic";
+          tooltip-text: _("Refresh Game List");
+          valign: center;
+          action-name: "app.refresh";
+
+          styles [
+            "flat",
+          ]
+        }
+
+        styles [
+          "property",
+        ]
+      }
+    }
+  }
+}

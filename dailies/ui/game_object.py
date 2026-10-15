@@ -1,31 +1,68 @@
 from gi.repository import GObject
 
-from dailies.core.models import Game
+from dailies.core.models import Game, Status
+from dailies.core.sections import Listing
+from dailies.ui import library
 
 
 class GameObject(GObject.Object):
     """One game in the list model, with what the store adds to it, as properties that bindings and filters can watch.
 
-    A rank of 0 means the game is not on that shelf this week.
+    `name`, `category-label`, `difficulty-label`, `caption` ("Geography · Easy", all translated) and `available`
+    (the game is active) follow `game`. A rank of 0 means the game is not on that shelf this week.
     """
 
     __gtype_name__ = "DailiesGameObject"
 
     game = GObject.Property(type=object)
+    name = GObject.Property(type=str, default="")
+    category_label = GObject.Property(type=str, default="")
+    difficulty_label = GObject.Property(type=str, default="")
+    caption = GObject.Property(type=str, default="")
+    available = GObject.Property(type=bool, default=True)
     favorite = GObject.Property(type=bool, default=False)
     popular_rank = GObject.Property(type=int, default=0)
     trending_rank = GObject.Property(type=int, default=0)
 
     def __init__(self, game: Game) -> None:
-        super().__init__(game=game)
+        super().__init__()
+        self._set(_derived(game))
 
     def update(self, *, game: Game, favorite: bool, popular_rank: int, trending_rank: int) -> None:
         """Set the properties that differ from the given values, so only real changes notify."""
-        for name, value in (
-            ("game", game),
-            ("favorite", favorite),
-            ("popular-rank", popular_rank),
-            ("trending-rank", trending_rank),
-        ):
+        self._set(
+            {
+                **_derived(game),
+                "favorite": favorite,
+                "popular-rank": popular_rank,
+                "trending-rank": trending_rank,
+            }
+        )
+
+    def listing(self) -> Listing:
+        """Return the game as the section rules see it."""
+        return Listing(
+            game=self.props.game,
+            favorite=self.props.favorite,
+            popular_rank=self.props.popular_rank,
+            trending_rank=self.props.trending_rank,
+        )
+
+    def _set(self, values: dict[str, object]) -> None:
+        for name, value in values.items():
             if self.get_property(name) != value:
                 self.set_property(name, value)
+
+
+def _derived(game: Game) -> dict[str, object]:
+    category = library.category_title(game.category)
+    difficulty = library.difficulty_title(game.difficulty)
+    # `game` last: whoever watches it sees the other properties already updated.
+    return {
+        "name": game.name,
+        "category-label": category,
+        "difficulty-label": difficulty,
+        "caption": library.caption(category, difficulty),
+        "available": game.status is Status.ACTIVE,
+        "game": game,
+    }

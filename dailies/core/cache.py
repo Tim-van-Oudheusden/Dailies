@@ -46,6 +46,16 @@ class Outcome(Enum):
     FAILED = "failed"
 
 
+def summarize(outcomes: Mapping[str, Outcome]) -> Outcome:
+    """Return the outcome of a whole refresh, as the user is told: failed, updated, skipped, or else not modified."""
+    for outcome in (Outcome.FAILED, Outcome.UPDATED):
+        if outcome in outcomes.values():
+            return outcome
+    if outcomes and all(outcome is Outcome.SKIPPED for outcome in outcomes.values()):
+        return Outcome.SKIPPED
+    return Outcome.NOT_MODIFIED
+
+
 @dataclass(frozen=True)
 class Request:
     """A GET the caller is to send."""
