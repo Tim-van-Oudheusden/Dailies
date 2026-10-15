@@ -291,14 +291,105 @@ the tag makes a "hide fan-made games" filter trivial if takedowns become a probl
 
 ## Measurements
 
-To be filled in by [#52][issue-52] once the app builds as a Flatpak. Nothing here is measured yet. The proposal names
-two numbers that decide things: cold-start time of the Flatpak (the Rust fallback trigger is about one second) and the
-memory of the built-in browser with one game open (a New York Times game). #52 defines the method and records the
-results here.
+Measured for [#52][issue-52] on 2026-10-16, at commit `782bc26` (`main`; the branch that adds this section changes no
+code), on the Devel build `io.github.tim_van_oudheusden.Dailies.Devel` built from that commit with
+`flatpak-builder --user --install` and run as an installed Flatpak.
+
+**Machine.** A desktop, not a laptop: AMD Ryzen 7 7800X3D (8 cores, 16 threads), 32 GB RAM (30.4 GiB usable),
+Crucial T500 2 TB NVMe SSD (`CT2000T500SSD8`, btrfs), AMD Radeon RX 7900-series GPU. Bazzite 44 (Fedora Silverblue
+base), Linux 7.2.9, GNOME Shell 50.5 on Wayland, Flatpak 1.18.4. Runtime `org.gnome.Platform//51`: Python 3.14,
+WebKitGTK 2.54.1. Other jobs (builds and test runs) were running on the machine at the same time, so the times are not
+from an idle system.
+
+### Startup
+
+**Method.** A Python harness timed `flatpak run --user io.github.tim_van_oudheusden.Dailies.Devel --smoke` (wall
+clock, process start to exit): one warm-up run, then 10 measured runs, as `hyperfine --warmup 1 --runs 10` would.
+`--smoke` skips the network refresh and quits 500 ms after the window maps, so each run is "start, map the window,
+wait 0.5 s, shut down". p95 is the nearest-rank value, which for 10 runs is the slowest one.
+
+Cold runs could not use `echo 3 > /proc/sys/vm/drop_caches`, which needs root. Instead, before each run the harness
+called `sync` and then `posix_fadvise(POSIX_FADV_DONTNEED)` on every file of the app deployment, the
+`org.gnome.Platform//51` runtime, its locale, GL (`26.08`, `26.08-extra`) and codecs extensions, the app's
+`~/.var/app` directory and the `flatpak` and `bwrap` binaries (27,946 files). This only approximates dropping the
+caches: the kernel keeps pages that another process has mapped. With GNOME Text Editor (same runtime) running, 126 MiB
+of the 2,121 MiB runtime and app stayed in memory, among them most of `libgtk-4`, `libpython3.14` and `libadwaita`;
+one start then read another 66 MiB back from disk. On a machine with no other GNOME 51 app running, a cold start
+reads more and takes longer than measured here.
+
+| Run | Median | p95 | Range |
+| --- | --- | --- | --- |
+| Warm, whole `--smoke` run | 0.849 s | 0.857 s | 0.838–0.857 s |
+| Cold (approximate), whole `--smoke` run | 0.967 s | 1.055 s | 0.939–1.055 s |
+| Cold (approximate), to the mapped window (minus the fixed 0.5 s) | ≤ 0.47 s | ≤ 0.56 s | |
+
+### Import profile
+
+`flatpak run --command=sh … -c 'PYTHONPATH=/app/share/dailies python3 -X importtime -m dailies --smoke'` (warm):
+219 modules, about 120 ms of imports in total. The ten slowest by cumulative time:
+
+| Module | Cumulative | Self | Imported by |
+| --- | --- | --- | --- |
+| `dailies.application` | 102.6 ms | 3.5 ms | the entry point; includes everything below |
+| `gi.repository.Adw` | 35.4 ms | 34.9 ms | `dailies.application` (loads the Adw, Gtk and Gio typelibs) |
+| `gi` | 20.5 ms | 0.3 ms | `dailies.application` |
+| `gi._gi` | 18.0 ms | 0.9 ms | `gi` |
+| `asyncio` | 15.2 ms | 0.3 ms | `gi._gi` (PyGObject's asyncio integration) |
+| `logging` | 14.9 ms | 1.3 ms | `dailies.application` |
+| `dailies.core.cache` | 13.0 ms | 3.4 ms | `dailies.application` |
+| `asyncio.base_events` | 12.0 ms | 0.6 ms | `asyncio` |
+| `traceback` | 10.9 ms | 0.5 ms | `logging` |
+| `_colorize` | 7.8 ms | 3.6 ms | `traceback` |
+
+WebKit is not among them: no module of the profile mentions WebKit or `browser_page`, and with the library shown the
+app process has no `libwebkitgtk` mapped ([#45][issue-45]). `dailies.window` (7.0 ms) loads in `do_activate`.
+
+### Memory
+
+**Method.** `smem` is not installed, so a Python harness summed the PSS (the figure `smem` reports) from
+`/proc/<pid>/smaps_rollup` of the processes `smem -P 'dailies|WebKit'` would select in the app's sandboxes: the
+`python3 /app/bin/dailies` process and its `WebKit*Process` helpers (the `bwrap` processes add 0.5 MiB and are left
+out). The app ran in the live GNOME session with the default settings (`open-mode` `in-app`). The harness opened
+Wordle (`https://www.nytimes.com/games/wordle/index.html`) by activating `win.open-game` with `'wordle'` over D-Bus
+(`org.gtk.Actions`), waited 25 s, then pressed the browser page's **Back** button through AT-SPI and sampled 15 s and
+30 s later (both samples agreed to 0.3 MiB). For comparison, `/usr/libexec/webkitgtk-6.0/MiniBrowser` from
+`org.gnome.Platform//51` (run with `--socket=wayland --share=network --share=ipc --device=dri`) loaded the same URL and
+was sampled after 25 s; it warns that `flatpak-spawn --sandbox` is unusable there and runs its web process without the
+WebKit sandbox. Medians, with the range in brackets; three app runs and four MiniBrowser runs, the first of each was
+the highest.
+
+| State | `dailies` / `MiniBrowser` | `WebKitWebProcess` | `WebKitNetworkProcess` | Total |
+| --- | --- | --- | --- | --- |
+| (a) Library alone | 51.6 MiB (51.5–60.5) | — | — | 51.6 MiB (51.5–60.5) |
+| (b) Wordle open in-app | 77.7 MiB (77.6–93.0) | 265.4 MiB (263.0–296.0) | 31.3 MiB (30.8–40.0) | 373.8 MiB (372.0–429.0) |
+| (c) Back on the library | 84.5 MiB (84.3–110.7) | — | 32.3 MiB (30.0–46.9) | 116.6 MiB (114.5–157.6) |
+| MiniBrowser, Wordle | 102.0 MiB (101.1–115.0) | 267.2 MiB (252.3–300.4) | 30.0 MiB (29.2–39.2) | 398.6 MiB (383.4–454.6) |
+
+One open NYT game costs about 320 MiB over the library, almost all of it the web process, and the built-in browser is
+no heavier than WebKit's own MiniBrowser on the same page. Popping the page ends the web process, as [#46][issue-46]
+intends. Two things stay: the network process (about 32 MiB), because the one `WebKit.NetworkSession` lives for the
+app run, and about 33 MiB more in the app process, which now has WebKit and GL loaded. PSS splits shared pages
+between the processes using them, so the totals are lower than RSS and depend on what else runs.
+
+### WebKit defaults
+
+Checked with `flatpak run --command=python3 io.github.tim_van_oudheusden.Dailies.Devel` (WebKitGTK 2.54.1), which
+settles the two **[U]** items in `embedded-browser.md` §10:
+
+- `WebKit.Settings` `hardware-acceleration-policy` defaults to `ALWAYS` (the enum has only `ALWAYS` and `NEVER`).
+- `WebKit.NetworkSession.get_itp_enabled()` is `False` by default: on the default session, on a persistent session
+  from `NetworkSession.new(data_dir, cache_dir)` (what `browser_page.py` uses) and on an ephemeral one. Dailies does
+  not change either setting.
+
+**Decision:** Cold start ≤ 0.47 s to the mapped window (0.97 s median for the whole `--smoke` run, which includes a
+fixed 0.5 s wait and the shutdown) → no Rust port (threshold ~1 s). Caveats: a desktop, not a laptop, and an
+approximate cold start that left shared libraries in memory; re-measure on a laptop if startup ever feels slow.
 
 [issue-8]: https://github.com/Tim-van-Oudheusden/Dailies/issues/8
 [issue-9]: https://github.com/Tim-van-Oudheusden/Dailies/issues/9
 [issue-10]: https://github.com/Tim-van-Oudheusden/Dailies/issues/10
 [issue-12]: https://github.com/Tim-van-Oudheusden/Dailies/issues/12
 [issue-16]: https://github.com/Tim-van-Oudheusden/Dailies/issues/16
+[issue-45]: https://github.com/Tim-van-Oudheusden/Dailies/issues/45
+[issue-46]: https://github.com/Tim-van-Oudheusden/Dailies/issues/46
 [issue-52]: https://github.com/Tim-van-Oudheusden/Dailies/issues/52
