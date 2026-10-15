@@ -1,0 +1,79 @@
+import gettext
+import locale
+import logging
+import os
+import signal
+import sys
+from pathlib import Path
+
+import gi
+
+gi.require_version("Gtk", "4.0")
+gi.require_version("Adw", "1")
+
+from gi.repository import Adw, Gio, GLib
+
+from dailies import config
+from dailies.core.cache import CacheDir
+from dailies.data.favorites import Favorites
+from dailies.data.fetcher import Fetcher
+from dailies.data.store import Store
+
+
+class Application(Adw.Application):
+    """The Dailies application: one main window, resources under `config.PREFIX`."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            application_id=config.APP_ID,
+            flags=Gio.ApplicationFlags.DEFAULT_FLAGS,
+            resource_base_path=config.PREFIX,
+        )
+
+    def do_startup(self) -> None:
+        """Load the game list from the cache or the bundled snapshot, before any window is shown."""
+        Adw.Application.do_startup(self)
+        self.settings = Gio.Settings.new(config.APP_ID)
+        self.favorites = Favorites(self.settings)
+        cache_dir = CacheDir(Path(GLib.get_user_cache_dir()) / "dailies" / "v1")
+        fetcher = Fetcher(cache_dir, _data_urls(), config.VERSION)
+        self.store = Store(cache_dir, Path(config.PKGDATADIR) / "data" / "v1", self.favorites, fetcher)
+        self.store.load_initial()
+
+    def do_activate(self) -> None:
+        """Present the main window, creating it on first activation; the game list is refreshed once it maps."""
+        window = self.props.active_window
+        if window is None:
+            # Imported here: its Gtk.Template needs the gresource that main() registers.
+            from dailies.window import Window
+
+            window = Window(application=self, store=self.store, state=Gio.Settings.new(f"{config.APP_ID}.State"))
+            if config.PROFILE == "development":
+                window.add_css_class("devel")
+            window.connect("map", self._on_first_map)
+        window.present()
+
+    def _on_first_map(self, window: Adw.ApplicationWindow) -> None:
+        window.disconnect_by_func(self._on_first_map)
+        self.store.refresh_all()
+
+
+def _data_urls() -> list[str]:
+    # Development builds can point at a local server, e.g. DAILIES_DATA_URLS=http://127.0.0.1:8000/v1/
+    if config.PROFILE == "development" and (override := os.environ.get("DAILIES_DATA_URLS")):
+        return override.split()
+    return config.DATA_URLS
+
+
+def main() -> int:
+    """Set up gettext and resources, then run the application."""
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
+    logging.basicConfig(
+        format="%(name)s: %(message)s",
+        level=logging.DEBUG if os.environ.get("G_MESSAGES_DEBUG") else logging.WARNING,
+    )
+    locale.bindtextdomain("dailies", config.LOCALEDIR)
+    locale.textdomain("dailies")
+    gettext.install("dailies", config.LOCALEDIR)
+    Gio.resources_register(Gio.Resource.load(str(Path(config.PKGDATADIR) / "dailies.gresource")))
+    return Application().run(sys.argv)

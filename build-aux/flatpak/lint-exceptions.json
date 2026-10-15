@@ -1,0 +1,6 @@
+{
+  "io.github.tim_van_oudheusden.Dailies.Devel": {
+    "appstream-screenshots-not-mirrored-in-ostree": "Only Flathub's build mirrors screenshots into the repo (--mirror-screenshots-url); local and CI Devel builds never do",
+    "metainfo-missing-screenshots": "The metainfo gets its screenshots in #50; drop this exception there"
+  }
+}

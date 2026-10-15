@@ -28,13 +28,14 @@ python3 -m pip install --user ruff pytest pytest-cov pyyaml check-jsonschema
 If your distribution does not ship the GNOME 51 libraries, skip the native build: the Flatpak gate runs the same Meson
 tests inside the SDK.
 
-`scripts/dev.sh` wraps the everyday Flatpak commands, so you rarely type a manifest path:
+`scripts/dev.sh` wraps the everyday Flatpak commands, so you rarely type a manifest path. It uses `flatpak-builder` and
+`flatpak-builder-lint` from your `PATH`, or the `org.flatpak.Builder` Flatpak when they are not installed:
 
 ```sh
-scripts/dev.sh build-devel   # build the Devel manifest and install it for your user
+scripts/dev.sh build-devel   # build the Devel manifest into repo/ and install it for your user
 scripts/dev.sh run           # run the installed Devel build
-scripts/dev.sh bundle        # export the Devel build as a .flatpak bundle
-scripts/dev.sh lint          # ruff, shellcheck, actionlint and flatpak-builder-lint
+scripts/dev.sh bundle        # export the Devel build as Dailies-Devel-x86_64.flatpak
+scripts/dev.sh lint          # flatpak-builder-lint on both manifests and on repo/
 ```
 
 The Devel build has its own app ID, `io.github.tim_van_oudheusden.Dailies.Devel`, so it installs next to a release
@@ -56,7 +57,7 @@ data/                       desktop file, metainfo, GSettings schema, Blueprint 
   v1/                       games.json (the catalog), popularity.json (weekly shelves), schema/
 build-aux/flatpak/          Devel manifest (CI and local), release manifest, linter exceptions
 scripts/                    CI and data scripts: gates, coverage, submission validator, link checker, popularity
-tests/                      core/, scripts/, data/, tooling/ (pytest) and e2e/ (smoke test inside Flatpak)
+tests/                      core/, scripts/, data/, tooling/ (pytest); gi/ and e2e/ (Meson tests inside the SDK)
 po/                         gettext setup
 prompts/                    reusable agent prompts (code review, PR body)
 docs/                       testing, risk tiers, metrics, runbooks, reflections, postmortems, security

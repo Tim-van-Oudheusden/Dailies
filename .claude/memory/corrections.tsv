@@ -5,3 +5,4 @@ correction round (tab-separated): ISO date | what went wrong | correction +
 where it is encoded.
 
 Format: `YYYY-MM-DD\t<behaviour>\t<correction (file:rule)>`
+2026-10-16	Submission validator checked DNS before the request but let requests resolve again (IDNA/rebinding SSRF); fetcher let Retry-After/OSError escape the Soup callback	Pin the connected peer and test it (tests/scripts/test_validate_submission.py); keep callback paths exception-free in core/cache.py (tests/core/test_cache.py)

@@ -1,0 +1,2 @@
+# Read by `meson format` (and the pre-commit hook); matches .editorconfig.
+indent_by = '  '

@@ -1,0 +1,8 @@
+#!@PYTHON@
+import sys
+
+sys.path.insert(1, "@PKGDATADIR@")
+
+from dailies.application import main
+
+sys.exit(main())
