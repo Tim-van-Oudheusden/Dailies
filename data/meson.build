@@ -47,13 +47,31 @@ configure_file(
   install_dir: get_option('datadir') / 'dbus-1' / 'services',
 )
 
-configure_file(
+gschema = configure_file(
   input: 'io.github.tim_van_oudheusden.Dailies.gschema.xml.in',
   output: app_id + '.gschema.xml',
   configuration: conf,
   install: true,
   install_dir: get_option('datadir') / 'glib-2.0' / 'schemas',
 )
+
+glib_compile_schemas = find_program('glib-compile-schemas', required: false)
+if glib_compile_schemas.found()
+  # A compiled copy next to the configured schema, so `gsettings --schemadir` and the gi tests can read it uninstalled.
+  compiled_schemas = custom_target(
+    'compiled-schemas',
+    input: gschema,
+    output: 'gschemas.compiled',
+    command: [
+      glib_compile_schemas,
+      '--strict',
+      '--targetdir',
+      '@OUTDIR@',
+      '@OUTDIR@',
+    ],
+    build_by_default: true,
+  )
+endif
 
 resources = gnome.compile_resources(
   'dailies',
@@ -83,7 +101,6 @@ if appstreamcli.found()
   )
 endif
 
-glib_compile_schemas = find_program('glib-compile-schemas', required: false)
 if glib_compile_schemas.found()
   # The configured schema lives in the build directory; the source directory only has the .in template.
   test(

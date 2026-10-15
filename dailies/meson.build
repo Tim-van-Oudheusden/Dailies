@@ -32,5 +32,9 @@ install_data(
   'core/search.py',
   install_dir: moduledir / 'core',
 )
-install_data('data/__init__.py', install_dir: moduledir / 'data')
+install_data(
+  'data/__init__.py',
+  'data/favorites.py',
+  install_dir: moduledir / 'data',
+)
 install_data('ui/__init__.py', install_dir: moduledir / 'ui')

@@ -21,6 +21,10 @@ def test_e2e_tests_are_excluded_by_default() -> None:
     assert "not e2e" in options["addopts"]
 
 
+def test_gi_tests_are_left_to_meson() -> None:
+    assert "--ignore=tests/gi" in load_pyproject()["tool"]["pytest"]["ini_options"]["addopts"]
+
+
 def test_coverage_measures_core_and_scripts_only() -> None:
     assert load_pyproject()["tool"]["coverage"]["run"]["source"] == ["dailies/core", "scripts"]
 

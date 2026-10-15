@@ -71,8 +71,9 @@ property-decorators = ["gi.repository.GObject.Property"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = ["e2e: needs a display and the installed app"]
-# End-to-end tests run inside the Flatpak build (Meson test), never in a plain `pytest`.
-addopts = ["-m", "not e2e", "--strict-markers", "--import-mode=importlib"]
+# End-to-end tests run inside the Flatpak build (Meson test), never in a plain `pytest`. So do the tests in tests/gi:
+# they import gi, which a plain runner lacks, and Meson runs them as stdlib unittest scripts (the SDK has no pytest).
+addopts = ["-m", "not e2e", "--ignore=tests/gi", "--strict-markers", "--import-mode=importlib"]
 pythonpath = ["."]
 
 # Coverage floors apply to the pure-Python core and the CI scripts only; the gi-bound UI is covered by the e2e smoke

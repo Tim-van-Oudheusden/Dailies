@@ -57,7 +57,7 @@ data/                       desktop file, metainfo, GSettings schema, Blueprint 
   v1/                       games.json (the catalog), popularity.json (weekly shelves), schema/
 build-aux/flatpak/          Devel manifest (CI and local), release manifest, linter exceptions
 scripts/                    CI and data scripts: gates, coverage, submission validator, link checker, popularity
-tests/                      core/, scripts/, data/, tooling/ (pytest) and e2e/ (smoke test inside Flatpak)
+tests/                      core/, scripts/, data/, tooling/ (pytest); gi/ and e2e/ (Meson tests inside the SDK)
 po/                         gettext setup
 prompts/                    reusable agent prompts (code review, PR body)
 docs/                       testing, risk tiers, metrics, runbooks, reflections, postmortems, security

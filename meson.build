@@ -44,6 +44,7 @@ conf.set('HAVE_WEBKIT', webkit.found() ? 'True' : 'False')
 subdir('data')
 subdir('dailies')
 subdir('po')
+subdir('tests')
 
 gnome.post_install(
   glib_compile_schemas: true,
