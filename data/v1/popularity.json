@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "method_version": 0,
+  "week": "2026-W42",
+  "generated_at": "2026-10-15T12:00:00Z",
+  "valid_until": "2026-10-25T12:00:00Z",
+  "stale": false,
+  "popular": [
+    { "id": "wordle", "rank": 1, "score": 0.95 },
+    { "id": "nyt-connections", "rank": 2, "score": 0.85 },
+    { "id": "nyt-strands", "rank": 3, "score": 0.7 },
+    { "id": "nyt-mini-crossword", "rank": 4, "score": 0.62 },
+    { "id": "worldle", "rank": 5, "score": 0.55 },
+    { "id": "quordle", "rank": 6, "score": 0.48 },
+    { "id": "nyt-spelling-bee", "rank": 7, "score": 0.44 },
+    { "id": "contexto", "rank": 8, "score": 0.4 },
+    { "id": "globle", "rank": 9, "score": 0.36 },
+    { "id": "framed", "rank": 10, "score": 0.32 },
+    { "id": "immaculate-grid", "rank": 11, "score": 0.3 }
+  ],
+  "trending": [
+    { "id": "nyt-pips", "rank": 1, "score": 0.2, "reason": "new" },
+    { "id": "scrandle", "rank": 2, "score": 0.18, "reason": "new" },
+    { "id": "clues-by-sam", "rank": 3, "score": 0.16, "reason": "new" },
+    { "id": "bracket-city", "rank": 4, "score": 0.14, "reason": "new" },
+    { "id": "minute-cryptic", "rank": 5, "score": 0.12, "reason": "new" }
+  ],
+  "sources": {},
+  "attribution": []
+}
