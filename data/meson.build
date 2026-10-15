@@ -86,6 +86,13 @@ resources = gnome.compile_resources(
   dependencies: [blueprints, metainfo_file],
 )
 
+# The offline snapshot: the store seeds the cache from it on a first run and whenever the cached copy is unusable.
+install_data(
+  'v1/games.json',
+  'v1/popularity.json',
+  install_dir: pkgdatadir / 'data' / 'v1',
+)
+
 desktop_file_validate = find_program('desktop-file-validate', required: false)
 if desktop_file_validate.found()
   test('Validate desktop file', desktop_file_validate, args: [desktop_file])

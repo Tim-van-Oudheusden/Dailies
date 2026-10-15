@@ -26,6 +26,7 @@ install_data(
 install_data(
   'core/__init__.py',
   'core/_fields.py',
+  'core/cache.py',
   'core/catalog.py',
   'core/models.py',
   'core/popularity.py',
@@ -35,6 +36,12 @@ install_data(
 install_data(
   'data/__init__.py',
   'data/favorites.py',
+  'data/fetcher.py',
+  'data/store.py',
   install_dir: moduledir / 'data',
 )
-install_data('ui/__init__.py', install_dir: moduledir / 'ui')
+install_data(
+  'ui/__init__.py',
+  'ui/game_object.py',
+  install_dir: moduledir / 'ui',
+)

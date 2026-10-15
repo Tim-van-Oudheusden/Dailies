@@ -85,7 +85,8 @@ machine, and the coverage floors apply to `dailies/core` and `scripts/` only.
 | `core/catalog.py` | no | `parse(bytes) -> Catalog`: structural check (`schema_version == 1`, required keys, tolerant enums), `is_newer()` by `generated_at`; hides entries whose `status` is not `active` but keeps them so favourites still resolve |
 | `core/popularity.py` | no | `parse(bytes) -> Popularity` (week, `valid_until`, `popular`, `trending`), `rank_of(id)`, `is_stale(now)` |
 | `core/search.py` | no | Case- and accent-folded substring match over name, description, tags and category label |
-| `data/fetcher.py` | Soup, Gio, GLib | One `Soup.Session` with `User-Agent: Dailies/<version> (+https://github.com/Tim-van-Oudheusden/Dailies)`. Conditional GET against each data URL in turn, falling through on 5xx, 429 or a network error and honouring `Retry-After`; parses before it atomically replaces the cache file; never retries in a loop |
+| `core/cache.py` | no | The cache directory (`<name>.json`, `.etag`, `.fetched`, atomic writes) and the decisions of one refresh: skip while younger than the maximum age, `If-None-Match`, fall-through order of the data URLs, `Retry-After` backoff, validate before writing; the stale-banner rule |
+| `data/fetcher.py` | Soup, Gio, GLib | Thin asynchronous libsoup 3 shell over `core/cache.py`: one `Soup.Session` with `User-Agent: Dailies/<version> (+https://github.com/Tim-van-Oudheusden/Dailies)` sends the requests a refresh asks for, one at a time, and never retries in a loop |
 | `data/favorites.py` | Gio | Wraps the `favorites` string-array key: `is_favorite`, `toggle`, order (newest last); emits `changed(id)` |
 | `data/store.py` | Gio | Owns the `Gio.ListStore` of `GameObject`; applies catalog, popularity and favourites; `reload()` diffs by id so the grid keeps its scroll position |
 | `ui/game_object.py` | GObject | `GameObject` with `game`, `favorite`, `popular_rank` and `trending_rank` properties for Blueprint bindings and filters |
@@ -100,9 +101,10 @@ machine, and the coverage floors apply to `dailies/core` and `scripts/` only.
 
 ### Startup sequence
 
-1. `Store.load_initial()` reads `$XDG_CACHE_HOME/dailies/v1/games.json`. If it is missing or does not parse, the
-   bundled `PKGDATADIR/data/v1/games.json` is copied into the cache first. The same happens for `popularity.json`. The
-   grid is filled before the window is shown; the files are tens of kilobytes, so there is no spinner.
+1. `Store.load_initial()` reads `$XDG_CACHE_HOME/dailies/v1/games.json`. If it is missing, does not parse or is older
+   than the bundled `PKGDATADIR/data/v1/games.json`, the bundled file is copied into the cache first. The same happens
+   for `popularity.json`. The grid is filled before the window is shown; the files are tens of kilobytes, so there is
+   no spinner.
 2. After the window maps, `Fetcher.refresh_all()` runs asynchronously. For each file whose last fetch is older than its
    maximum age (catalog 6 h, popularity 24 h) it sends a conditional GET. A `304` only updates the fetch time; a `200`
    is parsed, written with its ETag and fetch time, and followed by `Store.reload()`; any failure is logged and the old
