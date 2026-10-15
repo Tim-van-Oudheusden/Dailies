@@ -2,8 +2,11 @@
 
 These files are the implementation backlog for Dailies: 84 GitHub issues derived from
 [`../proposals/mvp-first.md`](../proposals/mvp-first.md), with detail from [`../research/`](../research/README.md).
-They live here because the session that wrote them could not create issues (the GitHub integration returned
-`403 Resource not accessible by integration`). Once they exist on GitHub, this directory can be deleted.
+**Filed on GitHub on 2026-10-15 as [#1](https://github.com/Tim-van-Oudheusden/Dailies/issues/1)–#84**, with the
+same numbers as the drafts, each ticket attached to its milestone epic as a sub-issue. GitHub is now the source of
+truth; edit the issues there, not these files. Native "blocked by" relations were not set (the tool used to file them
+cannot); the **Dependencies** section in each issue body lists them. Running `create_issues.py` again against this
+repository would create duplicates, so keep it only for reference or delete this directory.
 
 ## Format
 
