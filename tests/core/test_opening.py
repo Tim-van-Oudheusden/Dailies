@@ -1,6 +1,6 @@
 import pytest
 
-from dailies.core.opening import OpenMode, resolve, show_first_run_banner
+from dailies.core.opening import OpenMode, choices, resolve, show_first_run_banner, shown_choice
 
 IN_APP, EXTERNAL, CUSTOM = OpenMode.IN_APP, OpenMode.EXTERNAL, OpenMode.CUSTOM
 
@@ -47,3 +47,35 @@ def test_the_first_run_banner_stays_hidden_once_dismissed() -> None:
 @pytest.mark.parametrize(("mode", "have_webkit"), [(EXTERNAL, True), (IN_APP, False), (CUSTOM, False)])
 def test_the_first_run_banner_is_hidden_when_games_do_not_open_in_app(mode: OpenMode, have_webkit: bool) -> None:
     assert not show_first_run_banner(mode, have_webkit=have_webkit, dismissed=False)
+
+
+@pytest.mark.parametrize(
+    ("have_webkit", "host_access", "expected"),
+    [
+        (True, False, (IN_APP, EXTERNAL)),
+        (False, False, (EXTERNAL,)),
+        (True, True, (IN_APP, EXTERNAL, CUSTOM)),
+        (False, True, (EXTERNAL, CUSTOM)),
+    ],
+)
+def test_choices_hide_what_this_installation_cannot_do(
+    have_webkit: bool, host_access: bool, expected: tuple[OpenMode, ...]
+) -> None:
+    assert choices(have_webkit=have_webkit, host_access=host_access) == expected
+
+
+@pytest.mark.parametrize(
+    ("mode", "have_webkit", "host_access", "expected"),
+    [
+        (IN_APP, True, False, IN_APP),
+        (EXTERNAL, True, False, EXTERNAL),
+        # A choice that is hidden shows as what actually happens.
+        (IN_APP, False, False, EXTERNAL),
+        (CUSTOM, True, False, IN_APP),
+        (CUSTOM, False, False, EXTERNAL),
+        # Custom stays selected once it is offered, even before a command is entered.
+        (CUSTOM, True, True, CUSTOM),
+    ],
+)
+def test_shown_choice(mode: OpenMode, have_webkit: bool, host_access: bool, expected: OpenMode) -> None:
+    assert shown_choice(mode, have_webkit=have_webkit, host_access=host_access) is expected

@@ -50,6 +50,7 @@ install_data(
   'ui/game_object.py',
   'ui/library.py',
   'ui/opener.py',
+  'ui/preferences.py',
   'ui/tile.py',
   install_dir: moduledir / 'ui',
 )

@@ -41,3 +41,16 @@ def show_first_run_banner(mode: OpenMode, *, have_webkit: bool, dismissed: bool)
     """Whether the library tells the user that games open inside Dailies: until dismissed, while they really do."""
     in_app = resolve(mode, have_webkit=have_webkit, host_access=False, command="") is OpenMode.IN_APP
     return in_app and not dismissed
+
+
+def choices(*, have_webkit: bool, host_access: bool) -> tuple[OpenMode, ...]:
+    """The modes Preferences offers, in order: the built-in browser needs WebKit, the custom command host access."""
+    offered = {OpenMode.IN_APP: have_webkit, OpenMode.EXTERNAL: True, OpenMode.CUSTOM: host_access}
+    return tuple(mode for mode, available in offered.items() if available)
+
+
+def shown_choice(mode: OpenMode, *, have_webkit: bool, host_access: bool) -> OpenMode:
+    """The choice Preferences selects for the setting `mode`: the mode itself, or what it does when it is hidden."""
+    if mode in choices(have_webkit=have_webkit, host_access=host_access):
+        return mode
+    return resolve(mode, have_webkit=have_webkit, host_access=False, command="")
