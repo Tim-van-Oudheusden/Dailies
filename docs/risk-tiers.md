@@ -14,12 +14,16 @@ so a PR cannot lower its own tier by editing either. A change to the policy take
 Run it locally against your branch:
 
 ```sh
-git diff --name-only --no-renames origin/main...HEAD | scripts/tier-classify.sh
+git diff -z --name-only --no-renames origin/main...HEAD | scripts/tier-classify.sh -z
 ```
 
 `--no-renames` matters: with rename detection on, a moved file is listed only under its new path, so moving
 `.github/workflows/ci.yml` to `docs/ci.yml` would read as a low-risk docs change. Without it, the old path is listed
 too.
+
+`-z` on both sides passes the paths NUL-terminated. Without it, git C-quotes any path holding non-ASCII, `"`, `\` or a
+control character, and the quoted path matches no rule, so a high-risk file such as `.github/workflows/déploy.yml`
+would read as medium.
 
 ## Tier: high
 
