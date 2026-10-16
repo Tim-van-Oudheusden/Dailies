@@ -97,7 +97,7 @@ machine, and the coverage floors apply to `dailies/core` and `scripts/` only.
 | `data/store.py` | Gio | Owns the `Gio.ListStore` of `GameObject`; applies catalog, popularity, favourites and the done-today marks; `reload()` diffs by id so the grid keeps its scroll position |
 | `ui/game_object.py` | GObject | `GameObject` with `game`, `name`, `category-label`, `difficulty-label`, `caption`, `available`, `favorite`, `popular-rank`, `trending-rank` and `done` properties for Blueprint bindings and filters, and `in-favorites`, `can-move-up` and `can-move-down`, which the window sets for the tile's menu and drag-and-drop |
 | `ui/filters.py` | Gtk | `SectionFilter` (Favorites, Popular, Trending or a category) and `SearchFilter`, combined in a `Gtk.EveryFilter`; `SectionSorter` orders shelves by rank, Favorites by favourite order, categories by name; `SearchSorter`, first in a `Gtk.MultiSorter`, puts the best matches first while a query is active and leaves the section order otherwise |
-| `ui/tile.py` | Gtk, Adw | `GameTile`: a `.card` button (tinted category glyph, name, category, difficulty pill, a "Done today" badge on a dimmed card; screen readers hear "Name, Category · Difficulty") with an overlaid star toggle, never a button inside a button; `game_menu()` builds the tile's context menu (right click, long press, Shift+F10 or Menu); in Favorites, the drag source and drop target that reorder favourites |
+| `ui/tile.py` | Gtk, Adw | `GameTile`: a `.card` button (tinted category glyph, name, category, difficulty pill, a "Done today" badge on a dimmed card; screen readers hear "Name, Category · Difficulty") with an overlaid star toggle, never a button inside a button; `game_menu()` builds the tile's context menu (right click, long press, Shift+F10 or Menu), whose **Open With** and **Isolated Session** items set the game's own `Game` settings; in Favorites, the drag source and drop target that reorder favourites |
 | `ui/library.py` | GLib | The library's translated texts: category and difficulty names, tile captions, the This Week subtitle, the stale banner |
 | `window.py` | Adw | Window, sidebar, grid, search bar, empty states, toasts; `open_game()` is the one way a game is opened |
 | `ui/browser_page.py` | WebKit | The in-app browser page; only imported when `HAVE_WEBKIT` |
@@ -157,7 +157,8 @@ A `State` child schema keeps `width`, `height`, `is-maximized`, `last-section` a
 relocatable `Game` schema lives at `<schema path>/games/<id>/` for each catalog id (`core/web.py: game_settings_path`):
 `open-mode-override` (`s`, `''`: an `open-mode` nick that replaces it for this game; empty or unknown uses
 `open-mode`) and `isolated-session` (`b`, `false`: a session of its own for this game even while games share one).
-Preferences has no rows for them yet; inside the Flatpak set one with `flatpak run --command=gsettings <app id> set
+Each game's tile menu sets them (see [Per-game opening](#per-game-opening)); `gsettings` works too, inside the Flatpak
+with `flatpak run --command=gsettings <app id> set
 <app id>.Game:/io/github/tim_van_oudheusden/Dailies/games/wordle/ isolated-session true`. New keys are additive and
 need no migration.
 
@@ -209,7 +210,8 @@ dimmed card, and screen readers hear "…, done today". The **Not Done First** s
 done games last. The marks expire at local midnight: `data/done_today.py` sets a GLib timeout for the next midnight,
 and because that timer runs on the monotonic clock (it stops during a suspend, and ignores clock and time-zone
 changes) the window also re-checks the day whenever it becomes active. The tile menu is built by one function,
-`ui/tile.py: game_menu()`, one section per concern.
+`ui/tile.py: game_menu()`, one section per concern: done today, then how the game opens
+([Per-game opening](#per-game-opening)), then in Favorites the moves and the removal.
 
 In Favorites the tile menu also holds **Move Up**, **Move Down**, **Move to Top** (disabled when the move is
 impossible) and **Remove from Favorites**; Ctrl+Up and Ctrl+Down move the focused favourite, and the focus stays on it
@@ -236,9 +238,9 @@ else:
     on error: Gio.AppInfo.launch_default_for_uri_async(url)
 ```
 
-- Host access is probed once per session, the first time the custom mode or Preferences needs it (`ui/opener.py`):
-  a call to `org.freedesktop.Flatpak.Development.HostCommand` on the session bus with no arguments, which can never
-  run anything. Observed with Flatpak 1.18.4: without the override the sandbox's D-Bus proxy answers
+- Host access is probed once per session, the first time the custom mode, Preferences or a tile menu needs it
+  (`ui/opener.py`): a call to `org.freedesktop.Flatpak.Development.HostCommand` on the session bus with no arguments,
+  which can never run anything. Observed with Flatpak 1.18.4: without the override the sandbox's D-Bus proxy answers
   `org.freedesktop.DBus.Error.ServiceUnknown`; with it `flatpak-session-helper` answers
   `org.freedesktop.DBus.Error.InvalidArgs` (`Type of message, “()”, does not match expected type
   “(ayaaya{uh}a{ss}u)”`). Only `InvalidArgs` counts as granted (`core/opening.py: host_access_granted`); every other
@@ -254,7 +256,7 @@ else:
   [README](../README.md#custom-browser-command) have the `flatpak override` lines.
 - While games open in-app, the library shows a first-run `Adw.Banner` ("Games open inside Dailies…") with a
   **Preferences** button; pressing it, or opening a game in-app, dismisses it for good (`first-run-banner-dismissed`).
-- WebKit is imported the first time a game opens or Preferences needs to know, never at startup.
+- WebKit is imported the first time a game opens, Preferences or a tile menu needs to know, never at startup.
 - Every in-app page has **Open in Browser** (Ctrl+Shift+O) and **Copy Link** in its menu.
 - The built-in page is an `Adw.NavigationPage` with back, forward, reload and a title showing the page title and host.
   By default one `WebKit.NetworkSession` is shared by all games (sibling games share a login). With
@@ -275,6 +277,23 @@ else:
 - Preferences → Built-in browser has a **Privacy and compatibility** expander row with the six browser keys; the
   website-data row says that switching moves no data and games will need to sign in again. **Clear website data…**
   clears every session: the shared one and every `web/games/<id>` directory on disk, opened in this run or not.
+
+### Per-game opening
+
+Every tile menu (right click, long press, Shift+F10 or Menu on the focused tile) has an **Open With** submenu and,
+when WebKit is available, an **Isolated Session** check; both write the game's relocatable `Game` settings and are
+read again each time the menu pops up (`ui/tile.py: GameTile`).
+
+- **Open With** is a group of radio items for `open-mode-override`: **Default** (empty: follow `open-mode`), then
+  **Built-in Browser**, **Default Browser** and **Custom Command**, each only where Preferences offers it
+  (`core/opening.py: game_choices`). An override this installation cannot do shows as what the game actually does,
+  and choosing that item keeps the override, as Preferences does for `open-mode` (`shown_game_choice`).
+- **Isolated Session** toggles `isolated-session`. While `session-isolation` is `per-game` every game already has a
+  session of its own, so the check is on and disabled (`core/web.py: isolated_session_toggle`). The next page opened
+  for the game uses the new session.
+- The menu is a `Gtk.PopoverMenu` built from a `Gio.Menu`: arrow keys move through it, Right or Enter opens
+  **Open With**, Left or Escape goes back, and screen readers hear the items as radio and check menu items with their
+  state. Every item has a mnemonic.
 
 ## Data and release pipelines
 

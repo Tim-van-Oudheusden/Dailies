@@ -1,18 +1,32 @@
 from gi.repository import Gdk, Gio, GLib, GObject, Gtk
 
 from dailies import config
-from dailies.core import sections
+from dailies.core import opening, sections, web
+from dailies.core.opening import OpenMode
 from dailies.core.reorder import Move
-from dailies.ui import library
+from dailies.ui import library, opener
 from dailies.ui.game_object import GameObject
 
 
-def game_menu(item: GameObject) -> Gio.Menu:
+def _open_with_title(choice: str) -> str:
+    titles = {
+        "": _("_Default"),
+        OpenMode.IN_APP.value: _("_Built-in Browser"),
+        OpenMode.EXTERNAL.value: _("Default B_rowser"),
+        OpenMode.CUSTOM.value: _("_Custom Command"),
+    }
+    return titles[choice]
+
+
+def game_menu(item: GameObject, *, have_webkit: bool, host_access: bool) -> Gio.Menu:
     """Return the menu of `item`'s tile, built when it pops up, so its labels follow the game's state.
 
-    Each concern is a section of its own. The done section activates `win.toggle-game-done` with the game's id. In
-    Favorites, the move section uses the tile's `tile.move-up`, `tile.move-down` and `tile.move-to-top` actions,
-    disabled when the move is impossible, and the last section removes the game (`win.toggle-game-favorite`).
+    Each concern is a section of its own. The done section activates `win.toggle-game-done` with the game's id. The
+    options section holds "Open With", radio items of the tile's `tile.open-with` with each `open-mode-override` value
+    this installation can do (`dailies.core.opening.game_choices`), and, with the built-in browser (`have_webkit`), the
+    `tile.isolated-session` check item. In Favorites, the move section uses the tile's `tile.move-up`, `tile.move-down`
+    and `tile.move-to-top` actions, disabled when the move is impossible, and the last section removes the game
+    (`win.toggle-game-favorite`).
     """
     game_id = GLib.Variant.new_string(item.props.game.id)
     done = Gio.Menu()
@@ -22,6 +36,17 @@ def game_menu(item: GameObject) -> Gio.Menu:
     done.append_item(entry)
     menu = Gio.Menu()
     menu.append_section(None, done)
+    open_with = Gio.Menu()
+    for choice in opening.game_choices(have_webkit=have_webkit, host_access=host_access):
+        entry = Gio.MenuItem.new(_open_with_title(choice), None)
+        entry.set_action_and_target_value("tile.open-with", GLib.Variant.new_string(choice))
+        open_with.append_item(entry)
+    options = Gio.Menu()
+    options.append_submenu(_("_Open With"), open_with)
+    # Only the built-in browser has sessions.
+    if have_webkit:
+        options.append(_("_Isolated Session"), "tile.isolated-session")
+    menu.append_section(None, options)
     if item.props.in_favorites:
         moves = Gio.Menu()
         moves.append(_("Move _Up"), "tile.move-up")
@@ -45,6 +70,12 @@ class GameTile(Gtk.Overlay):
     chained lookup bidirectionally). A game done today shows a "Done today" badge on a dimmed card. A right click, a
     long press or `popup_menu()` (`win.show-game-menu` from the keyboard) shows the game's menu (`game_menu`).
 
+    The menu's "Open With" and "Isolated Session" items change the game's relocatable `Game` settings
+    (`opener.game_settings`): `tile.open-with` holds the `open-mode-override` value the menu selects
+    (`dailies.core.opening.shown_game_choice`), and choosing that value again keeps the setting, as Preferences does;
+    `tile.isolated-session` holds whether the game has a session of its own and cannot change while every game has one
+    (`dailies.core.web.isolated_session_toggle`). Both are read from the settings each time the menu pops up.
+
     In Favorites a favourite that can move is dragged as its id; dropping one on the first or the second half of a tile
     activates `win.drop-favorite` with the dragged id, this tile's id and whether it goes after this tile, while a bar
     shows that side. The menu's moves activate `win.move-favorite` with the id and the `Move` value.
@@ -65,6 +96,7 @@ class GameTile(Gtk.Overlay):
 
     def __init__(self, **kwargs: object) -> None:
         self._item: GameObject | None = None
+        self._game_settings: Gio.Settings | None = None
         self._handlers: list[int] = []
         self._favorite = False
         self._actions = self._create_actions()
@@ -106,6 +138,7 @@ class GameTile(Gtk.Overlay):
             for handler in self._handlers:
                 self._item.disconnect(handler)
         self._item = item
+        self._game_settings = None
         self._handlers = []
         if item is not None:
             self._handlers = [
@@ -137,7 +170,9 @@ class GameTile(Gtk.Overlay):
         """Show the game's menu at (`x`, `y`) in the tile, or under the whole tile when no point is given."""
         if self._item is None:
             return
-        self.menu.props.menu_model = game_menu(self._item)
+        have_webkit, host_access = opener.have_webkit(), opener.host_access()
+        self._sync_game_options(opener.game_settings(self._item.props.game.id), have_webkit, host_access)
+        self.menu.props.menu_model = game_menu(self._item, have_webkit=have_webkit, host_access=host_access)
         if x is None or y is None:
             self.menu.set_pointing_to(None)
         else:
@@ -152,7 +187,41 @@ class GameTile(Gtk.Overlay):
             action = Gio.SimpleAction(name=name, enabled=False)
             action.connect("activate", lambda _action, _parameter, move=move: self._request_move(move))
             actions.add_action(action)
+        open_with = Gio.SimpleAction.new_stateful("open-with", GLib.VariantType("s"), GLib.Variant.new_string(""))
+        open_with.connect("change-state", self._on_open_with)
+        isolated = Gio.SimpleAction.new_stateful("isolated-session", None, GLib.Variant.new_boolean(False))
+        isolated.connect("change-state", self._on_isolated_session)
+        for action in (open_with, isolated):
+            action.props.enabled = False
+            actions.add_action(action)
         return actions
+
+    def _sync_game_options(self, game: Gio.Settings | None, have_webkit: bool, host_access: bool) -> None:
+        """Show `game`'s settings in `tile.open-with` and `tile.isolated-session`; disable both when it has none."""
+        self._game_settings = game
+        open_with = self._actions.lookup_action("open-with")
+        isolated = self._actions.lookup_action("isolated-session")
+        open_with.props.enabled = isolated.props.enabled = game is not None
+        if game is None:
+            return
+        override = game.get_string("open-mode-override")
+        shown = opening.shown_game_choice(override, have_webkit=have_webkit, host_access=host_access)
+        open_with.set_state(GLib.Variant.new_string(shown))
+        isolation = web.SessionIsolation.from_id(Gio.Settings.new(config.APP_ID).get_string("session-isolation"))
+        checked, changeable = web.isolated_session_toggle(isolation, isolated=game.get_boolean("isolated-session"))
+        isolated.set_state(GLib.Variant.new_boolean(checked))
+        isolated.props.enabled = changeable
+
+    def _on_open_with(self, action: Gio.SimpleAction, value: GLib.Variant) -> None:
+        # Choosing what is already shown keeps the setting, so an override this installation hides is kept.
+        if self._game_settings is not None and value.get_string() != action.get_state().get_string():
+            self._game_settings.set_string("open-mode-override", value.get_string())
+        action.set_state(value)
+
+    def _on_isolated_session(self, action: Gio.SimpleAction, value: GLib.Variant) -> None:
+        if self._game_settings is not None:
+            self._game_settings.set_boolean("isolated-session", value.get_boolean())
+        action.set_state(value)
 
     def _add_drag_and_drop(self) -> None:
         # In the capture phase, so the drag wins over the card's click once the pointer has moved far enough.

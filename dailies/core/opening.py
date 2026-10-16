@@ -79,6 +79,20 @@ def shown_choice(mode: OpenMode, *, have_webkit: bool, host_access: bool) -> Ope
     return resolve(mode, have_webkit=have_webkit, host_access=False, command="")
 
 
+def game_choices(*, have_webkit: bool, host_access: bool) -> tuple[str, ...]:
+    """The `open-mode-override` values a game's "Open With" menu offers: "" (Default, follow `open-mode`), `choices`."""
+    return ("", *(mode.value for mode in choices(have_webkit=have_webkit, host_access=host_access)))
+
+
+def shown_game_choice(override: str, *, have_webkit: bool, host_access: bool) -> str:
+    """The value a game's "Open With" menu selects for its `override`: "" when empty or unknown, else `shown_choice`."""
+    try:
+        mode = OpenMode(override)
+    except ValueError:
+        return ""
+    return shown_choice(mode, have_webkit=have_webkit, host_access=host_access).value
+
+
 def host_access_granted(error_name: str | None) -> bool:
     """Whether the custom command can reach the host, given the D-Bus error name the host-access probe got.
 

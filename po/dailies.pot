@@ -251,35 +251,59 @@ msgstr ""
 msgid "Website data cleared"
 msgstr ""
 
-#: dailies/ui/tile.py:19
+#: dailies/ui/tile.py:13 data/ui/window.blp:270
+msgid "_Default"
+msgstr ""
+
+#: dailies/ui/tile.py:14
+msgid "_Built-in Browser"
+msgstr ""
+
+#: dailies/ui/tile.py:15
+msgid "Default B_rowser"
+msgstr ""
+
+#: dailies/ui/tile.py:16
+msgid "_Custom Command"
+msgstr ""
+
+#: dailies/ui/tile.py:33
 msgid "Mark as _Not Done"
 msgstr ""
 
-#: dailies/ui/tile.py:19 data/ui/browser-page.blp:96
+#: dailies/ui/tile.py:33 data/ui/browser-page.blp:96
 msgid "Mark as _Done Today"
 msgstr ""
 
-#: dailies/ui/tile.py:27
+#: dailies/ui/tile.py:45
+msgid "_Open With"
+msgstr ""
+
+#: dailies/ui/tile.py:48
+msgid "_Isolated Session"
+msgstr ""
+
+#: dailies/ui/tile.py:52
 msgid "Move _Up"
 msgstr ""
 
-#: dailies/ui/tile.py:28
+#: dailies/ui/tile.py:53
 msgid "Move _Down"
 msgstr ""
 
-#: dailies/ui/tile.py:29
+#: dailies/ui/tile.py:54
 msgid "Move to _Top"
 msgstr ""
 
-#: dailies/ui/tile.py:32
+#: dailies/ui/tile.py:57
 msgid "_Remove from Favorites"
 msgstr ""
 
-#: dailies/ui/tile.py:224 dailies/window.py:348
+#: dailies/ui/tile.py:293 dailies/window.py:348
 msgid "Remove from Favorites"
 msgstr ""
 
-#: dailies/ui/tile.py:224
+#: dailies/ui/tile.py:293
 msgid "Add to Favorites"
 msgstr ""
 
@@ -758,10 +782,6 @@ msgstr ""
 
 #: data/ui/window.blp:264
 msgid "_About Dailies"
-msgstr ""
-
-#: data/ui/window.blp:270
-msgid "_Default"
 msgstr ""
 
 #: data/ui/window.blp:271
