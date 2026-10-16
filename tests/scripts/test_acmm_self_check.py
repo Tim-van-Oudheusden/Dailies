@@ -4,6 +4,7 @@ from pathlib import Path
 from types import ModuleType
 
 import pytest
+from ruamel.yaml import YAML
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "scripts" / "acmm-self-check.py"
@@ -197,3 +198,14 @@ def test_bad_arguments_are_rejected(argv: list[str], capsys: pytest.CaptureFixtu
 
 def test_root_defaults_to_this_checkout() -> None:
     assert acmm.parse_args([]).root == ROOT
+
+
+def test_the_waiver_file_names_real_criteria_with_every_field() -> None:
+    # Hive reads .acmm.yml at the repository root (docs/research/hive-acmm.md section 4.2): each waiver needs an id
+    # that is a real criterion, a satisfied_by and a reason.
+    waivers = YAML(typ="safe").load((ROOT / ".acmm.yml").read_text(encoding="utf-8"))["waivers"]
+    keys = {criterion.key for criterion in acmm.CRITERIA}
+    assert isinstance(waivers, list)
+    for waiver in waivers:
+        assert all(isinstance(waiver.get(field), str) and waiver[field] for field in ("id", "satisfied_by", "reason"))
+        assert waiver["id"] in keys
