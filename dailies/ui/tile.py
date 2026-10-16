@@ -2,6 +2,7 @@ from gi.repository import Gdk, Gio, GLib, GObject, Gtk
 
 from dailies import config
 from dailies.core import sections
+from dailies.core.reorder import Move
 from dailies.ui import library
 from dailies.ui.game_object import GameObject
 
@@ -9,7 +10,9 @@ from dailies.ui.game_object import GameObject
 def game_menu(item: GameObject) -> Gio.Menu:
     """Return the menu of `item`'s tile, built when it pops up, so its labels follow the game's state.
 
-    Every item activates a `win.` action with the game's id as its target; each concern is a section of its own.
+    Each concern is a section of its own. The done section activates `win.toggle-game-done` with the game's id. In
+    Favorites, the move section uses the tile's `tile.move-up`, `tile.move-down` and `tile.move-to-top` actions,
+    disabled when the move is impossible, and the last section removes the game (`win.toggle-game-favorite`).
     """
     game_id = GLib.Variant.new_string(item.props.game.id)
     done = Gio.Menu()
@@ -19,6 +22,17 @@ def game_menu(item: GameObject) -> Gio.Menu:
     done.append_item(entry)
     menu = Gio.Menu()
     menu.append_section(None, done)
+    if item.props.in_favorites:
+        moves = Gio.Menu()
+        moves.append(_("Move _Up"), "tile.move-up")
+        moves.append(_("Move _Down"), "tile.move-down")
+        moves.append(_("Move to _Top"), "tile.move-to-top")
+        menu.append_section(None, moves)
+        remove = Gio.Menu()
+        entry = Gio.MenuItem.new(_("_Remove from Favorites"), None)
+        entry.set_action_and_target_value("win.toggle-game-favorite", game_id)
+        remove.append_item(entry)
+        menu.append_section(None, remove)
     return menu
 
 
@@ -30,6 +44,10 @@ class GameTile(Gtk.Overlay):
     `win.toggle-game-favorite` with it. `favorite` follows the game's and drives the star (Blueprint cannot bind a
     chained lookup bidirectionally). A game done today shows a "Done today" badge on a dimmed card. A right click, a
     long press or `popup_menu()` (`win.show-game-menu` from the keyboard) shows the game's menu (`game_menu`).
+
+    In Favorites a favourite that can move is dragged as its id; dropping one on the first or the second half of a tile
+    activates `win.drop-favorite` with the dragged id, this tile's id and whether it goes after this tile, while a bar
+    shows that side. The menu's moves activate `win.move-favorite` with the id and the `Move` value.
     """
 
     __gtype_name__ = "DailiesGameTile"
@@ -43,11 +61,14 @@ class GameTile(Gtk.Overlay):
     done_badge: Gtk.Box = Gtk.Template.Child()
     done_label: Gtk.Label = Gtk.Template.Child()
     favorite_button: Gtk.ToggleButton = Gtk.Template.Child()
+    drop_indicator: Gtk.Box = Gtk.Template.Child()
 
     def __init__(self, **kwargs: object) -> None:
         self._item: GameObject | None = None
         self._handlers: list[int] = []
         self._favorite = False
+        self._actions = self._create_actions()
+        self._drag_hotspot = (0, 0)
         super().__init__(**kwargs)
         self._show_favorite()
         self.menu = Gtk.PopoverMenu(has_arrow=False, halign=Gtk.Align.START)
@@ -58,6 +79,14 @@ class GameTile(Gtk.Overlay):
         long_press = Gtk.GestureLongPress(touch_only=True)
         long_press.connect("pressed", lambda _gesture, x, y: self.popup_menu(x, y))
         self.add_controller(long_press)
+        self.insert_action_group("tile", self._actions)
+        self._add_drag_and_drop()
+        self._sync_moves()
+
+    def do_size_allocate(self, width: int, height: int, baseline: int) -> None:
+        """Lay out the card and keep the menu attached to the tile."""
+        Gtk.Overlay.do_size_allocate(self, width, height, baseline)
+        self.menu.present()
 
     def do_dispose(self) -> None:
         """Unparent the menu, which the tile owns."""
@@ -77,14 +106,18 @@ class GameTile(Gtk.Overlay):
             for handler in self._handlers:
                 self._item.disconnect(handler)
         self._item = item
+        self._handlers = []
         if item is not None:
             self._handlers = [
                 item.connect("notify::game", lambda *_args: self._update()),
                 item.connect("notify::favorite", lambda *_args: self._sync_favorite()),
                 item.connect("notify::done", lambda *_args: self._update()),
+                item.connect("notify::can-move-up", lambda *_args: self._sync_moves()),
+                item.connect("notify::can-move-down", lambda *_args: self._sync_moves()),
             ]
             self._update()
             self._sync_favorite()
+        self._sync_moves()
 
     @GObject.Property(type=bool, default=False)
     def favorite(self) -> bool:
@@ -112,6 +145,75 @@ class GameTile(Gtk.Overlay):
             rect.x, rect.y, rect.width, rect.height = int(x), int(y), 1, 1
             self.menu.set_pointing_to(rect)
         self.menu.popup()
+
+    def _create_actions(self) -> Gio.SimpleActionGroup:
+        actions = Gio.SimpleActionGroup()
+        for name, move in (("move-up", Move.UP), ("move-down", Move.DOWN), ("move-to-top", Move.TOP)):
+            action = Gio.SimpleAction(name=name, enabled=False)
+            action.connect("activate", lambda _action, _parameter, move=move: self._request_move(move))
+            actions.add_action(action)
+        return actions
+
+    def _add_drag_and_drop(self) -> None:
+        # In the capture phase, so the drag wins over the card's click once the pointer has moved far enough.
+        source = Gtk.DragSource(actions=Gdk.DragAction.MOVE, propagation_phase=Gtk.PropagationPhase.CAPTURE)
+        source.connect("prepare", self._on_drag_prepare)
+        source.connect("drag-begin", self._on_drag_begin)
+        self.add_controller(source)
+        target = Gtk.DropTarget.new(GObject.TYPE_STRING, Gdk.DragAction.MOVE)
+        target.connect("enter", self._on_drop_motion)
+        target.connect("motion", self._on_drop_motion)
+        target.connect("leave", lambda _target: self._show_drop_side(None))
+        target.connect("drop", self._on_drop)
+        self.add_controller(target)
+
+    def _movable(self) -> bool:
+        item = self._item
+        return item is not None and item.props.in_favorites and (item.props.can_move_up or item.props.can_move_down)
+
+    def _sync_moves(self) -> None:
+        item = self._item
+        up = item is not None and item.props.can_move_up
+        down = item is not None and item.props.can_move_down
+        for name, enabled in (("move-up", up), ("move-down", down), ("move-to-top", up)):
+            self._actions.lookup_action(name).props.enabled = enabled
+
+    def _request_move(self, move: Move) -> None:
+        if self._item is not None:
+            parameter = GLib.Variant("(ss)", (self._item.props.game.id, move.value))
+            self.activate_action("win.move-favorite", parameter)
+
+    def _on_drag_prepare(self, _source: Gtk.DragSource, x: float, y: float) -> Gdk.ContentProvider | None:
+        if not self._movable():
+            return None
+        self._drag_hotspot = (int(x), int(y))
+        return Gdk.ContentProvider.new_for_value(GObject.Value(GObject.TYPE_STRING, self._item.props.game.id))
+
+    def _on_drag_begin(self, source: Gtk.DragSource, _drag: Gdk.Drag) -> None:
+        source.set_icon(Gtk.WidgetPaintable.new(self), *self._drag_hotspot)
+
+    def _drops_after(self, x: float) -> bool:
+        after = x > self.get_width() / 2
+        return not after if self.get_direction() == Gtk.TextDirection.RTL else after
+
+    def _on_drop_motion(self, _target: Gtk.DropTarget, x: float, _y: float) -> Gdk.DragAction:
+        if not self._movable():
+            return 0
+        self._show_drop_side(self._drops_after(x))
+        return Gdk.DragAction.MOVE
+
+    def _show_drop_side(self, after: bool | None) -> None:
+        self.drop_indicator.props.visible = after is not None
+        if after is not None:
+            self.drop_indicator.props.halign = Gtk.Align.END if after else Gtk.Align.START
+
+    def _on_drop(self, _target: Gtk.DropTarget, value: str, x: float, _y: float) -> bool:
+        self._show_drop_side(None)
+        if not self._movable() or value == self._item.props.game.id:
+            return False
+        parameter = GLib.Variant("(ssb)", (value, self._item.props.game.id, self._drops_after(x)))
+        self.activate_action("win.drop-favorite", parameter)
+        return True
 
     def _sync_favorite(self) -> None:
         self.props.favorite = self._item.props.favorite

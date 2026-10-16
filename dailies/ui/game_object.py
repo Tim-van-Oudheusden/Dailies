@@ -10,7 +10,9 @@ class GameObject(GObject.Object):
 
     `name`, `category-label`, `difficulty-label`, `caption` ("Geography · Easy", all translated) and `available`
     (the game is active) follow `game`. A rank of 0 means the game is not on that shelf this week. `done` says whether
-    the game was marked as done today; the store sets it apart from `update`, as it changes with the day.
+    the game was marked as done today; the store sets it apart from `update`, as it changes with the day. The window
+    sets `in-favorites` (the game is a favourite and Favorites is shown), `can-move-up` and `can-move-down` (it can move
+    in the favourite order there), which drive the tile's menu and drag-and-drop.
     """
 
     __gtype_name__ = "DailiesGameObject"
@@ -25,6 +27,9 @@ class GameObject(GObject.Object):
     popular_rank = GObject.Property(type=int, default=0)
     trending_rank = GObject.Property(type=int, default=0)
     done = GObject.Property(type=bool, default=False)
+    in_favorites = GObject.Property(type=bool, default=False)
+    can_move_up = GObject.Property(type=bool, default=False)
+    can_move_down = GObject.Property(type=bool, default=False)
 
     def __init__(self, game: Game) -> None:
         super().__init__()
@@ -40,6 +45,10 @@ class GameObject(GObject.Object):
                 "trending-rank": trending_rank,
             }
         )
+
+    def update_moves(self, *, in_favorites: bool, can_move_up: bool, can_move_down: bool) -> None:
+        """Set where the game can move in Favorites; only real changes notify."""
+        self._set({"in-favorites": in_favorites, "can-move-up": can_move_up, "can-move-down": can_move_down})
 
     def listing(self) -> Listing:
         """Return the game as the section rules see it."""

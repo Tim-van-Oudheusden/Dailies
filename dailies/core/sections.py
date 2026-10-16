@@ -5,16 +5,17 @@ shown change with the catalog.
 """
 
 import sys
-from collections.abc import Collection
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
 from enum import Enum
 from typing import Self
 
-from dailies.core import languages
+from dailies.core import languages, reorder
 from dailies.core.catalog import Catalog
 from dailies.core.models import Category, Difficulty, Game, Status
 from dailies.core.popularity import Popularity
+from dailies.core.reorder import Move
 from dailies.core.search import fold
 
 FAVORITES = "favorites"
@@ -129,6 +130,16 @@ def sort_key(
     else:
         primary = 0
     return (done_last, primary, fold(game.name), game.id)
+
+
+def favorite_moves(section: str, mode: SortMode, order: Sequence[str], game_id: str) -> set[Move]:
+    """Return the moves `game_id` can make: none outside Favorites or while a sort mode overrides the favourite order.
+
+    The tile menu disables the other moves; with none, the game cannot be dragged either.
+    """
+    if section != FAVORITES or mode is not SortMode.DEFAULT:
+        return set()
+    return reorder.possible_moves(order, game_id)
 
 
 def page(section: str, *, empty: bool, searching: bool) -> Page:

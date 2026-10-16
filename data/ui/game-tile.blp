@@ -124,4 +124,20 @@ template $DailiesGameTile: Overlay {
       "osd",
     ]
   }
+
+  // While a favourite is dragged over this one in Favorites, a bar on the side it will be dropped; set from code.
+  [overlay]
+  Box drop_indicator {
+    visible: false;
+    can-target: false;
+    halign: start;
+    width-request: 4;
+    margin-top: 6;
+    margin-bottom: 6;
+    accessible-role: presentation;
+
+    styles [
+      "drop-indicator",
+    ]
+  }
 }

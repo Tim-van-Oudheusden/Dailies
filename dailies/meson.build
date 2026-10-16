@@ -34,6 +34,7 @@ install_data(
   'core/models.py',
   'core/opening.py',
   'core/popularity.py',
+  'core/reorder.py',
   'core/sections.py',
   'core/search.py',
   'core/web.py',

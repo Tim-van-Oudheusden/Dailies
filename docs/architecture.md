@@ -86,17 +86,18 @@ machine, and the coverage floors apply to `dailies/core` and `scripts/` only.
 | `core/catalog.py` | no | `parse(bytes) -> Catalog`: structural check (`schema_version == 1`, required keys, tolerant enums), `is_newer()` by `generated_at`; hides entries whose `status` is not `active` but keeps them so favourites still resolve |
 | `core/popularity.py` | no | `parse(bytes) -> Popularity` (week, `valid_until`, `popular`, `trending`), `rank_of(id)`, `is_stale(now)` |
 | `core/search.py` | no | Ranked, case- and accent-folded matching over name, description, tags and category label: name prefix > word starts ("t m c" for The Mini Crossword) > name substring > other fields > one typo from six letters, two from nine; whether a new query narrows or widens the matches (a query that may match with a typo always re-tests every game) |
-| `core/sections.py` | no | The sidebar's section ids (Favorites, Popular, Trending, then the category ids), which categories have active games, the section to restore, the "as of" date of stale shelves; what each section holds, the sort keys (shelf rank, favourite order, name, or the `sort-mode` override, including "not done first"), the empty-state page, the tiles' colour classes |
+| `core/sections.py` | no | The sidebar's section ids (Favorites, Popular, Trending, then the category ids), which categories have active games, the section to restore, the "as of" date of stale shelves; what each section holds, the sort keys (shelf rank, favourite order, name, or the `sort-mode` override, including "not done first"), the moves a favourite can make there, the empty-state page, the tiles' colour classes |
 | `core/done_today.py` | no | The "Done today" marks (game id → local `YYYY-MM-DD`): `is_done`, `prune` (only today's marks are kept), `toggle`, `mark`, the seconds until local midnight, and `AUTO_MARK_SECONDS` (60) for the automatic mode |
+| `core/reorder.py` | no | Reordering favourites: `moved()` (an id to an index), the destination of Move Up, Move Down and Move to Top (`None` when impossible) and of a drop before or after another favourite |
 | `core/cache.py` | no | The cache directory (`<name>.json`, `.etag`, `.fetched`, atomic writes) and the decisions of one refresh: skip while younger than the maximum age, `If-None-Match`, fall-through order of the data URLs, `Retry-After` backoff, validate before writing; the stale-banner rule |
 | `core/favorites_file.py` | no | The favourites export file (see [Exporting favourites](#exporting-favourites)): `dump`, `parse` (raises `FavoritesFileError` on anything but a valid version-1 file) and `combine` for Merge and Replace |
 | `data/fetcher.py` | Soup, Gio, GLib | Thin asynchronous libsoup 3 shell over `core/cache.py`: one `Soup.Session` with `User-Agent: Dailies/<version> (+https://github.com/Tim-van-Oudheusden/Dailies)` sends the requests a refresh asks for, one at a time, and never retries in a loop |
-| `data/favorites.py` | Gio, GLib | Wraps the `favorites` string-array key: `is_favorite`, `toggle`, order (newest last), `set_order`, `import_ids`; emits `changed(id)`. `export` and `read_export` write and read the export file with Gio's asynchronous file I/O |
+| `data/favorites.py` | Gio, GLib | Wraps the `favorites` string-array key: `is_favorite`, `toggle`, `add`, `move` (one key write per move), order (newest last), `set_order`, `import_ids`; emits `changed(id)`. `export` and `read_export` write and read the export file with Gio's asynchronous file I/O |
 | `data/done_today.py` | Gio, GLib | Wraps the `done-today` key: `is_done`, `toggle`, `mark`, `refresh()`; prunes earlier days at startup and at local midnight (a GLib timeout, re-armed each day); emits `changed(id)` |
 | `data/store.py` | Gio | Owns the `Gio.ListStore` of `GameObject`; applies catalog, popularity, favourites and the done-today marks; `reload()` diffs by id so the grid keeps its scroll position |
-| `ui/game_object.py` | GObject | `GameObject` with `game`, `name`, `category-label`, `difficulty-label`, `caption`, `available`, `favorite`, `popular-rank`, `trending-rank` and `done` properties for Blueprint bindings and filters |
+| `ui/game_object.py` | GObject | `GameObject` with `game`, `name`, `category-label`, `difficulty-label`, `caption`, `available`, `favorite`, `popular-rank`, `trending-rank` and `done` properties for Blueprint bindings and filters, and `in-favorites`, `can-move-up` and `can-move-down`, which the window sets for the tile's menu and drag-and-drop |
 | `ui/filters.py` | Gtk | `SectionFilter` (Favorites, Popular, Trending or a category) and `SearchFilter`, combined in a `Gtk.EveryFilter`; `SectionSorter` orders shelves by rank, Favorites by favourite order, categories by name; `SearchSorter`, first in a `Gtk.MultiSorter`, puts the best matches first while a query is active and leaves the section order otherwise |
-| `ui/tile.py` | Gtk, Adw | `GameTile`: a `.card` button (tinted category glyph, name, category, difficulty pill, a "Done today" badge on a dimmed card; screen readers hear "Name, Category · Difficulty") with an overlaid star toggle, never a button inside a button; `game_menu()` builds the tile's context menu (right click, long press, Shift+F10 or Menu) |
+| `ui/tile.py` | Gtk, Adw | `GameTile`: a `.card` button (tinted category glyph, name, category, difficulty pill, a "Done today" badge on a dimmed card; screen readers hear "Name, Category · Difficulty") with an overlaid star toggle, never a button inside a button; `game_menu()` builds the tile's context menu (right click, long press, Shift+F10 or Menu); in Favorites, the drag source and drop target that reorder favourites |
 | `ui/library.py` | GLib | The library's translated texts: category and difficulty names, tile captions, the This Week subtitle, the stale banner |
 | `window.py` | Adw | Window, sidebar, grid, search bar, empty states, toasts; `open_game()` is the one way a game is opened |
 | `ui/browser_page.py` | WebKit | The in-app browser page; only imported when `HAVE_WEBKIT` |
@@ -198,6 +199,13 @@ done games last. The marks expire at local midnight: `data/done_today.py` sets a
 and because that timer runs on the monotonic clock (it stops during a suspend, and ignores clock and time-zone
 changes) the window also re-checks the day whenever it becomes active. The tile menu is built by one function,
 `ui/tile.py: game_menu()`, one section per concern.
+
+In Favorites the tile menu also holds **Move Up**, **Move Down**, **Move to Top** (disabled when the move is
+impossible) and **Remove from Favorites**; Ctrl+Up and Ctrl+Down move the focused favourite, and the focus stays on it
+after a move. A favourite can also be dragged onto another: dropped on the first half of a tile it goes before it, on
+the second half after it, and an accent bar on that side shows where. Every move rewrites the `favorites` key once.
+Moves are only offered while Favorites shows its own order: sorted by name, difficulty or not done first, the menu's
+moves are disabled and nothing can be dragged.
 
 ## Opening games
 
@@ -336,6 +344,13 @@ a build step that concatenates them, for nothing a solo maintainer needs. Per-en
 needs no schema versioning, is stored by GLib in the app's sandboxed config directory and survives reinstalls, and
 Cartridges shows collections in GSettings work well. Export and import can come later as a menu action writing JSON.
 
+**Decision:** favourites are reordered in the `Gtk.GridView`, not in a `Gtk.FlowBox` ([#75][issue-75]). Why: each tile
+carries its own `Gtk.DragSource` (the game id as a string) and `Gtk.DropTarget` (`str`, move), and a drop only rewrites
+the `favorites` key; the section sorter re-sorts the model, so no widget is moved by hand and recycled tiles need no
+bookkeeping. What a tile may do comes from `GameObject` properties the window keeps current (`in-favorites`,
+`can-move-up`, `can-move-down`), since a tile does not know the section or the sort mode. A `FlowBox` would have made
+`insert()` at an index trivial but meant a second grid with its own filtering, sorting and keyboard navigation.
+
 **Decision:** games open in the built-in browser by default (`open-mode` `in-app`, [#9][issue-9]). Why: the built-in
 browser is what sets Dailies apart from a bookmarks folder, and a shared session keeps logins and streaks across sibling
 games. **Default browser** is one setting away, a first-run banner says so, and every in-app page has **Open in
@@ -400,5 +415,6 @@ results here.
 [issue-16]: https://github.com/Tim-van-Oudheusden/Dailies/issues/16
 [issue-52]: https://github.com/Tim-van-Oudheusden/Dailies/issues/52
 [issue-78]: https://github.com/Tim-van-Oudheusden/Dailies/issues/78
+[issue-75]: https://github.com/Tim-van-Oudheusden/Dailies/issues/75
 [issue-76]: https://github.com/Tim-van-Oudheusden/Dailies/issues/76
 [issue-88]: https://github.com/Tim-van-Oudheusden/Dailies/issues/88

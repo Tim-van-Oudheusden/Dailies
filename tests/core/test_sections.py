@@ -5,6 +5,7 @@ from dailies.core import sections
 from dailies.core.catalog import Catalog
 from dailies.core.models import Category, Difficulty, Game, Status
 from dailies.core.popularity import Popularity
+from dailies.core.reorder import Move
 
 GENERATED = datetime(2026, 10, 12, 6, tzinfo=UTC)
 VALID_UNTIL = datetime(2026, 10, 19, 6, tzinfo=UTC)
@@ -215,3 +216,12 @@ def test_the_stack_page_names_match_the_window() -> None:
 def test_tiles_are_styled_by_category_and_difficulty() -> None:
     assert sections.category_style(Category.MOVIES_TV) == "cat-movies-tv"
     assert sections.difficulty_style(Difficulty.HARD) == "difficulty-hard"
+
+
+def test_favourites_move_only_in_favorites_in_their_own_order() -> None:
+    order = ("wordle", "globle", "framed")
+    default = sections.SortMode.DEFAULT
+    assert sections.favorite_moves(sections.FAVORITES, default, order, "globle") == set(Move)
+    assert sections.favorite_moves(sections.FAVORITES, default, order, "wordle") == {Move.DOWN}
+    assert sections.favorite_moves(sections.FAVORITES, sections.SortMode.NAME, order, "globle") == set()
+    assert sections.favorite_moves(sections.POPULAR, default, order, "globle") == set()

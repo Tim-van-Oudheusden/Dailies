@@ -3,7 +3,7 @@ from typing import ClassVar
 
 from gi.repository import Gio, GLib, GObject
 
-from dailies.core import favorites_file
+from dailies.core import favorites_file, reorder
 from dailies.core.favorites_file import FavoritesFileError, ImportMode
 
 _KEY = "favorites"
@@ -62,6 +62,19 @@ class Favorites(GObject.Object):
     def import_ids(self, ids: Sequence[str], mode: ImportMode) -> None:
         """Merge `ids` into the favourites or replace them with `ids`, as `mode` says (see `favorites_file.combine`)."""
         self.set_order(favorites_file.combine(self._order, ids, mode))
+
+    def move(self, game_id: str, index: int) -> bool:
+        """Move the favourite `game_id` to position `index`, writing the key once.
+
+        Returns:
+            Whether the order changed; it does not when `game_id` is not a favourite or already there.
+        """
+        order = reorder.moved(self._order, game_id, index)
+        if order == self._order:
+            return False
+        self._order = order
+        self._store(game_id)
+        return True
 
     def _store(self, game_id: str) -> None:
         # The list is updated first, so the changed::favorites this write triggers finds nothing new.

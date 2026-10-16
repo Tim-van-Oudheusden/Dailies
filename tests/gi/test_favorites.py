@@ -81,6 +81,32 @@ class FavoritesTest(unittest.TestCase):
 
         assert self.emitted == ["wordle", "globle", "wordle"]
 
+    def test_move_rewrites_the_key_once_and_emits_changed_once(self) -> None:
+        for game_id in ("wordle", "globle", "framed"):
+            self.favorites.toggle(game_id)
+        self.emitted.clear()
+        writes: list[list[str]] = []
+        self.settings.connect("changed::favorites", lambda settings, key: writes.append(settings.get_strv(key)))
+
+        assert self.favorites.move("framed", 0)
+        drain_main_context()
+
+        assert self.favorites.order() == ["framed", "wordle", "globle"]
+        assert writes == [["framed", "wordle", "globle"]]
+        assert self.emitted == ["framed"]
+
+    def test_a_move_that_changes_nothing_writes_nothing(self) -> None:
+        for game_id in ("wordle", "globle"):
+            self.favorites.toggle(game_id)
+        self.emitted.clear()
+
+        assert not self.favorites.move("wordle", 0)
+        assert not self.favorites.move("pokedle", 0)
+        drain_main_context()
+
+        assert self.settings.get_strv("favorites") == ["wordle", "globle"]
+        assert self.emitted == []
+
     def test_an_external_change_updates_the_list_and_emits_for_each_affected_id(self) -> None:
         self.favorites.toggle("wordle")
         self.favorites.toggle("globle")

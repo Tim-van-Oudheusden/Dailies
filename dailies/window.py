@@ -5,9 +5,10 @@ from datetime import UTC, datetime
 from gi.repository import Adw, Gio, GLib, GObject, Gtk
 
 from dailies import config
-from dailies.core import done_today, languages, opening, sections
+from dailies.core import done_today, languages, opening, reorder, sections
 from dailies.core.models import Category, Game
 from dailies.core.opening import OpenMode
+from dailies.core.reorder import Move
 from dailies.data.favorites import Favorites
 from dailies.data.store import Store
 from dailies.ui import library, opener
@@ -264,6 +265,18 @@ class Window(Adw.ApplicationWindow):
         self._store.connect("notify::popularity", lambda *_args: self._refilter())
         self._games.connect("items-changed", lambda *_args: self._update_page())
         self.connect("notify::section", lambda *_args: self._update_page())
+        # What the tiles' menus and drag-and-drop may do follows the section, the sort mode and the favourite order.
+        favorites.connect("changed", lambda *_args: self._update_moves())
+        self.connect("notify::section", lambda *_args: self._update_moves())
+        settings.connect("changed::sort-mode", lambda *_args: self._update_moves())
+        self._store.connect("notify::catalog", lambda *_args: self._update_moves())
+        self._update_moves()
+        # Ctrl+Up and Ctrl+Down move the focused favourite; in the capture phase, before the grid moves the focus.
+        keys = Gtk.ShortcutController(propagation_phase=Gtk.PropagationPhase.CAPTURE)
+        for trigger, move in (("<Control>Up", Move.UP), ("<Control>Down", Move.DOWN)):
+            action = Gtk.CallbackAction.new(lambda _widget, _args, move=move: self._on_move_key(move))
+            keys.add_shortcut(Gtk.Shortcut.new(Gtk.ShortcutTrigger.parse_string(trigger), action))
+        self.grid_view.add_controller(keys)
 
     def _add_actions(self, settings: Gio.Settings) -> None:
         self.add_action(settings.create_action("sort-mode"))
@@ -274,6 +287,8 @@ class Window(Adw.ApplicationWindow):
             ("toggle-favorite", None, self._on_toggle_favorite),
             ("toggle-game-done", "s", self._on_toggle_game_done),
             ("show-game-menu", None, self._on_show_game_menu),
+            ("move-favorite", "(ss)", self._on_move_favorite),
+            ("drop-favorite", "(ssb)", self._on_drop_favorite),
             ("search", None, self._on_search),
         ):
             action = Gio.SimpleAction(
@@ -347,6 +362,66 @@ class Window(Adw.ApplicationWindow):
     def _on_game_done(self, _action: Gio.SimpleAction, _parameter: None) -> None:
         if self._browser_game is not None:
             self._done_today.toggle(self._browser_game)
+
+    def _on_move_favorite(self, _action: Gio.SimpleAction, parameter: GLib.Variant) -> None:
+        game_id, move = parameter.unpack()
+        self._move_favorite(game_id, Move(move))
+
+    def _on_move_key(self, move: Move) -> bool:
+        """Move the focused favourite with Ctrl+Up or Ctrl+Down; elsewhere the keys keep their grid meaning."""
+        tile = self._focused_tile()
+        if tile is None or not tile.props.game.props.in_favorites:
+            return False
+        if not self._move_favorite(tile.props.game.props.game.id, move):
+            self.error_bell()
+        return True
+
+    def _move_favorite(self, game_id: str, move: Move) -> bool:
+        """Move `game_id` in Favorites and keep the focus on it; return whether it could move that way."""
+        order = self._favorites.order()
+        if move not in sections.favorite_moves(self.props.section, self._sort_mode(), order, game_id):
+            return False
+        self._favorites.move(game_id, reorder.destination(order, game_id, move))
+        self._focus_game(game_id)
+        return True
+
+    def _on_drop_favorite(self, _action: Gio.SimpleAction, parameter: GLib.Variant) -> None:
+        game_id, target_id, after = parameter.unpack()
+        order = self._favorites.order()
+        if not sections.favorite_moves(self.props.section, self._sort_mode(), order, game_id):
+            return
+        index = reorder.drop_destination(order, game_id, target_id, after=after)
+        if index is not None:
+            self._favorites.move(game_id, index)
+
+    def _focus_game(self, game_id: str) -> None:
+        # On idle: a move from the tile menu happens before the menu closes, and closing it moves the focus again.
+        GLib.idle_add(self._focus_game_now, game_id)
+
+    def _focus_game_now(self, game_id: str) -> bool:
+        for position in range(self._games.get_n_items()):
+            if self._games.get_item(position).props.game.id == game_id:
+                # scroll_to() only moves the focus within the grid; grab_focus() then brings it back from elsewhere.
+                self.grid_view.scroll_to(position, Gtk.ListScrollFlags.FOCUS, None)
+                if not self.grid_view.get_focus_child():
+                    self.grid_view.grab_focus()
+                break
+        return GLib.SOURCE_REMOVE
+
+    def _sort_mode(self) -> sections.SortMode:
+        return sections.SortMode.from_id(self._settings.get_string("sort-mode"))
+
+    def _update_moves(self) -> None:
+        """Tell each game whether it is a favourite shown in Favorites and which ways it can move there."""
+        section, mode, order = self.props.section, self._sort_mode(), self._favorites.order()
+        for item in self._store.model:
+            game_id = item.props.game.id
+            moves = sections.favorite_moves(section, mode, order, game_id)
+            item.update_moves(
+                in_favorites=section == sections.FAVORITES and game_id in order,
+                can_move_up=Move.UP in moves,
+                can_move_down=Move.DOWN in moves,
+            )
 
     def _toggle_favorite(self, game_id: str) -> None:
         if self._favorites.is_favorite(game_id):

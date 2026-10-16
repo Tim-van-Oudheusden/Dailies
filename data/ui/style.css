@@ -72,3 +72,9 @@
 .game-tile.done > box > :not(.done-badge) {
   opacity: 0.55;
 }
+
+/* Where a dragged favourite lands: a bar in the gap beside the card it is dropped on. */
+.drop-indicator {
+  border-radius: 2px;
+  background-color: var(--accent-bg-color);
+}
