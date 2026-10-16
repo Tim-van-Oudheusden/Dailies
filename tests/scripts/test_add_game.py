@@ -83,7 +83,8 @@ def test_diff_against_the_real_catalog_is_only_the_new_entry_and_generated_at(tm
     entry_block = "".join(f"    {line}\n" for line in json.dumps(entry, indent=2).splitlines())
     entry_block = entry_block[:-1] + ",\n"
     assert after.count(entry_block) == 1
-    old_stamp = '  "generated_at": "2026-10-15T12:00:00Z",\n'
+    # The live catalog's stamp changes with every data PR, so read it instead of pinning it.
+    old_stamp = f'  "generated_at": "{json.loads(before)["generated_at"]}",\n'
     new_stamp = '  "generated_at": "2026-10-20T09:30:15Z",\n'
     assert after.replace(entry_block, "", 1) == before.replace(old_stamp, new_stamp, 1)
     assert before.count(old_stamp) == 1
