@@ -58,7 +58,7 @@ data/                       desktop file, metainfo, GSettings schema, Blueprint 
 build-aux/flatpak/          Devel manifest (CI and local), release manifest, linter exceptions
 scripts/                    CI and data scripts: gates, coverage, submission validator, link checker, popularity
 tests/                      core/, scripts/, data/, tooling/ (pytest); gi/ and e2e/ (Meson tests inside the SDK)
-po/                         gettext setup
+po/                         gettext: POTFILES.in, the dailies.pot template, LINGUAS and one .po per language
 prompts/                    reusable agent prompts (code review, PR body)
 docs/                       testing, risk tiers, metrics, runbooks, reflections, postmortems, security
 ```
@@ -326,6 +326,57 @@ appended as one more argument; no shell runs, so nothing in the command or the U
 runs as `flatpak-spawn --host -- <command…> <url>`. [Opening games](docs/architecture.md#opening-games) explains how
 the access is detected.
 
+## Translations
+
+Dailies is translated with gettext, in the `dailies` domain. Mark strings as follows:
+
+- Python: `_("…")`, and `ngettext("…", "…", n)` for plurals. Fill in values with named `{placeholders}` and
+  `.format()` after the lookup, and put a `# Translators:` comment on the line above a string that needs context.
+- Blueprint: `_("…")`. Data templates (`.desktop.in`, `.metainfo.xml.in`, `.gschema.xml.in`) are translated as
+  they are.
+- Not translated: log messages, ids, setting values and the catalog data in `data/v1/` (game names, descriptions,
+  tags). Category and difficulty names are translated where they are shown, in `dailies/ui/library.py`; the English
+  labels in `dailies/core/models.py` and `games.json` stay English.
+
+Every file with translatable strings is listed in `po/POTFILES.in`, sorted. `tests/tooling/test_potfiles.py` (run by
+`pytest`) fails when one is missing, when a listed file does not exist, or when a language in `po/LINGUAS` has no
+`.po` file.
+
+### Updating the template
+
+After changing strings, regenerate `po/dailies.pot` and merge it into every translation, then commit both:
+
+```sh
+meson compile -C _build dailies-pot
+meson compile -C _build dailies-update-po
+```
+
+This needs gettext, which the GNOME SDK has (`flatpak run --filesystem=$PWD --command=sh org.gnome.Sdk//51`).
+xgettext warns that it does not know the `.blp` extension and reads those files as C, which is expected; a warning
+about a missing file means `po/POTFILES.in` is out of date.
+
+### Adding a language
+
+1. Add the language code to `po/LINGUAS`, one per line, sorted.
+2. Create the catalog: `msginit --no-translator -l <code> -i po/dailies.pot -o po/<code>.po`.
+3. Translate it. Put your name (and optionally an email address or URL) in the `translator-credits` string to be
+   credited in About; left untranslated, About lists no translator.
+4. Check it: `msgfmt --check --check-accelerators=_ --statistics -o /dev/null po/<code>.po`.
+5. Try it: build and install, then start the app with `LANGUAGE=<code>`. The C library ignores `LANGUAGE` under the
+   `C` and `C.UTF-8` locales, so also set `LANG` to another UTF-8 locale (e.g. `LANG=en_US.UTF-8`), or the Blueprint
+   strings stay in English.
+
+`po/nl.po` (Dutch) is the first translation; `tests/gi/test_translations.py` reads it under `LANGUAGE=nl`.
+
+### Weblate
+
+Translations are meant to come in through [Weblate](https://weblate.org/): a project on Hosted Weblate (free libre
+plan) or [Codeberg Translate](https://translate.codeberg.org/), connected to this repository through the Weblate
+GitHub app. Weblate opens pull requests with translation updates and never pushes to `main`, so its changes pass the
+same checks and review as any other. The component uses the gettext PO format with the file mask `po/*.po`, the
+template `po/dailies.pot` and `po/LINGUAS` updated for new languages. Setting up the Weblate project is a step for
+the maintainer and has not been done yet; until then, send translations as ordinary pull requests.
+
 ## Code style
 
 - ruff's style and lint rules as configured in `pyproject.toml`; 4-space indent (`.editorconfig`).
@@ -334,7 +385,7 @@ the access is detected.
 - UI in Blueprint, current libadwaita widgets only (no deprecated ones), following the
   [GNOME HIG](https://developer.gnome.org/hig/). Every interactive element is reachable by keyboard and has an
   accessible name; colour never carries information on its own.
-- Every user-facing string goes through gettext (`_()`).
+- Every user-facing string goes through gettext (`_()`); see [Translations](#translations).
 
 ## Dependencies
 

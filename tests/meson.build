@@ -63,6 +63,19 @@ if glib_compile_schemas.found()
     depends: [compiled_schemas, resources],
     suite: 'gi',
   )
+
+  # The Dutch catalog built from po/nl.po, read under LANGUAGE=nl.
+  translations_test_env = gi_test_env
+  translations_test_env.set('LANGUAGE', 'nl')
+  translations_test_env.set('DAILIES_LOCALEDIR', meson.project_build_root() / 'po')
+  test(
+    'translations',
+    py,
+    args: [files('gi' / 'test_translations.py')],
+    env: translations_test_env,
+    depends: mo_files,
+    suite: 'gi',
+  )
 endif
 
 # The e2e smoke test starts the installed app, so it only passes after `meson install` (flatpak-builder runs the tests
