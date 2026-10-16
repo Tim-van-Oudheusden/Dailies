@@ -25,7 +25,9 @@ Play your daily guessing games in one place
 
 ## Status
 
-Early: version 0.1.0 is the first release. Linux only, as a Flatpak; not on Flathub yet.
+Early: releases are still 0.x, and the newest is on the
+[Releases](https://github.com/Tim-van-Oudheusden/Dailies/releases/latest) page. Linux only, as a Flatpak; not on
+Flathub yet.
 
 ## About
 
@@ -34,8 +36,7 @@ A GNOME app that lists daily guessing games ("-dles") such as Wordle, Connection
 - **One window for every daily game.** More than a hundred games, sorted into ten categories from words and logic to
   music, movies and geography. Search with Ctrl+F.
 - **This week's shelves.** Popular and Trending show which games are popular right now and which are on the rise,
-  computed every Monday from the [Tranco](https://tranco-list.eu) rank of each game's site. The first lists were picked
-  by hand; the first computed week replaces them.
+  computed every Monday from the [Tranco](https://tranco-list.eu) rank of each game's site.
 - **Favorites.** Star the games you play every day (or press Ctrl+D) to keep them together at the top of the sidebar.
 - **A built-in browser that remembers you.** Games open in a WebKitGTK page that keeps logins and streaks between
   sessions, or in your default browser, or through a command of your choice.
@@ -100,8 +101,9 @@ For the Devel build, use `io.github.tim_van_oudheusden.Dailies.Devel` in both co
 
 Use the [Add a game](https://github.com/Tim-van-Oudheusden/Dailies/issues/new?template=new-game.yml) issue form; you
 do not need to edit `data/v1/games.json` yourself. A workflow checks each submission automatically and comments on the
-issue with the result; the maintainer then adds the game to the catalog by hand. What a game needs to get in (https, a
-new puzzle every day, playable without an account or labelled as needing one, not a duplicate) is in
+issue with the result. Once the maintainer approves it, a second workflow checks it again and opens a pull request that
+adds the game to the catalog and closes the issue. What a game needs to get in (https, a new puzzle every day, playable
+without an account or labelled as needing one, not a duplicate) is in
 [Submission rules](docs/data-format.md#submission-rules) in `docs/data-format.md`.
 
 ## Tech stack
@@ -176,8 +178,9 @@ flowchart TD
 
 Data changes and releases both end in something a human merges or tags: the weekly popularity job opens a numbers-only
 pull request, and `pages.yml` publishes `data/v1/` to GitHub Pages, which the app tries before
-`raw.githubusercontent.com`. Stage B of game submissions (an `approved` label opening the pull request) is not built
-yet; until it is, the maintainer adds games by hand after stage A has checked them. More in
+`raw.githubusercontent.com`. A game submission ends the same way: when the maintainer labels a checked submission
+`approved`, stage B validates it again and opens a `data(games): add <name>` pull request that closes the issue
+([Approving game submissions](CONTRIBUTING.md#approving-game-submissions)). More in
 [`docs/architecture.md`](docs/architecture.md).
 
 ## Documentation
