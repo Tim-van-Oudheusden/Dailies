@@ -50,7 +50,7 @@ msgid ""
 "opens their public websites."
 msgstr ""
 
-#: dailies/ui/browser_page.py:401
+#: dailies/ui/browser_page.py:431
 #, python-brace-format
 msgid "Website data for {host} cleared"
 msgstr ""
@@ -581,7 +581,7 @@ msgid "Hardware acceleration"
 msgstr ""
 
 #: data/ui/preferences.blp:96
-msgid "Turn off if games show rendering glitches; applies to games opened next"
+msgid "Turn off if games show rendering glitches"
 msgstr ""
 
 #: data/ui/preferences.blp:101
@@ -593,7 +593,7 @@ msgid "Web inspector"
 msgstr ""
 
 #: data/ui/preferences.blp:112
-msgid "Adds Inspect Element to the page's context menu of games opened next"
+msgid "Adds Inspect Element to the page's context menu"
 msgstr ""
 
 #: data/ui/preferences.blp:117

@@ -51,7 +51,7 @@ msgstr ""
 "of een van de vermelde spellen. Spelnamen zijn handelsmerken van hun "
 "eigenaars; Dailies opent alleen hun openbare websites."
 
-#: dailies/ui/browser_page.py:401
+#: dailies/ui/browser_page.py:431
 #, python-brace-format
 msgid "Website data for {host} cleared"
 msgstr "Websitegegevens van {host} gewist"
@@ -621,10 +621,8 @@ msgid "Hardware acceleration"
 msgstr "Hardwareversnelling"
 
 #: data/ui/preferences.blp:96
-msgid "Turn off if games show rendering glitches; applies to games opened next"
-msgstr ""
-"Uitschakelen als spellen weergavefouten tonen; geldt voor spellen die daarna "
-"worden geopend"
+msgid "Turn off if games show rendering glitches"
+msgstr "Uitschakelen als spellen weergavefouten tonen"
 
 #: data/ui/preferences.blp:101
 msgid "Custom user agent (leave empty)"
@@ -635,10 +633,8 @@ msgid "Web inspector"
 msgstr "Webinspector"
 
 #: data/ui/preferences.blp:112
-msgid "Adds Inspect Element to the page's context menu of games opened next"
-msgstr ""
-"Voegt ‘Element inspecteren’ toe aan het contextmenu van de pagina bij "
-"spellen die daarna worden geopend"
+msgid "Adds Inspect Element to the page's context menu"
+msgstr "Voegt ‘Element inspecteren’ toe aan het contextmenu van de pagina"
 
 #: data/ui/preferences.blp:117
 msgid "Clear website data…"

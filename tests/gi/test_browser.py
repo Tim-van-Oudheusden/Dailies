@@ -12,6 +12,7 @@ import sys
 import tempfile
 import time
 import unittest
+from collections.abc import Callable
 from pathlib import Path
 
 HOME = Path(tempfile.mkdtemp())
@@ -104,6 +105,34 @@ def data_dir(session: WebKit.NetworkSession) -> Path:
 
 def cache_dir(session: WebKit.NetworkSession) -> Path:
     return Path(session.get_website_data_manager().props.base_cache_directory)
+
+
+def user_agent_of(view: WebKit.WebView) -> str:
+    done: list[str] = []
+    view.evaluate_javascript(
+        "navigator.userAgent",
+        -1,
+        None,
+        None,
+        None,
+        lambda v, r: done.append(v.evaluate_javascript_finish(r).to_string()),
+    )
+    run_until(done)
+    return done[0]
+
+
+def load(view: WebKit.WebView, start: Callable[[], None]) -> None:
+    """Run `start` and wait until the page it loads (or reloads) has finished."""
+    done: list[bool] = []
+
+    def on_load_changed(_view: WebKit.WebView, event: WebKit.LoadEvent) -> None:
+        if event == WebKit.LoadEvent.FINISHED:
+            done.append(True)
+
+    handler = view.connect("load-changed", on_load_changed)
+    start()
+    run_until(done)
+    view.disconnect(handler)
 
 
 class BrowserTest(unittest.TestCase):
@@ -206,6 +235,60 @@ class WebSettingsTest(BrowserTest):
         assert settings.get_hardware_acceleration_policy() == WebKit.HardwareAccelerationPolicy.NEVER
         assert settings.get_user_agent() == "Mozilla/5.0 Compat/1.0"
         assert settings.get_enable_developer_extras()
+
+
+class OpenPageTest(BrowserTest):
+    def open_page(self) -> WebKit.WebView:
+        page = browser_page.BrowserPage(
+            settings=self.settings,
+            game_id=None,
+            open_external=lambda _uri: None,
+            hand_off_pop_up=lambda _uri: None,
+            add_toast=lambda _toast: None,
+        )
+        self.addCleanup(page.close)
+        self.page = page
+        return page.overlay.get_child()
+
+    def test_changing_a_browser_setting_updates_the_open_page(self) -> None:
+        view = self.open_page()
+
+        self.settings.set_string("hardware-acceleration", "never")
+        self.settings.set_boolean("developer-extras", True)
+
+        assert view.get_settings().get_hardware_acceleration_policy() == WebKit.HardwareAccelerationPolicy.NEVER
+        assert view.get_settings().get_enable_developer_extras()
+
+        self.settings.reset("hardware-acceleration")
+        self.settings.reset("developer-extras")
+
+        assert (
+            view.get_settings().get_hardware_acceleration_policy()
+            == WebKit.Settings().get_hardware_acceleration_policy()
+        )
+        assert not view.get_settings().get_enable_developer_extras()
+
+    def test_a_new_user_agent_reaches_the_shown_page_through_a_reload(self) -> None:
+        view = self.open_page()
+        load(view, lambda: view.load_html("<p>Wordle</p>", "http://127.0.0.1/"))
+        assert user_agent_of(view).endswith(" Dailies/" + sys.modules["dailies.config"].VERSION)
+
+        load(view, lambda: self.settings.set_string("user-agent", "Mozilla/5.0 Compat/1.0"))
+
+        assert view.get_settings().get_user_agent() == "Mozilla/5.0 Compat/1.0"
+        assert user_agent_of(view) == "Mozilla/5.0 Compat/1.0"
+
+        load(view, lambda: self.settings.reset("user-agent"))
+
+        assert user_agent_of(view).endswith(" Dailies/" + sys.modules["dailies.config"].VERSION)
+
+    def test_a_closed_page_no_longer_follows_the_settings(self) -> None:
+        view = self.open_page()
+
+        self.page.close()
+        self.settings.set_boolean("developer-extras", True)
+
+        assert not view.get_settings().get_enable_developer_extras()
 
 
 if __name__ == "__main__":

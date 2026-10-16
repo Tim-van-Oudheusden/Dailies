@@ -264,8 +264,9 @@ else:
   differs from the shown page's replaces that page at once (`AdwNavigationView.replace`), and a page popped a moment
   ago that still slides out is removed before a new one is pushed, so two pages never hold the `browser` tag; a pop-up
   brought back with **Open Here** loads in the shown page's session. Every session stores its cookies persistently in
-  its own `cookies.sqlite` and follows `cookie-policy` and `itp-enabled` live; `hardware-acceleration`, `user-agent` and
-  `developer-extras` apply to pages opened next. TLS errors fail; downloads are cancelled and handed to the external
+  its own `cookies.sqlite` and follows `cookie-policy` and `itp-enabled` live. The open page follows
+  `hardware-acceleration`, `user-agent` and `developer-extras` live too; a new user agent reloads it, because a loaded
+  page keeps the one it was loaded with. TLS errors fail; downloads are cancelled and handed to the external
   browser; permission requests are denied; WebRTC and `data:` top-level navigation are off; `target="_blank"` links
   load in the same view, while script pop-ups (`window.open`) and unsupported file types go to the external browser.
   There are no injected scripts or styles, no ad blocking and no user-agent spoofing: `user-agent` is empty unless the
