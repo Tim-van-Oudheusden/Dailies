@@ -14,7 +14,7 @@ from gi.repository import Gio, GObject, Gtk
 
 from dailies.core.models import Category, Difficulty, Game, Status
 from dailies.data.favorites import Favorites
-from dailies.ui.filters import LanguageFilter, SearchFilter, SectionFilter, SectionSorter
+from dailies.ui.filters import LanguageFilter, SearchFilter, SearchSorter, SectionFilter, SectionSorter
 from dailies.ui.game_object import GameObject
 
 gettext.install("dailies")
@@ -50,10 +50,15 @@ class PipelineTest(unittest.TestCase):
         self.section = SectionFilter()
         self.search = SearchFilter()
         self.sorter = SectionSorter(self.favorites)
+        self.search_sorter = SearchSorter()
+        self.search.bind_property("text", self.search_sorter, "text", GObject.BindingFlags.SYNC_CREATE)
+        sorters = Gtk.MultiSorter()
+        sorters.append(self.search_sorter)
+        sorters.append(self.sorter)
         every = Gtk.EveryFilter()
         every.append(self.section)
         every.append(self.search)
-        self.view = Gtk.SortListModel(model=Gtk.FilterListModel(model=self.games, filter=every), sorter=self.sorter)
+        self.view = Gtk.SortListModel(model=Gtk.FilterListModel(model=self.games, filter=every), sorter=sorters)
         for item, popular, trending in (
             (game("wordle", "Wordle", difficulty=Difficulty.EASY), 1, 0),
             (game("pokedle", "Pokédle", Category.VIDEO_GAMES, Difficulty.HARD), 3, 1),
@@ -133,6 +138,24 @@ class PipelineTest(unittest.TestCase):
         self.show("trending")
         self.search.props.text = "video"
         assert self.shown() == ["pokedle"]
+
+    def test_while_searching_the_best_match_comes_first_and_clearing_restores_the_section_order(self) -> None:
+        self.show("popular")
+        assert self.shown() == ["wordle", "worldle", "pokedle"]
+        self.search.props.text = "worldle"
+        assert self.shown() == ["worldle", "wordle"]  # Worldle starts with the query, Wordle is one typo away
+        self.search.props.text = ""
+        assert self.shown() == ["wordle", "worldle", "pokedle"]
+
+    def test_a_longer_query_that_allows_a_typo_tests_the_hidden_games_again(self) -> None:
+        self.show("popular")
+        for end in range(1, len("wordl") + 1):
+            self.search.props.text = "wordl"[:end]
+        assert self.shown() == ["wordle"]
+        self.search.props.text = "wordle"
+        assert self.shown() == ["wordle", "worldle"]
+        self.search.props.text = "wordl"
+        assert self.shown() == ["wordle"]
 
 
 class LanguageFilterTest(unittest.TestCase):

@@ -11,7 +11,7 @@ from dailies.core.opening import OpenMode
 from dailies.data.favorites import Favorites
 from dailies.data.store import Store
 from dailies.ui import library, opener
-from dailies.ui.filters import LanguageFilter, SearchFilter, SectionFilter, SectionSorter
+from dailies.ui.filters import LanguageFilter, SearchFilter, SearchSorter, SectionFilter, SectionSorter
 from dailies.ui.game_object import GameObject
 from dailies.ui.tile import GameTile
 
@@ -198,6 +198,13 @@ class Window(Adw.ApplicationWindow):
         self._system_languages = languages.system_languages(GLib.get_language_names())
         self._language_filter = LanguageFilter(self._system_languages)
         self._sorter = SectionSorter(favorites)
+        # While a query is active the best matches come first; ties, and every game without a query, keep the section
+        # order.
+        search_sorter = SearchSorter()
+        self._search_filter.bind_property("text", search_sorter, "text", GObject.BindingFlags.SYNC_CREATE)
+        sorters = Gtk.MultiSorter()
+        sorters.append(search_sorter)
+        sorters.append(self._sorter)
         # The store, connected first, has already updated the game's `favorite` when this runs.
         favorites.connect("changed", lambda *_args: self._section_filter.changed(Gtk.FilterChange.DIFFERENT))
         for target in (self._section_filter, self._language_filter, self._sorter):
@@ -209,7 +216,7 @@ class Window(Adw.ApplicationWindow):
         every.append(self._search_filter)
         every.append(self._language_filter)
         self._games = Gtk.SortListModel(
-            model=Gtk.FilterListModel(model=self._store.model, filter=every), sorter=self._sorter
+            model=Gtk.FilterListModel(model=self._store.model, filter=every), sorter=sorters
         )
         self.grid_view.props.model = Gtk.NoSelection(model=self._games)
         # A reload changes ranks and statuses, which the filter and the sorter read but do not watch.
