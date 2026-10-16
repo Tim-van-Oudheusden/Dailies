@@ -14,8 +14,8 @@ dev = ["pre-commit", "pytest", "pytest-cov", "ruff"]
 [tool.ruff]
 target-version = "py312"
 line-length = 120
-# gettext's _() is installed as a builtin by the application.
-builtins = ["_"]
+# gettext's _() and ngettext() are installed as builtins by the application.
+builtins = ["_", "ngettext"]
 # The research and proposal documents quote other projects' code verbatim; they are not formatted.
 extend-exclude = ["_build", "_flatpak", ".flatpak-builder", "subprojects", "docs/research", "docs/proposals", "docs/plans"]
 

@@ -8,7 +8,7 @@ if glib_compile_schemas.found()
   # The fetcher tests talk to a server on 127.0.0.1; inside a sandbox the proxy portal may refuse to resolve for them.
   gi_test_env.set('GIO_USE_PROXY_RESOLVER', 'dummy')
 
-  foreach name : ['favorites', 'store', 'fetcher', 'filters']
+  foreach name : ['favorites', 'done_today', 'store', 'fetcher', 'filters']
     test(
       name,
       py,
@@ -19,15 +19,14 @@ if glib_compile_schemas.found()
     )
   endforeach
 
-  # The tile and the opening tests need the built resources and config.py, and a display: each test starts its own
-  # Broadway server.
+  # These tests need the built resources and config.py, and a display: each test starts its own Broadway server.
   broadwayd = find_program('gtk4-broadwayd', required: false)
   if broadwayd.found()
     tile_test_env = gi_test_env
     tile_test_env.set('BROADWAYD', broadwayd.full_path())
     tile_test_env.set('DAILIES_GRESOURCE', resources[0].full_path())
     tile_test_env.set('DAILIES_CONFIG', meson.project_build_root() / 'dailies' / 'config.py')
-    foreach name : ['tile', 'opening']
+    foreach name : ['tile', 'opening', 'window', 'favorites_transfer']
       test(
         name,
         py,
@@ -37,6 +36,19 @@ if glib_compile_schemas.found()
         suite: 'gi',
       )
     endforeach
+
+    # The built-in browser's sessions and WebKit settings, against a real WebKit network process.
+    if webkit.found()
+      test(
+        'browser',
+        py,
+        args: [files('gi' / 'test_browser.py')],
+        env: tile_test_env,
+        depends: [compiled_schemas, resources],
+        suite: 'gi',
+        timeout: 60,
+      )
+    endif
   endif
 
   # The bundled Shortcuts and About dialogs; the test opens its own Broadway display.
@@ -49,6 +61,19 @@ if glib_compile_schemas.found()
     args: [files('gi' / 'test_dialogs.py')],
     env: dialogs_test_env,
     depends: [compiled_schemas, resources],
+    suite: 'gi',
+  )
+
+  # The Dutch catalog built from po/nl.po, read under LANGUAGE=nl.
+  translations_test_env = gi_test_env
+  translations_test_env.set('LANGUAGE', 'nl')
+  translations_test_env.set('DAILIES_LOCALEDIR', meson.project_build_root() / 'po')
+  test(
+    'translations',
+    py,
+    args: [files('gi' / 'test_translations.py')],
+    env: translations_test_env,
+    depends: mo_files,
     suite: 'gi',
   )
 endif

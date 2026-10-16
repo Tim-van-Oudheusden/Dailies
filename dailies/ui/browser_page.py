@@ -1,17 +1,18 @@
-"""The built-in browser: an `Adw.NavigationPage` around one `WebKit.WebView` with a persistent, shared session.
+"""The built-in browser: an `Adw.NavigationPage` around one `WebKit.WebView` with a persistent session.
 
 Imported only when `opener.have_webkit()` is true; importing this module loads WebKit.
 
-All games share one `WebKit.NetworkSession` per app run, so sibling games share a login, and its cookies are stored in
-SQLite so that logins and streaks survive a restart. Pages are shown as the sites ship them: no injected scripts or
-styles, no content blocking, no user-agent spoofing. Pop-ups and downloads go to the external browser and permission
-requests are denied.
+By default all games share one `WebKit.NetworkSession` per app run, so sibling games share a login. With
+`session-isolation` set to per-game, or a game's own `isolated-session` key set, a game gets a session of its own in
+`web/games/<id>` (`dailies.core.web.session_dir`). Every session stores its cookies in its own SQLite file so that
+logins and streaks survive a restart, and follows the `cookie-policy` and `itp-enabled` settings. Pages are shown as
+the sites ship them: no injected scripts or styles, no content blocking, and the user agent changes only when the user
+sets `user-agent`. Pop-ups and downloads go to the external browser and permission requests are denied.
 """
 
-import functools
 import logging
 from collections.abc import Callable
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import gi
 
@@ -20,7 +21,9 @@ gi.require_version("WebKit", "6.0")
 from gi.repository import Adw, Gio, GLib, Gtk, WebKit
 
 from dailies import config
-from dailies.core.web import display_host, site_matches
+from dailies.core import web
+from dailies.core.web import SessionIsolation, display_host, site_matches
+from dailies.ui import opener
 
 log = logging.getLogger(__name__)
 
@@ -38,28 +41,89 @@ _SHORTCUTS = (
     ("<Control><Shift>o", "browser.open-external"),
 )
 
+#: The settings every live session follows as they change.
+_SESSION_KEYS = ("cookie-policy", "itp-enabled")
+
+#: The network sessions of this app run, by session directory, made the first time a page or a clear needs them.
+_sessions: dict[PurePosixPath, WebKit.NetworkSession] = {}
+#: The settings objects whose session keys the live sessions follow.
+_watched: list[Gio.Settings] = []
+
 
 def _web_dirs() -> tuple[Path, Path]:
-    """The data and cache directories of the shared session (per-game sessions are #74)."""
+    """The data and cache directories that hold every session's directory."""
     return (
-        Path(GLib.get_user_data_dir()) / "dailies" / "web" / "shared",
-        Path(GLib.get_user_cache_dir()) / "dailies" / "web" / "shared",
+        Path(GLib.get_user_data_dir()) / "dailies" / "web",
+        Path(GLib.get_user_cache_dir()) / "dailies" / "web",
     )
 
 
-@functools.cache
-def _shared_session() -> WebKit.NetworkSession:
-    """Create the one network session of this app run, the first time a page or a clear needs it."""
-    data_dir, cache_dir = _web_dirs()
-    session = WebKit.NetworkSession.new(str(data_dir), str(cache_dir))
-    cookies = session.get_cookie_manager()
+def session_dir_for(settings: Gio.Settings, game_id: str | None) -> PurePosixPath:
+    """The session directory the game `game_id` uses now (the shared one when there is no game)."""
+    game = opener.game_settings(game_id) if game_id else None
+    return web.session_dir(
+        SessionIsolation.from_id(settings.get_string("session-isolation")),
+        game_id,
+        isolated=game is not None and game.get_boolean("isolated-session"),
+    )
+
+
+def session_for(settings: Gio.Settings, game_id: str | None) -> WebKit.NetworkSession:
+    """The network session the game `game_id` uses now, following the session settings."""
+    return _session(settings, session_dir_for(settings, game_id))
+
+
+def _session(settings: Gio.Settings, name: PurePosixPath) -> WebKit.NetworkSession:
+    if settings not in _watched:
+        _watched.append(settings)
+        for key in _SESSION_KEYS:
+            settings.connect(f"changed::{key}", _on_session_setting_changed)
+    if (session := _sessions.get(name)) is not None:
+        return session
+    data_root, cache_root = _web_dirs()
+    data_dir = data_root / name
+    session = WebKit.NetworkSession.new(str(data_dir), str(cache_root / name))
     # Without persistent storage cookies live in memory only, and every streak is lost on quit.
-    cookies.set_persistent_storage(str(data_dir / "cookies.sqlite"), WebKit.CookiePersistentStorage.SQLITE)
-    # Log-in flows (the New York Times) redirect through third-party domains that must be able to set cookies.
-    cookies.set_accept_policy(WebKit.CookieAcceptPolicy.ALWAYS)
+    session.get_cookie_manager().set_persistent_storage(
+        str(data_dir / "cookies.sqlite"), WebKit.CookiePersistentStorage.SQLITE
+    )
     session.set_tls_errors_policy(WebKit.TLSErrorsPolicy.FAIL)
     session.connect("download-started", _on_download_started)
+    _apply_session_settings(settings, session)
+    _sessions[name] = session
     return session
+
+
+def _apply_session_settings(settings: Gio.Settings, session: WebKit.NetworkSession) -> None:
+    # The default, always, keeps log-in flows working (the New York Times redirects through third-party domains that
+    # must be able to set cookies). While ITP is on, WebKit treats no-third-party as always.
+    policy = web.cookie_accept_policy(settings.get_string("cookie-policy"))
+    session.get_cookie_manager().set_accept_policy(getattr(WebKit.CookieAcceptPolicy, policy))
+    session.set_itp_enabled(settings.get_boolean("itp-enabled"))
+
+
+def _on_session_setting_changed(settings: Gio.Settings, _key: str) -> None:
+    for session in _sessions.values():
+        _apply_session_settings(settings, session)
+
+
+def web_settings(settings: Gio.Settings) -> WebKit.Settings:
+    """The WebKit settings of a new page: the built-in browser's hardening plus the user's browser settings."""
+    web_view_settings = WebKit.Settings(
+        javascript_can_open_windows_automatically=False,
+        allow_top_navigation_to_data_urls=False,
+        enable_webrtc=False,
+        enable_back_forward_navigation_gestures=True,
+        enable_smooth_scrolling=True,
+        enable_developer_extras=settings.get_boolean("developer-extras"),
+    )
+    if policy := web.hardware_acceleration_policy(settings.get_string("hardware-acceleration")):
+        web_view_settings.set_hardware_acceleration_policy(getattr(WebKit.HardwareAccelerationPolicy, policy))
+    if user_agent := web.custom_user_agent(settings.get_string("user-agent")):
+        web_view_settings.set_user_agent(user_agent)
+    else:
+        web_view_settings.set_user_agent_with_application_details("Dailies", config.VERSION)
+    return web_view_settings
 
 
 def _on_download_started(_session: WebKit.NetworkSession, download: WebKit.Download) -> None:
@@ -70,31 +134,49 @@ def _on_download_started(_session: WebKit.NetworkSession, download: WebKit.Downl
         window.open_external(download.get_request().get_uri())
 
 
-def clear_all(callback: Callable[[], None] | None = None) -> None:
-    """Remove all website data of the shared session (cookies, storage, caches), then call `callback`."""
+def _game_dirs_on_disk() -> set[str]:
+    names: set[str] = set()
+    for root in _web_dirs():
+        games = root / "games"
+        if games.is_dir():
+            names.update(child.name for child in games.iterdir() if child.is_dir())
+    return names
+
+
+def clear_all(settings: Gio.Settings, callback: Callable[[], None] | None = None) -> None:
+    """Remove all website data (cookies, storage, caches) of every session, then call `callback`.
+
+    That is the shared session and every per-game session on disk, also those this run has not opened.
+    """
+    names = web.all_sessions(_game_dirs_on_disk())
+    pending = len(names)
 
     def on_cleared(manager: WebKit.WebsiteDataManager, result: Gio.AsyncResult) -> None:
+        nonlocal pending
         try:
             manager.clear_finish(result)
         except GLib.Error as e:
             log.warning("Could not clear the website data: %s", e.message)
-        if callback:
+        pending -= 1
+        if pending == 0 and callback:
             callback()
 
-    _shared_session().get_website_data_manager().clear(WebKit.WebsiteDataTypes.ALL, 0, None, on_cleared)
+    for name in names:
+        manager = _session(settings, name).get_website_data_manager()
+        manager.clear(WebKit.WebsiteDataTypes.ALL, 0, None, on_cleared)
 
 
-def clear_all_blocking() -> None:
-    """Clear all website data before the app quits, waiting a few seconds at most."""
+def clear_all_blocking(settings: Gio.Settings) -> None:
+    """Clear all website data of every session before the app quits, waiting a few seconds at most."""
     loop = GLib.MainLoop()
-    clear_all(loop.quit)
+    clear_all(settings, loop.quit)
     GLib.timeout_add_seconds(_CLEAR_ON_EXIT_TIMEOUT_SECONDS, loop.quit)
     loop.run()
 
 
-def clear_site_data(host: str, callback: Callable[[], None] | None = None) -> None:
-    """Remove the website data of the site at `host` and its parent domains, then call `callback`."""
-    manager = _shared_session().get_website_data_manager()
+def clear_site_data(session: WebKit.NetworkSession, host: str, callback: Callable[[], None] | None = None) -> None:
+    """Remove the website data in `session` of the site at `host` and its parent domains, then call `callback`."""
+    manager = session.get_website_data_manager()
 
     def on_fetched(manager: WebKit.WebsiteDataManager, result: Gio.AsyncResult) -> None:
         try:
@@ -123,6 +205,7 @@ def clear_site_data(host: str, callback: Callable[[], None] | None = None) -> No
 class BrowserPage(Adw.NavigationPage):
     """A game's website, with history buttons, the real host in the header and "Open in Browser" in the menu.
 
+    The page uses the network session of `game_id` (`session`), and the browser settings as they are when it is made.
     `open_external` opens a link in the default browser; `hand_off_pop_up` does the same for a script's pop-up, and
     tells the user so. Call `close()` when the page is popped: it closes the web view, which ends its web process.
     """
@@ -139,28 +222,28 @@ class BrowserPage(Adw.NavigationPage):
     def __init__(
         self,
         *,
+        settings: Gio.Settings,
+        game_id: str | None,
         open_external: Callable[[str], None],
         hand_off_pop_up: Callable[[str], None],
         add_toast: Callable[[Adw.Toast], None],
     ) -> None:
         super().__init__()
+        self.session = session_dir_for(settings, game_id)
+        self._network_session = _session(settings, self.session)
         self._open_external = open_external
         self._hand_off_pop_up = hand_off_pop_up
         self._add_toast = add_toast
 
-        settings = WebKit.Settings(
-            javascript_can_open_windows_automatically=False,
-            allow_top_navigation_to_data_urls=False,
-            enable_webrtc=False,
-            enable_back_forward_navigation_gestures=True,
-            enable_smooth_scrolling=True,
-        )
-        settings.set_user_agent_with_application_details("Dailies", config.VERSION)
-        # A context of its own: its web processes end with it, while the network session (logins) is shared.
+        # A context of its own: its web processes end with it, while the network session (logins) outlives it.
         context = WebKit.WebContext()
         context.set_cache_model(WebKit.CacheModel.DOCUMENT_VIEWER)
         view = WebKit.WebView(
-            web_context=context, network_session=_shared_session(), settings=settings, hexpand=True, vexpand=True
+            web_context=context,
+            network_session=self._network_session,
+            settings=web_settings(settings),
+            hexpand=True,
+            vexpand=True,
         )
         view.connect("notify::title", lambda *_args: self._update_title())
         view.connect("notify::uri", lambda *_args: self._update_title())
@@ -319,4 +402,4 @@ class BrowserPage(Adw.NavigationPage):
             if self._web_view is not None:
                 self._web_view.reload()
 
-        clear_site_data(host, on_cleared)
+        clear_site_data(self._network_session, host, on_cleared)

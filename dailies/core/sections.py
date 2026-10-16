@@ -5,16 +5,17 @@ shown change with the catalog.
 """
 
 import sys
-from collections.abc import Collection
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
 from enum import Enum
 from typing import Self
 
-from dailies.core import languages
+from dailies.core import languages, reorder
 from dailies.core.catalog import Catalog
 from dailies.core.models import Category, Difficulty, Game, Status
 from dailies.core.popularity import Popularity
+from dailies.core.reorder import Move
 from dailies.core.search import fold
 
 FAVORITES = "favorites"
@@ -48,11 +49,15 @@ def week_as_of(popularity: Popularity, now: datetime) -> date | None:
 
 
 class SortMode(Enum):
-    """The order of a section's games, the `sort-mode` setting; `DEFAULT` is the section's own order."""
+    """The order of a section's games, the `sort-mode` setting; `DEFAULT` is the section's own order.
+
+    `NOT_DONE` keeps the section's own order but puts the games done today after the others.
+    """
 
     DEFAULT = "default"
     NAME = "name"
     DIFFICULTY = "difficulty"
+    NOT_DONE = "not-done"
 
     @classmethod
     def from_id(cls, value: str) -> Self:
@@ -76,13 +81,14 @@ class Page(Enum):
 class Listing:
     """A game as the library lists it: the catalog entry, whether it is a favourite and its ranks this week.
 
-    A rank of 0 means the game is not on that shelf.
+    A rank of 0 means the game is not on that shelf. `done` says whether the game was marked as done today.
     """
 
     game: Game
     favorite: bool = False
     popular_rank: int = 0
     trending_rank: int = 0
+    done: bool = False
 
 
 def contains(section: str, listing: Listing) -> bool:
@@ -100,14 +106,17 @@ def contains(section: str, listing: Listing) -> bool:
     return listing.game.category.value == section and listing.game.status is Status.ACTIVE
 
 
-def sort_key(section: str, mode: SortMode, listing: Listing, favorite_position: int | None) -> tuple[int, str, str]:
+def sort_key(
+    section: str, mode: SortMode, listing: Listing, favorite_position: int | None
+) -> tuple[bool, int, str, str]:
     """Return the key that orders the game within `section`; the id breaks ties, so the order is stable.
 
     The default order is the shelf rank on Popular and Trending, the favourite order (`favorite_position`, oldest first)
-    on Favorites and the name elsewhere. Sorting by name or by difficulty (then name) overrides it everywhere. Names
-    compare case- and accent-insensitively.
+    on Favorites and the name elsewhere. Sorting by name or by difficulty (then name) overrides it everywhere; "not done
+    first" keeps it, after moving the games done today to the end. Names compare case- and accent-insensitively.
     """
     game = listing.game
+    done_last = mode is SortMode.NOT_DONE and listing.done
     if mode is SortMode.DIFFICULTY:
         primary = game.difficulty.sort_key
     elif mode is SortMode.NAME:
@@ -120,7 +129,17 @@ def sort_key(section: str, mode: SortMode, listing: Listing, favorite_position: 
         primary = listing.trending_rank or sys.maxsize
     else:
         primary = 0
-    return (primary, fold(game.name), game.id)
+    return (done_last, primary, fold(game.name), game.id)
+
+
+def favorite_moves(section: str, mode: SortMode, order: Sequence[str], game_id: str) -> set[Move]:
+    """Return the moves `game_id` can make: none outside Favorites or while a sort mode overrides the favourite order.
+
+    The tile menu disables the other moves; with none, the game cannot be dragged either.
+    """
+    if section != FAVORITES or mode is not SortMode.DEFAULT:
+        return set()
+    return reorder.possible_moves(order, game_id)
 
 
 def page(section: str, *, empty: bool, searching: bool) -> Page:

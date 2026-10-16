@@ -1,4 +1,6 @@
-"""The link opener: turns `open-mode` into the built-in browser, the default browser or the user's own command.
+"""The link opener: turns `open-mode`, or a game's `open-mode-override`, into a way to open the game.
+
+That is the built-in browser, the default browser or the user's own command.
 
 WebKit is probed the first time it is needed, never at startup, so a cold start does not load it. Host access for the
 custom command is probed the first time the custom mode needs it, once per session.
@@ -18,7 +20,7 @@ gi.require_version("Adw", "1")
 from gi.repository import Adw, Gio, GLib, Gtk
 
 from dailies import config
-from dailies.core import opening
+from dailies.core import opening, web
 from dailies.core.opening import Notice, OpenMode
 
 log = logging.getLogger(__name__)
@@ -91,9 +93,21 @@ def webkit_installed() -> bool:
     return config.HAVE_WEBKIT and _WEBKIT_VERSION in gi.Repository.get_default().enumerate_versions("WebKit")
 
 
-def resolve(settings: Gio.Settings, *, custom_failed: bool = False) -> OpenMode:
-    """Return how a game opens now; `custom_failed` when the custom command just failed to start."""
+def game_settings(game_id: str) -> Gio.Settings | None:
+    """The relocatable `<app id>.Game` settings of `game_id`, or None when the id is not a catalog id."""
+    path = web.game_settings_path(config.PREFIX, game_id)
+    return None if path is None else Gio.Settings.new_with_path(f"{config.APP_ID}.Game", path)
+
+
+def open_mode(settings: Gio.Settings, game: Gio.Settings | None) -> OpenMode:
+    """The mode a game is set to open with: its `open-mode-override`, else `open-mode`."""
     mode = OpenMode.from_id(settings.get_string("open-mode"))
+    return mode if game is None else opening.game_mode(mode, game.get_string("open-mode-override"))
+
+
+def resolve(settings: Gio.Settings, game: Gio.Settings | None, *, custom_failed: bool = False) -> OpenMode:
+    """Return how the game with settings `game` opens now; `custom_failed` when the custom command just failed."""
+    mode = open_mode(settings, game)
     return opening.resolve(
         mode,
         have_webkit=have_webkit(),

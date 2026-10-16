@@ -41,12 +41,15 @@ def caption(category_label: str, difficulty_label: str) -> str:
     return _("{category} · {difficulty}").format(category=category_label, difficulty=difficulty_label)
 
 
-def tile_description(caption: str, *, available: bool) -> str:
-    """Return what screen readers say after a tile's name: its caption, and that it is unavailable when it is."""
-    if available:
-        return caption
-    # Translators: a tile's caption, e.g. "Geography · Easy", for a game that no longer works.
-    return _("{caption}, unavailable").format(caption=caption)
+def tile_description(caption: str, *, available: bool, done: bool) -> str:
+    """Return what screen readers say after a tile's name: its caption, then that it is unavailable or done today."""
+    if not available:
+        # Translators: a tile's caption, e.g. "Geography · Easy", for a game that no longer works.
+        caption = _("{caption}, unavailable").format(caption=caption)
+    if done:
+        # Translators: a tile's caption, e.g. "Geography · Easy", for a game the user marked as played today.
+        caption = _("{caption}, done today").format(caption=caption)
+    return caption
 
 
 def week_subtitle(week: str, as_of: date | None) -> str:

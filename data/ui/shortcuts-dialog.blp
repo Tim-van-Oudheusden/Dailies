@@ -43,6 +43,21 @@ Adw.ShortcutsDialog shortcuts_dialog {
     }
 
     Adw.ShortcutsItem {
+      title: _("Show Game Menu");
+      accelerator: "<Shift>F10";
+    }
+
+    // Set on the grid, not as an accelerator: they move the focused favourite in Favorites only.
+    Adw.ShortcutsItem {
+      title: _("Move Favorite Up");
+      accelerator: "<Control>Up";
+    }
+
+    Adw.ShortcutsItem {
+      title: _("Move Favorite Down");
+      accelerator: "<Control>Down";
+    }
+    Adw.ShortcutsItem {
       title: _("Refresh Game List");
       accelerator: "<Control>r";
     }

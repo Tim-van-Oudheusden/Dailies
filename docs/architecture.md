@@ -65,8 +65,9 @@ flowchart LR
   C --> S["data/store.py<br/>Gio.ListStore of GameObject"]
   P --> S
   FAV["data/favorites.py<br/>GSettings key favorites"] --> S
+  DONE["data/done_today.py<br/>GSettings key done-today"] --> S
   S --> FL["Gtk.FilterListModel<br/>ui/filters.py: section + search"]
-  FL --> SO["Gtk.SortListModel"]
+  FL --> SO["Gtk.SortListModel<br/>search rank, then section order"]
   SO --> GV["Gtk.GridView<br/>GameTile per game"]
   GV -->|"activate"| OP["ui/opener.py<br/>in-app, external or custom"]
   OP --> WK["ui/browser_page.py<br/>WebKit.WebView"]
@@ -84,20 +85,25 @@ machine, and the coverage floors apply to `dailies/core` and `scripts/` only.
 | `core/models.py` | no | Frozen `Game` dataclass; `Category` enum (ten ids, display names, glyph names); `Difficulty` enum. An unknown category maps to `trivia` so a newer catalog never crashes an older app |
 | `core/catalog.py` | no | `parse(bytes) -> Catalog`: structural check (`schema_version == 1`, required keys, tolerant enums), `is_newer()` by `generated_at`; hides entries whose `status` is not `active` but keeps them so favourites still resolve |
 | `core/popularity.py` | no | `parse(bytes) -> Popularity` (week, `valid_until`, `popular`, `trending`), `rank_of(id)`, `is_stale(now)` |
-| `core/search.py` | no | Case- and accent-folded substring match over name, description, tags and category label; whether a new query narrows or widens the matches |
-| `core/sections.py` | no | The sidebar's section ids (Favorites, Popular, Trending, then the category ids), which categories have active games, the section to restore, the "as of" date of stale shelves; what each section holds, the sort keys (shelf rank, favourite order, name, or the `sort-mode` override), the empty-state page, the tiles' colour classes |
+| `core/search.py` | no | Ranked, case- and accent-folded matching over name, description, tags and category label: name prefix > word starts ("t m c" for The Mini Crossword) > name substring > other fields > one typo from six letters, two from nine; whether a new query narrows or widens the matches (a query that may match with a typo always re-tests every game) |
+| `core/sections.py` | no | The sidebar's section ids (Favorites, Popular, Trending, then the category ids), which categories have active games, the section to restore, the "as of" date of stale shelves; what each section holds, the sort keys (shelf rank, favourite order, name, or the `sort-mode` override, including "not done first"), the moves a favourite can make there, the empty-state page, the tiles' colour classes |
+| `core/done_today.py` | no | The "Done today" marks (game id → local `YYYY-MM-DD`): `is_done`, `prune` (only today's marks are kept), `toggle`, `mark`, the seconds until local midnight, and `AUTO_MARK_SECONDS` (60) for the automatic mode |
+| `core/reorder.py` | no | Reordering favourites: `moved()` (an id to an index), the destination of Move Up, Move Down and Move to Top (`None` when impossible) and of a drop before or after another favourite |
 | `core/cache.py` | no | The cache directory (`<name>.json`, `.etag`, `.fetched`, atomic writes) and the decisions of one refresh: skip while younger than the maximum age, `If-None-Match`, fall-through order of the data URLs, `Retry-After` backoff, validate before writing; the stale-banner rule |
+| `core/favorites_file.py` | no | The favourites export file (see [Exporting favourites](#exporting-favourites)): `dump`, `parse` (raises `FavoritesFileError` on anything but a valid version-1 file) and `combine` for Merge and Replace |
 | `data/fetcher.py` | Soup, Gio, GLib | Thin asynchronous libsoup 3 shell over `core/cache.py`: one `Soup.Session` with `User-Agent: Dailies/<version> (+https://github.com/Tim-van-Oudheusden/Dailies)` sends the requests a refresh asks for, one at a time, and never retries in a loop |
-| `data/favorites.py` | Gio | Wraps the `favorites` string-array key: `is_favorite`, `toggle`, order (newest last); emits `changed(id)` |
-| `data/store.py` | Gio | Owns the `Gio.ListStore` of `GameObject`; applies catalog, popularity and favourites; `reload()` diffs by id so the grid keeps its scroll position |
-| `ui/game_object.py` | GObject | `GameObject` with `game`, `name`, `category-label`, `difficulty-label`, `caption`, `available`, `favorite`, `popular-rank` and `trending-rank` properties for Blueprint bindings and filters |
-| `ui/filters.py` | Gtk | `SectionFilter` (Favorites, Popular, Trending or a category) and `SearchFilter`, combined in a `Gtk.EveryFilter`; `SectionSorter` orders shelves by rank, Favorites by favourite order, categories by name |
-| `ui/tile.py` | Gtk, Adw | `GameTile`: a `.card` button (tinted category glyph, name, category, difficulty pill; screen readers hear "Name, Category · Difficulty") with an overlaid star toggle, never a button inside a button |
+| `data/favorites.py` | Gio, GLib | Wraps the `favorites` string-array key: `is_favorite`, `toggle`, `add`, `move` (one key write per move), order (newest last), `set_order`, `import_ids`; emits `changed(id)`. `export` and `read_export` write and read the export file with Gio's asynchronous file I/O |
+| `data/done_today.py` | Gio, GLib | Wraps the `done-today` key: `is_done`, `toggle`, `mark`, `refresh()`; prunes earlier days at startup and at local midnight (a GLib timeout, re-armed each day); emits `changed(id)` |
+| `data/store.py` | Gio | Owns the `Gio.ListStore` of `GameObject`; applies catalog, popularity, favourites and the done-today marks; `reload()` diffs by id so the grid keeps its scroll position |
+| `ui/game_object.py` | GObject | `GameObject` with `game`, `name`, `category-label`, `difficulty-label`, `caption`, `available`, `favorite`, `popular-rank`, `trending-rank` and `done` properties for Blueprint bindings and filters, and `in-favorites`, `can-move-up` and `can-move-down`, which the window sets for the tile's menu and drag-and-drop |
+| `ui/filters.py` | Gtk | `SectionFilter` (Favorites, Popular, Trending or a category) and `SearchFilter`, combined in a `Gtk.EveryFilter`; `SectionSorter` orders shelves by rank, Favorites by favourite order, categories by name; `SearchSorter`, first in a `Gtk.MultiSorter`, puts the best matches first while a query is active and leaves the section order otherwise |
+| `ui/tile.py` | Gtk, Adw | `GameTile`: a `.card` button (tinted category glyph, name, category, difficulty pill, a "Done today" badge on a dimmed card; screen readers hear "Name, Category · Difficulty") with an overlaid star toggle, never a button inside a button; `game_menu()` builds the tile's context menu (right click, long press, Shift+F10 or Menu); in Favorites, the drag source and drop target that reorder favourites |
 | `ui/library.py` | GLib | The library's translated texts: category and difficulty names, tile captions, the This Week subtitle, the stale banner |
 | `window.py` | Adw | Window, sidebar, grid, search bar, empty states, toasts; `open_game()` is the one way a game is opened |
 | `ui/browser_page.py` | WebKit | The in-app browser page; only imported when `HAVE_WEBKIT` |
 | `ui/opener.py` | Gtk, Gio | Turns the `open-mode` setting into an action (see [Opening games](#opening-games)) |
 | `ui/preferences.py` | Adw | `Adw.PreferencesDialog`: open mode, website data, catalog options |
+| `ui/favorites_transfer.py` | Gtk, Adw | Export Favorites… and Import Favorites… (`app.export-favorites`, `app.import-favorites`): `Gtk.FileDialog`, the Merge/Replace `Adw.AlertDialog` and the result toasts |
 | `application.py` | Adw | `Adw.Application`, its actions and accelerators, the `.devel` style in the Devel build, the About dialog read from the metainfo |
 | `config.py.in` | none | `APP_ID`, `VERSION`, `PROFILE`, `PKGDATADIR`, `DATA_URLS`, `LOCALEDIR`, filled in by Meson |
 
@@ -122,8 +128,8 @@ machine, and the coverage floors apply to `dailies/core` and `scripts/` only.
 | Item | Location | Policy |
 |---|---|---|
 | Catalog and popularity | `$XDG_CACHE_HOME/dailies/v1/`, inside the Flatpak `~/.var/app/<id>/cache/dailies/v1/` | Seeded from the bundled snapshot; conditional GET every 6 h (catalog) and 24 h (popularity); the last good copy is kept on any failure; fully usable offline |
-| Website data of the built-in browser | `$XDG_DATA_HOME/dailies/web/` and the matching cache directory | Persistent `WebKit.NetworkSession` with SQLite cookie storage, so logins and streaks survive a restart; cleared from Preferences, or on exit when enabled |
-| Favourites, preferences, window state | GSettings | Stored by GLib; inside the Flatpak in `~/.var/app/<id>/config/glib-2.0/settings/keyfile` |
+| Website data of the built-in browser | `$XDG_DATA_HOME/dailies/web/shared/` (or `web/games/<id>/` per game) and the matching cache directories | Persistent `WebKit.NetworkSession` per session directory with its own SQLite cookie file (`cookies.sqlite`), so logins and streaks survive a restart; cleared from Preferences (every session, also ones not opened since the app started), or on exit when enabled |
+| Favourites, done-today marks, preferences, window state | GSettings | Stored by GLib; inside the Flatpak in `~/.var/app/<id>/config/glib-2.0/settings/keyfile`; nothing leaves the device |
 | Game icons | none | Category glyphs bundled in the GResource |
 
 ### Settings
@@ -136,19 +142,55 @@ GSettings schema `io.github.tim_van_oudheusden.Dailies` (the Devel build gets it
 | `open-mode` | enum `in-app`, `external`, `custom` | `in-app` ([#9][issue-9]) | How a game opens |
 | `external-browser-command` | `s` | `''` | Host command for `custom`; inert unless the user granted host access |
 | `clear-web-data-on-exit` | `b` | `false` | Clear the built-in browser's website data when the app quits |
-| `sort-mode` | enum `default`, `name`, `difficulty` | `default` | `default` is shelf rank, favourite order or name, depending on the section |
+| `sort-mode` | enum `default`, `name`, `difficulty`, `not-done` | `default` | `default` is shelf rank, favourite order or name, depending on the section; `not-done` is the default order with the games done today last |
 | `show-other-languages` | `b` | `true` | Show games whose language differs from the system locale |
+| `done-today` | `a{ss}` | `{}` | Game id → local date (`YYYY-MM-DD`) it was marked as done; only today's marks count, the others are pruned at startup and at midnight |
+| `auto-done-today` | `b` | `false` | Mark a game as done once it has been open in the built-in browser for 60 seconds |
+| `session-isolation` | enum `shared`, `per-game` | `shared` | `shared`: one session for all games (v0.1); `per-game`: a session per game in `web/games/<id>`. Switching moves no data, so games need to sign in again |
+| `cookie-policy` | enum `always`, `never`, `no-third-party` | `always` | `WebKit.CookieAcceptPolicy` of every session; `always` keeps third-party log-in flows working |
+| `itp-enabled` | `b` | `false` | Intelligent Tracking Prevention; while on, WebKit ignores `no-third-party` |
+| `hardware-acceleration` | enum `always`, `never` | `always` | `always` leaves WebKit's own choice (on where the system supports it); `never` forces `HardwareAccelerationPolicy.NEVER` |
+| `user-agent` | `s` | `''` | Compatibility fixes only; empty keeps WebKit's user agent with `Dailies/<version>` appended. Never set by default |
+| `developer-extras` | `b` | `false` | The Web Inspector (Inspect Element in the page's context menu) |
 
-A `State` child schema keeps `width`, `height`, `is-maximized`, `last-section` and `first-run-banner-dismissed`. New
-keys are additive and need no migration.
+A `State` child schema keeps `width`, `height`, `is-maximized`, `last-section` and `first-run-banner-dismissed`. The
+relocatable `Game` schema lives at `<schema path>/games/<id>/` for each catalog id (`core/web.py: game_settings_path`):
+`open-mode-override` (`s`, `''`: an `open-mode` nick that replaces it for this game; empty or unknown uses
+`open-mode`) and `isolated-session` (`b`, `false`: a session of its own for this game even while games share one).
+Preferences has no rows for them yet; inside the Flatpak set one with `flatpak run --command=gsettings <app id> set
+<app id>.Game:/io/github/tim_van_oudheusden/Dailies/games/wordle/ isolated-session true`. New keys are additive and
+need no migration.
+
+### Exporting favourites
+
+The primary menu's **Export Favorites…** writes the favourites, in display order, to a file the user picks:
+
+```json
+{
+  "schema_version": 1,
+  "favorites": [
+    "worldle",
+    "connections"
+  ]
+}
+```
+
+UTF-8, 2-space indented. Both file choosers are `Gtk.FileDialog`, which goes through the FileChooser portal inside
+the Flatpak, so no `--filesystem` permission is needed. **Import Favorites…** checks the whole file first: malformed
+JSON, another `schema_version`, a `favorites` that is not a list, an id that is not a non-empty string, or an id listed
+twice shows "This file is not a Dailies favorites export" and changes nothing. With favourites already set, an
+`Adw.AlertDialog` offers **Merge** (the default: keep the current order and append the file's ids not among them) or
+**Replace** (take the file's list); then a toast says "Imported N favorites". Ids the catalog does not know are kept
+and resolve once the catalog has them.
 
 ### Window
 
 `Adw.ApplicationWindow` → `Adw.ToastOverlay` → `Adw.NavigationView` with a `library` page (the split view) and a
-`browser` page pushed when a game opens in-app. The sidebar is an `Adw.Sidebar`; below 500 sp the split view collapses.
-The content is an `Adw.ToolbarView` with sort and search buttons, a `Gtk.SearchBar` (Ctrl+F) and a stack of the grid
-and `Adw.StatusPage` empty states. Every user-facing string goes through gettext; the widgets are current libadwaita
-API only.
+`browser` page pushed when a game opens in-app. A popped browser page keeps its tag until its slide-out ends, so a game
+opened before then removes it first (cutting the animation short) and pushes a fresh page. The sidebar is an
+`Adw.Sidebar`; below 500 sp the split view collapses. The content is an `Adw.ToolbarView` with sort and search buttons,
+a `Gtk.SearchBar` (Ctrl+F) and a stack of the grid and `Adw.StatusPage` empty states. Every user-facing string goes
+through gettext; the widgets are current libadwaita API only.
 
 Toasts follow one policy: sentence case without a trailing period, the default 5 s timeout, and **Undo** for every
 reversible action (removing a favourite puts it back where it was). Irreversible actions say so without a button
@@ -156,6 +198,25 @@ reversible action (removing a favourite puts it back where it was). Irreversible
 with **Open Here** to load it in the built-in browser when WebKit is available (`core/opening.py: notice`,
 `offers_open_here`). Leaving the library for the browser page dismisses all toasts (`dismiss_all`), so an undo for the
 library does not linger over a game.
+
+**Done today** ([#76][issue-76]) marks the games the user has played today, by the local calendar day, and never
+leaves the device. A game is marked from its tile's menu (right click, long press, Shift+F10 or Menu on the focused
+tile: **Mark as Done Today** / **Mark as Not Done**), from the built-in browser's page menu (a **Mark as Done Today**
+check for the game shown) or, with the off-by-default **Mark games as done automatically** preference
+(`auto-done-today`), once the game has stayed open in the built-in browser for 60 seconds (`AUTO_MARK_SECONDS`: a quick
+look or a misclick doesn't count, the quickest dailies take longer). A marked tile shows a "Done today" check badge on a
+dimmed card, and screen readers hear "…, done today". The **Not Done First** sort keeps the section's order with the
+done games last. The marks expire at local midnight: `data/done_today.py` sets a GLib timeout for the next midnight,
+and because that timer runs on the monotonic clock (it stops during a suspend, and ignores clock and time-zone
+changes) the window also re-checks the day whenever it becomes active. The tile menu is built by one function,
+`ui/tile.py: game_menu()`, one section per concern.
+
+In Favorites the tile menu also holds **Move Up**, **Move Down**, **Move to Top** (disabled when the move is
+impossible) and **Remove from Favorites**; Ctrl+Up and Ctrl+Down move the focused favourite, and the focus stays on it
+after a move. A favourite can also be dragged onto another: dropped on the first half of a tile it goes before it, on
+the second half after it, and an accent bar on that side shows where. Every move rewrites the `favorites` key once.
+Moves are only offered while Favorites shows its own order: sorted by name, difficulty or not done first, the menu's
+moves are disabled and nothing can be dragged.
 
 ## Opening games
 
@@ -165,7 +226,7 @@ sandbox escape. Dailies therefore maps the brief onto what the sandbox allows wi
 escape to the user.
 
 ```text
-mode = settings["open-mode"]
+mode = game["open-mode-override"] or settings["open-mode"]
 if mode == custom and host access granted and command != "":
     flatpak-spawn --host -- <argv…> <url>    # only after the user ran `flatpak override --talk-name=...`
 elif mode in (in-app, custom) and HAVE_WEBKIT:
@@ -196,13 +257,24 @@ else:
 - WebKit is imported the first time a game opens or Preferences needs to know, never at startup.
 - Every in-app page has **Open in Browser** (Ctrl+Shift+O) and **Copy Link** in its menu.
 - The built-in page is an `Adw.NavigationPage` with back, forward, reload and a title showing the page title and host.
-  One `WebKit.NetworkSession` is shared by all games (sibling games share a login); cookies are stored persistently;
-  TLS errors fail; downloads are cancelled and handed to the external browser; permission requests are denied; WebRTC
-  and `data:` top-level navigation are off; `target="_blank"` links load in the same view, while script pop-ups
-  (`window.open`) and unsupported file types go to the external browser. There are no injected scripts or styles, no
-  ad blocking and no user-agent spoofing. One `WebView` lives at a time, in a `WebKit.WebContext` of its own; when its
-  page is popped the view is closed and dropped with its context, which ends its web processes (the shared network
-  session stays). Ctrl+R reloads while the page is shown and refreshes the game list on the library.
+  By default one `WebKit.NetworkSession` is shared by all games (sibling games share a login). With
+  `session-isolation` `per-game`, or a game's `isolated-session`, the game gets
+  `WebKit.NetworkSession.new(<data>/web/games/<id>, <cache>/web/games/<id>)` instead (`core/web.py: session_dir`;
+  ids that are not catalog ids share), made once per run and cached by directory. Opening a game whose session
+  differs from the shown page's replaces that page at once (`AdwNavigationView.replace`), and a page popped a moment
+  ago that still slides out is removed before a new one is pushed, so two pages never hold the `browser` tag; a pop-up
+  brought back with **Open Here** loads in the shown page's session. Every session stores its cookies persistently in
+  its own `cookies.sqlite` and follows `cookie-policy` and `itp-enabled` live; `hardware-acceleration`, `user-agent` and
+  `developer-extras` apply to pages opened next. TLS errors fail; downloads are cancelled and handed to the external
+  browser; permission requests are denied; WebRTC and `data:` top-level navigation are off; `target="_blank"` links
+  load in the same view, while script pop-ups (`window.open`) and unsupported file types go to the external browser.
+  There are no injected scripts or styles, no ad blocking and no user-agent spoofing: `user-agent` is empty unless the
+  user sets it for a compatibility fix. One `WebView` lives at a time, in a `WebKit.WebContext` of its own; when its
+  page is popped the view is closed and dropped with its context, which ends its web processes (the network sessions
+  stay). Ctrl+R reloads while the page is shown and refreshes the game list on the library.
+- Preferences → Built-in browser has a **Privacy and compatibility** expander row with the six browser keys; the
+  website-data row says that switching moves no data and games will need to sign in again. **Clear website data…**
+  clears every session: the shared one and every `web/games/<id>` directory on disk, opened in this run or not.
 
 ## Data and release pipelines
 
@@ -293,6 +365,13 @@ a build step that concatenates them, for nothing a solo maintainer needs. Per-en
 **Decision:** favourites live in GSettings (`favorites`, a string array), not in a JSON file. Why: the list is small,
 needs no schema versioning, is stored by GLib in the app's sandboxed config directory and survives reinstalls, and
 Cartridges shows collections in GSettings work well. Export and import can come later as a menu action writing JSON.
+
+**Decision:** favourites are reordered in the `Gtk.GridView`, not in a `Gtk.FlowBox` ([#75][issue-75]). Why: each tile
+carries its own `Gtk.DragSource` (the game id as a string) and `Gtk.DropTarget` (`str`, move), and a drop only rewrites
+the `favorites` key; the section sorter re-sorts the model, so no widget is moved by hand and recycled tiles need no
+bookkeeping. What a tile may do comes from `GameObject` properties the window keeps current (`in-favorites`,
+`can-move-up`, `can-move-down`), since a tile does not know the section or the sort mode. A `FlowBox` would have made
+`insert()` at an index trivial but meant a second grid with its own filtering, sorting and keyboard navigation.
 
 **Decision:** games open in the built-in browser by default (`open-mode` `in-app`, [#9][issue-9]). Why: the built-in
 browser is what sets Dailies apart from a bookmarks folder, and a shared session keeps logins and streaks across sibling
@@ -449,4 +528,6 @@ approximate cold start that left shared libraries in memory; re-measure on a lap
 [issue-46]: https://github.com/Tim-van-Oudheusden/Dailies/issues/46
 [issue-52]: https://github.com/Tim-van-Oudheusden/Dailies/issues/52
 [issue-78]: https://github.com/Tim-van-Oudheusden/Dailies/issues/78
+[issue-75]: https://github.com/Tim-van-Oudheusden/Dailies/issues/75
+[issue-76]: https://github.com/Tim-van-Oudheusden/Dailies/issues/76
 [issue-88]: https://github.com/Tim-van-Oudheusden/Dailies/issues/88

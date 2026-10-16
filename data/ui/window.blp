@@ -254,6 +254,11 @@ menu primary_menu {
   }
 
   section {
+    item (_("_Export Favorites…"), "app.export-favorites")
+    item (_("_Import Favorites…"), "app.import-favorites")
+  }
+
+  section {
     item (_("_Preferences"), "app.preferences")
     item (_("_Keyboard Shortcuts"), "app.shortcuts")
     item (_("_About Dailies"), "app.about")
@@ -265,5 +270,6 @@ menu sort_menu {
     item (_("_Default"), "win.sort-mode", "default")
     item (_("_Name"), "win.sort-mode", "name")
     item (_("D_ifficulty"), "win.sort-mode", "difficulty")
+    item (_("N_ot Done First"), "win.sort-mode", "not-done")
   }
 }

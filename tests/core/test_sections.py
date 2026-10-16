@@ -5,6 +5,7 @@ from dailies.core import sections
 from dailies.core.catalog import Catalog
 from dailies.core.models import Category, Difficulty, Game, Status
 from dailies.core.popularity import Popularity
+from dailies.core.reorder import Move
 
 GENERATED = datetime(2026, 10, 12, 6, tzinfo=UTC)
 VALID_UNTIL = datetime(2026, 10, 19, 6, tzinfo=UTC)
@@ -118,6 +119,7 @@ def test_a_category_holds_its_available_games_only() -> None:
 
 def test_an_unknown_sort_mode_falls_back_to_the_default() -> None:
     assert sections.SortMode.from_id("difficulty") is sections.SortMode.DIFFICULTY
+    assert sections.SortMode.from_id("not-done") is sections.SortMode.NOT_DONE
     assert sections.SortMode.from_id("newest") is sections.SortMode.DEFAULT
 
 
@@ -161,6 +163,35 @@ def test_equal_names_sort_by_id_so_the_order_is_stable() -> None:
     assert sort("words", sections.SortMode.DEFAULT, rows) == ["a", "b"]
 
 
+def test_not_done_first_puts_todays_played_games_last_in_the_section_order() -> None:
+    games = [named("a", "Zebra"), named("b", "apple"), named("c", "Éclair"), named("d", "Dune")]
+    done = {"b", "c"}
+    positions = {"a": 3, "b": 0, "c": 1, "d": 2}
+
+    def order(section: str) -> list[str]:
+        def key(game_: Game) -> tuple:
+            entry = sections.Listing(
+                game=game_, favorite=True, popular_rank=positions[game_.id] + 1, done=game_.id in done
+            )
+            return sections.sort_key(section, sections.SortMode.NOT_DONE, entry, positions[game_.id])
+
+        return [game_.id for game_ in sorted(games, key=key)]
+
+    assert order(sections.FAVORITES) == ["d", "a", "b", "c"]
+    assert order(sections.POPULAR) == ["d", "a", "b", "c"]
+    assert order("words") == ["d", "a", "b", "c"]
+
+
+def test_the_other_orders_ignore_whether_a_game_is_done() -> None:
+    rows = [named("a", "Zebra"), named("b", "apple")]
+
+    def key(game_: Game) -> tuple:
+        entry = sections.Listing(game=game_, done=game_.id == "b")
+        return sections.sort_key("words", sections.SortMode.NAME, entry, None)
+
+    assert [game_.id for game_ in sorted(rows, key=key)] == ["b", "a"]
+
+
 def test_a_section_with_games_shows_the_grid() -> None:
     for section in (sections.FAVORITES, sections.POPULAR, "music"):
         assert sections.page(section, empty=False, searching=True) is sections.Page.GRID
@@ -185,3 +216,12 @@ def test_the_stack_page_names_match_the_window() -> None:
 def test_tiles_are_styled_by_category_and_difficulty() -> None:
     assert sections.category_style(Category.MOVIES_TV) == "cat-movies-tv"
     assert sections.difficulty_style(Difficulty.HARD) == "difficulty-hard"
+
+
+def test_favourites_move_only_in_favorites_in_their_own_order() -> None:
+    order = ("wordle", "globle", "framed")
+    default = sections.SortMode.DEFAULT
+    assert sections.favorite_moves(sections.FAVORITES, default, order, "globle") == set(Move)
+    assert sections.favorite_moves(sections.FAVORITES, default, order, "wordle") == {Move.DOWN}
+    assert sections.favorite_moves(sections.FAVORITES, sections.SortMode.NAME, order, "globle") == set()
+    assert sections.favorite_moves(sections.POPULAR, default, order, "globle") == set()

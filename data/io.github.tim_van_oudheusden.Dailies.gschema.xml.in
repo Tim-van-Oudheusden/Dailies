@@ -9,6 +9,22 @@
     <value nick="default"    value="0"/>   <!-- shelf rank / favourite order / name -->
     <value nick="name"       value="1"/>
     <value nick="difficulty" value="2"/>
+    <value nick="not-done"   value="3"/>   <!-- the default order, games done today last -->
+  </enum>
+  <enum id="@APP_ID@.SessionIsolation">
+    <value nick="shared"   value="0"/>
+    <value nick="per-game" value="1"/>
+  </enum>
+  <!-- The values of WebKit.CookieAcceptPolicy. -->
+  <enum id="@APP_ID@.CookiePolicy">
+    <value nick="always"         value="0"/>
+    <value nick="never"          value="1"/>
+    <value nick="no-third-party" value="2"/>
+  </enum>
+  <!-- WebKit 6.0's HardwareAccelerationPolicy has only ALWAYS and NEVER. -->
+  <enum id="@APP_ID@.HardwareAcceleration">
+    <value nick="always" value="0"/>
+    <value nick="never"  value="1"/>
   </enum>
   <schema id="@APP_ID@" path="@PREFIX_PATH@/">
     <key name="favorites" type="as"><default>[]</default>
@@ -22,6 +38,28 @@
     <key name="sort-mode" enum="@APP_ID@.SortMode"><default>'default'</default></key>
     <key name="show-other-languages" type="b"><default>true</default>
       <summary>Show games whose language differs from the system locale</summary></key>
+    <key name="done-today" type="a{ss}"><default>{}</default>
+      <summary>Games marked as done, by local date</summary>
+      <description>Maps a game id to the local date (YYYY-MM-DD) it was marked as done on. Only today's marks count; the others are dropped at startup and at midnight.</description></key>
+    <key name="auto-done-today" type="b"><default>false</default>
+      <summary>Mark games as done automatically</summary>
+      <description>Mark a game as done once it has been open in the built-in browser for a minute.</description></key>
+    <key name="session-isolation" enum="@APP_ID@.SessionIsolation"><default>'shared'</default>
+      <summary>Website data isolation of the built-in browser</summary>
+      <description>shared: one session for all games, so sibling games share a login; per-game: a separate session per game. Switching does not move any data.</description></key>
+    <key name="cookie-policy" enum="@APP_ID@.CookiePolicy"><default>'always'</default>
+      <summary>Which cookies the built-in browser accepts</summary></key>
+    <key name="itp-enabled" type="b"><default>false</default>
+      <summary>Intelligent Tracking Prevention in the built-in browser</summary>
+      <description>While it is on, WebKit ignores the no-third-party cookie policy.</description></key>
+    <key name="hardware-acceleration" enum="@APP_ID@.HardwareAcceleration"><default>'always'</default>
+      <summary>GPU rendering in the built-in browser</summary>
+      <description>always: wherever the system supports it; never: turn it off, e.g. on broken drivers.</description></key>
+    <key name="user-agent" type="s"><default>''</default>
+      <summary>User agent of the built-in browser</summary>
+      <description>For compatibility fixes only. Empty uses WebKit's user agent with Dailies and its version appended.</description></key>
+    <key name="developer-extras" type="b"><default>false</default>
+      <summary>Enable the Web Inspector in the built-in browser</summary></key>
   </schema>
   <schema id="@APP_ID@.State" path="@PREFIX_PATH@/State/">
     <key name="width" type="i"><default>1100</default></key>
@@ -30,5 +68,13 @@
     <key name="last-section" type="s"><default>'favorites'</default></key>
     <key name="first-run-banner-dismissed" type="b"><default>false</default>
       <summary>Whether the library stopped telling that games open inside Dailies</summary></key>
+  </schema>
+  <!-- Relocatable: one per game, at @PREFIX_PATH@/games/<id>/ (dailies.core.web.game_settings_path). -->
+  <schema id="@APP_ID@.Game">
+    <key name="open-mode-override" type="s"><default>''</default>
+      <summary>How this game opens, instead of open-mode</summary>
+      <description>An open-mode nick (in-app, external or custom); empty or unknown uses open-mode.</description></key>
+    <key name="isolated-session" type="b"><default>false</default>
+      <summary>Give this game a session of its own even while games share one</summary></key>
   </schema>
 </schemalist>
