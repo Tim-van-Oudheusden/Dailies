@@ -56,7 +56,7 @@ dailies/                    the application package
 data/                       desktop file, metainfo, GSettings schema, Blueprint files, icons, screenshots
   v1/                       games.json (the catalog), popularity.json (weekly shelves), schema/
 build-aux/flatpak/          Devel manifest (CI and local), release manifest, linter exceptions
-scripts/                    CI and data scripts: gates, coverage, submission validator, link checker, popularity
+scripts/                    CI and data scripts: gates, coverage, submission validator, link checker, popularity, icons
 tests/                      core/, scripts/, data/, tooling/ (pytest); gi/ and e2e/ (Meson tests inside the SDK)
 po/                         gettext: POTFILES.in, the dailies.pot template, LINGUAS and one .po per language
 prompts/                    reusable agent prompts (code review, PR body)

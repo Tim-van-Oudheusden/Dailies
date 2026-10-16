@@ -53,8 +53,8 @@ Unknown fields are allowed here too and must be ignored.
 | `added` | string, `date` (`YYYY-MM-DD`) | yes | The day the entry was added to the catalog |
 | `status` | `active`, `broken` or `retired` | yes | `active` games are shown. `broken` (the link fails or leads elsewhere) and `retired` (the game ended) are hidden, but the entry stays so favourites still resolve |
 | `domain` | string, a lower-case host name | yes | The registrable domain (eTLD+1) of `url`, e.g. `teuteuf.fr` for `https://worldle.teuteuf.fr/`. Used for redirect checks and popularity lookups |
-| `icon` | string matching `^icons/[a-z0-9-]+\.png$` | no | Icon path relative to the catalog base URL. Reserved; no entry has one yet |
-| `icon_source` | `site`, `google`, `duckduckgo`, `manual` or `none` | no | Where `icon` came from. Reserved, like `icon` |
+| `icon` | string matching `^icons/[a-z0-9-]+\.png$` | no | The game's [icon](#icons), relative to the catalog base URL, e.g. `icons/wordle.png`. Absent when the game has none |
+| `icon_source` | `site`, `google`, `duckduckgo`, `manual` or `none` | no | Where `icon` came from; `none` when no icon was found or it was taken down. See [Icons](#icons) |
 | `aliases` | array of strings | no | Other names the game is known by, including former names; used for duplicate detection and search |
 | `wikipedia` | string | no | Title of the game's English Wikipedia article, for pageview lookups |
 | `source_issue` | integer ≥ 1 | no | Number of the GitHub issue that proposed the game |
@@ -291,6 +291,37 @@ framework, "Wordle" 8 on Wordle clones). Restricting the search to stories linki
 `summary.json` lists each optional source's `ok`, `failed`, `count`, `used`, `error` and its `failed_games` (Wikipedia,
 HN) or `failed_domains` (Radar).
 
+## Icons
+
+Game icons are 64×64 PNGs in [`data/v1/icons/`](../data/v1/icons/), named `<id>.png` and published next to the
+catalog at `https://tim-van-oudheusden.github.io/Dailies/v1/icons/<id>.png`. They are not installed with the app:
+`data/meson.build` bundles only `games.json` and `popularity.json`. A game's entry names its icon in `icon`; a game
+without one keeps its category glyph.
+
+`scripts/icons/fetch_icon.py` fetches them. For each game it tries, in order, the icons of the site's web-app manifest,
+its `apple-touch-icon`, its `<link rel="icon">`, `/favicon.ico`, then Google's and DuckDuckGo's favicon services (both
+unofficial). The first nearly square raster image of at least 64 px wins; failing that, the largest one of at least
+16 px. The image is centred on a transparent square, scaled to 64×64 and saved as a PNG; every download is limited to
+public https addresses, 1 MiB and 16 megapixels. The result goes into the entry:
+
+| `icon_source` | Meaning |
+|---|---|
+| `site` | The icon came from the game's own site (manifest, `apple-touch-icon`, `<link rel="icon">` or `/favicon.ico`) |
+| `google` | Google's favicon service |
+| `duckduckgo` | DuckDuckGo's favicon service |
+| `manual` | A maintainer placed the icon by hand; the fetcher never replaces it |
+| `none` | No usable icon was found, or the icon was taken down; `icon` is absent |
+
+Run it for the whole catalog, or for some games with `--id`; `--missing-only` skips games that already have an icon:
+
+```sh
+python -I scripts/icons/fetch_icon.py --catalog data/v1/games.json --out data/v1/icons [--id ID ...]
+```
+
+A site that asks for its icon to be removed is listed in
+[`scripts/data/icon-takedowns.txt`](../scripts/data/icon-takedowns.txt): the next run deletes the PNG, sets
+`icon_source: none` and never downloads that icon again.
+
 ## Rules beyond the schemas
 
 `tests/data/test_catalog_file.py` enforces these on every pull request:
@@ -350,4 +381,7 @@ Maintaining the catalog follows four rules:
   Analytics API (CC0 1.0), HN Search by Algolia, and Cloudflare Radar (CC BY-NC 4.0, so Radar-derived files are for
   non-commercial use only; Dailies is non-commercial free software). Only sources used that week are listed. The
   current hand-picked file (`method_version: 0`) uses no external source, so its list is empty.
+- **Icons** (`icons/*.png`): the logos and favicons of the games' sites, which remain the property and trademarks of
+  their owners and are **not** covered by the catalog's CC0 dedication. Dailies shows them only to identify each game;
+  see [Icons](#icons) for how one is taken down.
 - The app's code is GPL-3.0-or-later (see [`LICENSE`](../LICENSE)).

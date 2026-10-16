@@ -1,0 +1,3 @@
+# Game ids whose icon Dailies must not publish, one per line (scripts/icons/fetch_icon.py).
+# A site that asks for its icon to be removed is listed here: the next fetch deletes data/v1/icons/<id>.png and never
+# downloads it again, so the game keeps its category glyph. See README.md, "Game icons".
