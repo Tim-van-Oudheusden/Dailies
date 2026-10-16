@@ -216,7 +216,7 @@ flowchart TD
   subgraph weekly["Weekly popularity"]
     CRON["Monday 04:17 UTC<br/>popularity.yml"] --> COLLECT["Collect Tranco ranks"]
     COLLECT --> COMPUTE["Compute shelves<br/>deterministic Python"]
-    COMPUTE -.->|"optional, M3"| REPORT["Claude writes<br/>docs/popularity/WEEK.md"]
+    COMPUTE -.->|"schedule or narrate: true"| REPORT["Claude writes<br/>docs/popularity/WEEK.md<br/>report_guard.py checks"]
     COMPUTE --> PR2["PR: data(popularity): week WEEK"]
     REPORT --> PR2
   end
@@ -254,9 +254,16 @@ games outside the top five, topped up with the newest games (`reason: "new"`) so
 fails for more than 20 % of domains the job fails and the old file stays. The current `popularity.json` is hand-written
 (`method_version: 0`).
 
-**Publishing.** `pages.yml` publishes `data/v1/` (schemas included) and, once it exists, `docs/popularity/` to GitHub
-Pages at `https://tim-van-oudheusden.github.io/Dailies/v1/` on every push to `main` that touches them. The app tries
-that URL first and falls back to `raw.githubusercontent.com` on a server error, a 429 or a network failure.
+**Publishing.** `pages.yml` publishes `data/v1/` (schemas included) and `docs/popularity/` to GitHub Pages at
+`https://tim-van-oudheusden.github.io/Dailies/v1/` on every push to `main` that touches them. The app tries that URL
+first and falls back to `raw.githubusercontent.com` on a server error, a 429 or a network failure.
+
+**Weekly report.** In the `publish` job of `popularity.yml`, `anthropics/claude-code-action` writes
+`docs/popularity/<week>.md` from `summary.json` and `popularity.json`; it may write that one file and nothing else.
+`scripts/popularity/report_guard.py` then fails the job unless `git status` shows only that report and a
+`popularity.json` byte-identical to the `compute` artifact, and only then sets `report` to `../popularity/<week>.md`.
+The step has `continue-on-error`, so a failed report still leaves the numbers-only pull request
+([`docs/popularity/`](popularity/README.md), [`SECURITY-AI.md`](security/SECURITY-AI.md#the-popularity-report)).
 
 **Releases.** See [Releasing in `CONTRIBUTING.md`](../CONTRIBUTING.md#releasing). The tag, `version:` in `meson.build`
 and the newest metainfo `<release>` must agree, which the `verify` job checks before anything is built. Bundles do not

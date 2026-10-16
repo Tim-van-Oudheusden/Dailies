@@ -64,11 +64,32 @@ keep the hardening intact:
 
 ## The popularity report
 
-The weekly popularity numbers are computed by deterministic Python (`scripts/popularity/`). The optional Claude step
-only writes prose about them and **sees numbers only**: it reads `summary.json` and `popularity.json` (ranks, scores and
-maintainer-approved game names), never issue text or fetched HTML. It may use only the `Read` and `Write` tools, never
-changes a number, and a guard fails the job if anything outside `docs/popularity/` changed. The result is a pull
-request that a human reviews and merges.
+The weekly popularity numbers are computed by deterministic Python (`scripts/popularity/`). The Claude step in the
+`publish` job of `popularity.yml` (`anthropics/claude-code-action`, pinned by SHA, with `CLAUDE_CODE_OAUTH_TOKEN`) only
+writes prose about them into `docs/popularity/<week>.md`; it never changes a number.
+
+**Prompt-injection surface.** The model sees **only numbers and maintainer-approved game names**: `summary.json` and
+`popularity.json` (ranks, scores, source health and the names of games a maintainer merged into `games.json`) plus the
+fixed prompt in the workflow. It **never sees issue text, issue-form input or fetched HTML**: the collectors' raw
+responses stay in the `compute` job, and the step runs only on the schedule or a maintainer's manual run, never on an
+issue, comment or pull-request event. A game name that slipped past review is the only text an outsider could have
+placed in its input.
+
+The step is boxed in by Claude Code's permissions and checked afterwards:
+
+- Tools: no `Bash`, `WebSearch`, `WebFetch`, `NotebookEdit` or MCP tools; reads stay inside the checkout (`main`, or
+  the branch a maintainer dispatched), whose files went through review; the only write allowed is the week's report,
+  granted as an `Edit(/docs/popularity/<week>.md)` rule (Claude Code ignores path rules written for `Write`, and a bare
+  `Write` would allow writes anywhere on the runner). A headless session cannot ask, so everything else is denied. At
+  most six turns. The action is given the job's own token, not the Claude GitHub App's, and without a shell the model
+  cannot use it.
+- Guard: `scripts/popularity/report_guard.py` runs from a copy taken before the model starts. It fails the job with an
+  `::error::` if `git status` shows any change besides `data/v1/popularity.json` and the week's report, if
+  `popularity.json` is not byte-identical to a fresh download of the `compute` artifact, if the report is not a
+  regular file, or if `.git/config` differs from its copy (the workflow restores it first, removing the token the
+  action writes into the remote URL). `tests/scripts/test_report_guard.py` includes a tampered `games.json`.
+- Review: only after the guard passes is the report linked from `popularity.json` and the pull request opened; a
+  maintainer reviews and merges it. A failed report step (`continue-on-error`) leaves the numbers-only pull request.
 
 ## Secrets
 
