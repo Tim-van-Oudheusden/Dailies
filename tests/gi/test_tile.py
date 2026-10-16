@@ -9,6 +9,7 @@ import time
 import unittest
 from datetime import date
 from pathlib import Path
+from unittest import mock
 
 import gi
 
@@ -47,7 +48,9 @@ gettext.install("dailies")
 
 from gi.repository import Gdk, GLib, GObject, Gtk
 
+from dailies import config
 from dailies.core.models import Category, Difficulty, Game, Status
+from dailies.ui import opener
 from dailies.ui.game_object import GameObject
 
 Gio.resources_register(Gio.Resource.load(os.environ["DAILIES_GRESOURCE"]))
@@ -91,6 +94,14 @@ class GameTileTest(unittest.TestCase):
         self.window = Gtk.Window(child=self.tile)
         self.window.insert_action_group("win", actions)
         self.addCleanup(self.window.destroy)
+        # The menu asks what this installation can do; here it has the built-in browser and no host access.
+        for name, value in (("have_webkit", True), ("host_access", False)):
+            patcher = mock.patch.object(opener, name, return_value=value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def menu(self) -> Gio.Menu:
+        return game_menu(self.item, have_webkit=True, host_access=False)
 
     def test_the_card_shows_the_name_category_and_difficulty(self) -> None:
         assert self.tile.title_label.props.label == "Worldle"
@@ -162,16 +173,81 @@ class GameTileTest(unittest.TestCase):
         assert not self.tile.open_button.has_css_class("done")
 
     def test_the_game_menu_marks_and_unmarks_the_game_as_done_today(self) -> None:
-        assert menu_items(game_menu(self.item)) == [("Mark as _Done Today", "win.toggle-game-done", "worldle")]
+        assert menu_items(self.menu())[0] == ("Mark as _Done Today", "win.toggle-game-done", "worldle")
         self.item.props.done = True
-        assert menu_items(game_menu(self.item)) == [("Mark as _Not Done", "win.toggle-game-done", "worldle")]
+        assert menu_items(self.menu())[0] == ("Mark as _Not Done", "win.toggle-game-done", "worldle")
 
     def test_the_game_menu_pops_up_on_the_tile(self) -> None:
         self.window.present()
         self.tile.popup_menu()
         assert self.tile.menu.props.visible
-        assert menu_items(self.tile.menu.props.menu_model) == menu_items(game_menu(self.item))
+        assert menu_items(self.tile.menu.props.menu_model) == menu_items(self.menu())
         self.tile.menu.popdown()
+
+    def test_the_game_menu_offers_each_way_to_open_the_game_and_an_isolated_session(self) -> None:
+        menu = game_menu(self.item, have_webkit=True, host_access=True)
+        assert menu_entries(menu)[1] == [("_Open With", None), ("_Isolated Session", "tile.isolated-session")]
+        assert menu_items(open_with(menu)) == [
+            ("_Default", "tile.open-with", ""),
+            ("_Built-in Browser", "tile.open-with", "in-app"),
+            ("Default B_rowser", "tile.open-with", "external"),
+            ("_Custom Command", "tile.open-with", "custom"),
+        ]
+
+    def test_the_game_menu_offers_only_what_this_installation_can_do(self) -> None:
+        # No built-in browser: no sessions either. No host access: no custom command.
+        menu = game_menu(self.item, have_webkit=False, host_access=False)
+        assert menu_entries(menu)[1] == [("_Open With", None)]
+        assert menu_items(open_with(menu)) == [
+            ("_Default", "tile.open-with", ""),
+            ("Default B_rowser", "tile.open-with", "external"),
+        ]
+
+    def game_settings(self) -> Gio.Settings:
+        game = opener.game_settings("worldle")
+        for key in ("open-mode-override", "isolated-session"):
+            self.addCleanup(game.reset, key)
+        return game
+
+    def pop_up_and_down(self) -> None:
+        self.window.present()
+        self.tile.popup_menu()
+        self.tile.menu.popdown()
+
+    def test_choosing_how_the_game_opens_sets_its_override(self) -> None:
+        game = self.game_settings()
+        self.pop_up_and_down()
+        self.tile.activate_action("tile.open-with", GLib.Variant.new_string("external"))
+        assert game.get_string("open-mode-override") == "external"
+        self.tile.activate_action("tile.open-with", GLib.Variant.new_string(""))
+        assert game.get_string("open-mode-override") == ""
+
+    def test_choosing_what_a_hidden_override_shows_as_keeps_it(self) -> None:
+        # Without host access a game set to the custom command opens in the built-in browser, and the menu says so.
+        game = self.game_settings()
+        game.set_string("open-mode-override", "custom")
+        self.pop_up_and_down()
+        self.tile.activate_action("tile.open-with", GLib.Variant.new_string("in-app"))
+        assert game.get_string("open-mode-override") == "custom"
+        self.tile.activate_action("tile.open-with", GLib.Variant.new_string("external"))
+        assert game.get_string("open-mode-override") == "external"
+
+    def test_the_isolated_session_item_toggles_the_games_own_session(self) -> None:
+        game = self.game_settings()
+        self.pop_up_and_down()
+        self.tile.activate_action("tile.isolated-session", None)
+        assert game.get_boolean("isolated-session")
+        self.tile.activate_action("tile.isolated-session", None)
+        assert not game.get_boolean("isolated-session")
+
+    def test_the_isolated_session_item_cannot_change_while_every_game_is_isolated(self) -> None:
+        settings = Gio.Settings.new(config.APP_ID)
+        settings.set_string("session-isolation", "per-game")
+        self.addCleanup(settings.reset, "session-isolation")
+        game = self.game_settings()
+        self.pop_up_and_down()
+        self.tile.activate_action("tile.isolated-session", None)
+        assert not game.get_boolean("isolated-session")
 
     def favorite_in_favorites(self, *, up: bool, down: bool) -> None:
         self.item.props.favorite = True
@@ -179,16 +255,17 @@ class GameTileTest(unittest.TestCase):
 
     def test_outside_favorites_the_menu_neither_moves_nor_removes_the_game(self) -> None:
         self.item.props.favorite = True
-        actions = [action for section in menu_entries(game_menu(self.item)) for _label, action in section]
+        actions = [action for section in menu_entries(self.menu()) for _label, action in section]
         assert not {"tile.move-up", "tile.move-down", "tile.move-to-top", "win.toggle-game-favorite"} & set(actions)
 
     def test_in_favorites_the_menu_moves_then_removes_the_game(self) -> None:
         self.favorite_in_favorites(up=True, down=True)
-        menu = game_menu(self.item)
+        menu = self.menu()
         entries = menu_entries(menu)
+        options = [("_Open With", None), ("_Isolated Session", "tile.isolated-session")]
         moves = [("Move _Up", "tile.move-up"), ("Move _Down", "tile.move-down"), ("Move to _Top", "tile.move-to-top")]
         remove = [("_Remove from Favorites", "win.toggle-game-favorite")]
-        assert entries == [[("Mark as _Done Today", "win.toggle-game-done")], moves, remove]
+        assert entries == [[("Mark as _Done Today", "win.toggle-game-done")], options, moves, remove]
         remove_section = menu.get_item_link(entries.index(remove), Gio.MENU_LINK_SECTION)
         assert remove_section.get_item_attribute_value(0, Gio.MENU_ATTRIBUTE_TARGET, None).get_string() == "worldle"
 
@@ -214,7 +291,7 @@ class GameTileTest(unittest.TestCase):
         self.window.present()
         self.tile.popup_menu()
         assert self.tile.menu.get_visible()
-        assert ("Move _Up", "tile.move-up") in menu_entries(self.tile.menu.props.menu_model)[1]
+        assert ("Move _Up", "tile.move-up") in menu_entries(self.tile.menu.props.menu_model)[2]
         self.tile.menu.popdown()
 
     def test_a_movable_favorite_can_be_dragged_as_its_id(self) -> None:
@@ -262,35 +339,41 @@ class GameTileTest(unittest.TestCase):
         assert not indicator.get_visible()
 
 
-def menu_items(menu: Gio.MenuModel) -> list[tuple[str, str, str]]:
-    """The label, action and string target of every item, sections flattened."""
+def menu_items(menu: Gio.MenuModel) -> list[tuple[str, str, str | None]]:
+    """The label, action and string target of every item, sections and submenus flattened."""
     items = []
     for index in range(menu.get_n_items()):
-        section = menu.get_item_link(index, Gio.MENU_LINK_SECTION)
-        if section is not None:
-            items += menu_items(section)
+        linked = menu.get_item_link(index, Gio.MENU_LINK_SECTION) or menu.get_item_link(index, Gio.MENU_LINK_SUBMENU)
+        if linked is not None:
+            items += menu_items(linked)
             continue
         attribute = menu.get_item_attribute_value
+        target = attribute(index, Gio.MENU_ATTRIBUTE_TARGET, None)
         items.append(
             (
                 attribute(index, Gio.MENU_ATTRIBUTE_LABEL, None).get_string(),
                 attribute(index, Gio.MENU_ATTRIBUTE_ACTION, None).get_string(),
-                attribute(index, Gio.MENU_ATTRIBUTE_TARGET, None).get_string(),
+                None if target is None else target.get_string(),
             )
         )
     return items
 
 
-def menu_entries(menu: Gio.MenuModel) -> list[list[tuple[str, str]]]:
-    """The label and action of every item, per section."""
+def open_with(menu: Gio.MenuModel) -> Gio.MenuModel:
+    """The "Open With" submenu: the first item of the menu's second section."""
+    return menu.get_item_link(1, Gio.MENU_LINK_SECTION).get_item_link(0, Gio.MENU_LINK_SUBMENU)
+
+
+def menu_entries(menu: Gio.MenuModel) -> list[list[tuple[str, str | None]]]:
+    """The label and action of every item, per section; a submenu has no action."""
     sections = []
     for i in range(menu.get_n_items()):
         section = menu.get_item_link(i, Gio.MENU_LINK_SECTION)
         entries = []
         for j in range(section.get_n_items()):
             label = section.get_item_attribute_value(j, Gio.MENU_ATTRIBUTE_LABEL, None).get_string()
-            action = section.get_item_attribute_value(j, Gio.MENU_ATTRIBUTE_ACTION, None).get_string()
-            entries.append((label, action))
+            action = section.get_item_attribute_value(j, Gio.MENU_ATTRIBUTE_ACTION, None)
+            entries.append((label, None if action is None else action.get_string()))
         sections.append(entries)
     return sections
 

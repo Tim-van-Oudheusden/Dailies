@@ -5,6 +5,7 @@ from dailies.core.opening import (
     OpenMode,
     choices,
     custom_command_argv,
+    game_choices,
     game_mode,
     host_access_granted,
     notice,
@@ -12,6 +13,7 @@ from dailies.core.opening import (
     resolve,
     show_first_run_banner,
     shown_choice,
+    shown_game_choice,
 )
 
 IN_APP, EXTERNAL, CUSTOM = OpenMode.IN_APP, OpenMode.EXTERNAL, OpenMode.CUSTOM
@@ -191,3 +193,38 @@ def test_open_here_is_offered_after_an_external_open_with_webkit(
 )
 def test_a_game_override_replaces_the_global_open_mode(override: str, expected: OpenMode) -> None:
     assert game_mode(EXTERNAL, override) is expected
+
+
+@pytest.mark.parametrize(
+    ("have_webkit", "host_access", "expected"),
+    [
+        # "" is Default: follow `open-mode`. Then the modes Preferences offers, in its order.
+        (True, False, ("", "in-app", "external")),
+        (False, False, ("", "external")),
+        (True, True, ("", "in-app", "external", "custom")),
+        (False, True, ("", "external", "custom")),
+    ],
+)
+def test_a_games_open_with_choices_are_default_then_what_this_installation_can_do(
+    have_webkit: bool, host_access: bool, expected: tuple[str, ...]
+) -> None:
+    assert game_choices(have_webkit=have_webkit, host_access=host_access) == expected
+
+
+@pytest.mark.parametrize(
+    ("override", "have_webkit", "host_access", "expected"),
+    [
+        # No override, or one the app does not know, follows `open-mode`: Default.
+        ("", True, True, ""),
+        ("telepathy", True, True, ""),
+        ("in-app", True, False, "in-app"),
+        ("external", False, False, "external"),
+        ("custom", True, True, "custom"),
+        # An override that is not offered here shows as what the game actually does.
+        ("in-app", False, False, "external"),
+        ("custom", True, False, "in-app"),
+        ("custom", False, False, "external"),
+    ],
+)
+def test_shown_game_choice(override: str, have_webkit: bool, host_access: bool, expected: str) -> None:
+    assert shown_game_choice(override, have_webkit=have_webkit, host_access=host_access) == expected

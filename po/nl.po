@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: dailies\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-16 02:46+0200\n"
+"POT-Creation-Date: 2026-10-16 02:50+0200\n"
 "PO-Revision-Date: 2026-10-16 02:46+0200\n"
 "Last-Translator: Dailies contributors\n"
 "Language-Team: Dutch\n"
@@ -256,35 +256,59 @@ msgstr "_Wissen"
 msgid "Website data cleared"
 msgstr "Websitegegevens gewist"
 
-#: dailies/ui/tile.py:19
+#: dailies/ui/tile.py:13 data/ui/window.blp:270
+msgid "_Default"
+msgstr "_Standaard"
+
+#: dailies/ui/tile.py:14
+msgid "_Built-in Browser"
+msgstr "_Ingebouwde browser"
+
+#: dailies/ui/tile.py:15
+msgid "Default B_rowser"
+msgstr "Standaard_browser"
+
+#: dailies/ui/tile.py:16
+msgid "_Custom Command"
+msgstr "_Aangepaste opdracht"
+
+#: dailies/ui/tile.py:33
 msgid "Mark as _Not Done"
 msgstr "Markeren als _niet gespeeld"
 
-#: dailies/ui/tile.py:19 data/ui/browser-page.blp:96
+#: dailies/ui/tile.py:33 data/ui/browser-page.blp:96
 msgid "Mark as _Done Today"
 msgstr "Markeren als vandaag _gespeeld"
 
-#: dailies/ui/tile.py:27
+#: dailies/ui/tile.py:45
+msgid "_Open With"
+msgstr "Openen _met"
+
+#: dailies/ui/tile.py:48
+msgid "_Isolated Session"
+msgstr "Geïsoleerde _sessie"
+
+#: dailies/ui/tile.py:52
 msgid "Move _Up"
 msgstr "_Omhoog verplaatsen"
 
-#: dailies/ui/tile.py:28
+#: dailies/ui/tile.py:53
 msgid "Move _Down"
 msgstr "Om_laag verplaatsen"
 
-#: dailies/ui/tile.py:29
+#: dailies/ui/tile.py:54
 msgid "Move to _Top"
 msgstr "Naar _boven verplaatsen"
 
-#: dailies/ui/tile.py:32
+#: dailies/ui/tile.py:57
 msgid "_Remove from Favorites"
 msgstr "_Verwijderen uit favorieten"
 
-#: dailies/ui/tile.py:224 dailies/window.py:348
+#: dailies/ui/tile.py:293 dailies/window.py:348
 msgid "Remove from Favorites"
 msgstr "Verwijderen uit favorieten"
 
-#: dailies/ui/tile.py:224
+#: dailies/ui/tile.py:293
 msgid "Add to Favorites"
 msgstr "Toevoegen aan favorieten"
 
@@ -799,10 +823,6 @@ msgstr "_Sneltoetsen"
 #: data/ui/window.blp:264
 msgid "_About Dailies"
 msgstr "_Over Dailies"
-
-#: data/ui/window.blp:270
-msgid "_Default"
-msgstr "_Standaard"
 
 #: data/ui/window.blp:271
 msgid "_Name"

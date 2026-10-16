@@ -49,6 +49,16 @@ def session_dir(isolation: SessionIsolation, game_id: str | None, *, isolated: b
     return SHARED_SESSION
 
 
+def isolated_session_toggle(isolation: SessionIsolation, *, isolated: bool) -> tuple[bool, bool]:
+    """A game's "Isolated Session" toggle as (checked, changeable), for its `isolated-session` key `isolated`.
+
+    While `isolation` is per-game every game has a session of its own already: the toggle is checked and cannot change.
+    """
+    if isolation is SessionIsolation.PER_GAME:
+        return True, False
+    return isolated, True
+
+
 def all_sessions(game_dirs: Iterable[str]) -> list[PurePosixPath]:
     """Every session to clear: the shared one and one per game directory found on disk (`game_dirs`, their names).
 

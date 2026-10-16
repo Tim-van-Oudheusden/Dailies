@@ -10,6 +10,7 @@ from dailies.core.web import (
     display_host,
     game_settings_path,
     hardware_acceleration_policy,
+    isolated_session_toggle,
     session_dir,
     site_matches,
 )
@@ -89,6 +90,23 @@ def test_session_dir(isolation: SessionIsolation, game_id: str | None, isolated:
 def test_session_isolation_reads_the_setting_nicks() -> None:
     assert [SessionIsolation.from_id(nick) for nick in ("shared", "per-game")] == list(SessionIsolation)
     assert SessionIsolation.from_id("telepathy") is SessionIsolation.SHARED
+
+
+@pytest.mark.parametrize(
+    ("isolation", "isolated", "expected"),
+    [
+        # While games share, the toggle shows the game's own `isolated-session` key and changes it.
+        (SessionIsolation.SHARED, False, (False, True)),
+        (SessionIsolation.SHARED, True, (True, True)),
+        # Per game, every game already has a session of its own: checked, and nothing to change.
+        (SessionIsolation.PER_GAME, False, (True, False)),
+        (SessionIsolation.PER_GAME, True, (True, False)),
+    ],
+)
+def test_isolated_session_toggle_is_checked_and_changeable(
+    isolation: SessionIsolation, isolated: bool, expected: tuple[bool, bool]
+) -> None:
+    assert isolated_session_toggle(isolation, isolated=isolated) == expected
 
 
 def test_every_session_on_disk_is_cleared_including_ones_not_opened_in_this_run() -> None:
