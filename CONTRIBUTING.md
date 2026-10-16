@@ -281,7 +281,7 @@ python3 scripts/release_check.py notes
 To retry a failed run, re-run its failed jobs from the Actions tab. If the tag points at the wrong commit, or Verify
 reports that the pinned commit differs from the tag, delete the tag (`git push origin :refs/tags/vX.Y.Z`) and any
 release it created, fix the cause, and tag again. A published release that turns out to be broken is fixed forward
-with a new patch release; see [`docs/runbooks/`](docs/runbooks/README.md).
+with a new patch release; see [`docs/runbooks/bad-release.md`](docs/runbooks/bad-release.md).
 
 ### Manual checklist before tagging
 

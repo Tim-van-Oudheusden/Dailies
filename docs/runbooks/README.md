@@ -12,7 +12,8 @@ One Markdown file per scenario, with:
 
 - **Symptom** — what a user or the maintainer observes.
 - **Why this app is different** — the Dailies-specific risk, if any (see below).
-- **Response** — ordered steps, maintainer-side and user-side.
+- **Response** — ordered steps, maintainer-side and user-side: diagnose the cause, fix it, then follow up (a
+  postmortem, an issue for the gap).
 - **Prevention** — what already guards against this, and what does not.
 
 ## Why runbooks matter here
@@ -30,4 +31,7 @@ Every runbook here should say which of the two paths it concerns.
 
 ## Index
 
+- [Bad release](bad-release.md): a published bundle is broken; mark it pre-release, tell users, publish a hotfix.
+- [Weekly popularity pull request missing or wrong](popularity.md): the Monday `data(popularity)` pull request did not
+  appear, failed, or shows wrong shelves.
 - [Re-enable a scheduled workflow](re-enable-cron.md): no Monday popularity pull request; the app shows "as of".
