@@ -91,9 +91,14 @@ We favour small, focused changes tied to a tracked issue.
 `main` is protected by the ruleset in [`.github/rulesets/main.json`](.github/rulesets/main.json): no direct pushes,
 force-pushes or deletion; changes land only through pull requests whose `PR review rubric`, `Build, lint, test`,
 `Unit-test coverage floors` and `Static checks` checks pass. Pull requests merge with a merge commit only (no squash or
-rebase), so each issue's single commit lands on `main` unchanged, and the head branch is deleted on merge. The file is
-the source of truth: a change to it lands by PR, then a maintainer applies it with
-`gh api -X PUT repos/Tim-van-Oudheusden/Dailies/rulesets/<id> --input .github/rulesets/main.json`.
+rebase), so each issue's single commit lands on `main` unchanged, and the head branch is deleted on merge. Repository
+admins can bypass the ruleset when merging a pull request (bot data pull requests opened with `GITHUB_TOKEN` run no
+checks), never to push directly. The file is the source of truth: a change to it lands by PR, then a maintainer applies
+it with `gh api -X PUT repos/Tim-van-Oudheusden/Dailies/rulesets/<id> --input .github/rulesets/main.json` (the first
+time, when no ruleset exists yet:
+`gh api -X POST repos/Tim-van-Oudheusden/Dailies/rulesets --input .github/rulesets/main.json`).
+`tests/tooling/test_ruleset.py` checks that every required check is the `name:` of a workflow job, so renaming a job
+without updating the ruleset fails `pytest`.
 
 [conventional-commits]: https://www.conventionalcommits.org/
 

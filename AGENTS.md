@@ -77,7 +77,9 @@ Never push to `main`, never force-push, and never say "ready to push when you ar
 - A release is a pushed `vX.Y.Z` tag that matches the Meson project version and the newest metainfo release; only the
   maintainer pushes tags.
 - The ruleset in `.github/rulesets/main.json` is the source of truth for branch protection; change it by PR, then apply
-  it with `gh api -X PUT repos/Tim-van-Oudheusden/Dailies/rulesets/<id> --input .github/rulesets/main.json`.
+  it: the first time with `gh api -X POST repos/Tim-van-Oudheusden/Dailies/rulesets --input .github/rulesets/main.json`,
+  afterwards with `gh api -X PUT repos/Tim-van-Oudheusden/Dailies/rulesets/<id> --input .github/rulesets/main.json`.
+  `tests/tooling/test_ruleset.py` fails if a required check is not the `name:` of a workflow job.
 
 ## Testing
 
