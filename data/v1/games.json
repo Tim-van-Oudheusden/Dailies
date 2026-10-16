@@ -52,6 +52,30 @@
       ]
     },
     {
+      "id": "angle",
+      "name": "Angle",
+      "url": "https://angle.wtf/",
+      "category": "numbers-logic",
+      "difficulty": "easy",
+      "description": "Guess the day's angle in degrees in four tries; each guess says whether to go higher or lower.",
+      "tags": [
+        "estimation",
+        "geometry"
+      ],
+      "language": "en",
+      "added": "2026-10-16",
+      "status": "active",
+      "domain": "angle.wtf",
+      "source_issue": 110,
+      "history": [
+        {
+          "date": "2026-10-16",
+          "event": "added",
+          "note": "issue #110"
+        }
+      ]
+    },
+    {
       "id": "antiwordle",
       "name": "Antiwordle",
       "url": "https://www.antiwordle.com/",
