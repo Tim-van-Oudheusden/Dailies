@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-10-15T12:00:00Z",
+  "generated_at": "2026-10-16T13:07:40Z",
   "games": [
     {
       "id": "absurdle",
@@ -1817,6 +1817,30 @@
           "date": "2026-10-15",
           "event": "added",
           "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "phoodle",
+      "name": "Phoodle",
+      "url": "https://www.phoodle.net/",
+      "category": "food",
+      "difficulty": "medium",
+      "description": "Guess the day's food-related word in six tries, Wordle-style.",
+      "tags": [
+        "wordle-like",
+        "cooking"
+      ],
+      "language": "en",
+      "added": "2026-10-16",
+      "status": "active",
+      "domain": "phoodle.net",
+      "source_issue": 109,
+      "history": [
+        {
+          "date": "2026-10-16",
+          "event": "added",
+          "note": "issue #109"
         }
       ]
     },
