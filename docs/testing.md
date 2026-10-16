@@ -132,7 +132,7 @@ check even when an earlier one fails, and exits non-zero if any failed:
 | GNOME runtime | `flatpak remote-info flathub org.gnome.Platform//51` reports the runtime as end-of-life |
 | ACMM self-check | `scripts/acmm-self-check.py` finds that a file a Hive ACMM criterion looks for has gone missing |
 | External data checker image | `scripts/check_checker_digest.py` finds that the `flatpak-external-data-checker` digest pinned in `.github/workflows/external-data-checker.yml` is no longer the image's `:latest` on ghcr.io, or cannot read ghcr.io. To bump the pin, see CONTRIBUTING.md, "Dependencies" |
-| Catalog links (weekly) | Sundays (UTC) only, or with `--force-links` / `DAILIES_FORCE_LINKS=1` (the manual run's `force_links` input): `scripts/check_links.py` finds an active catalog entry that is `redirected-cross-domain`, `blocked-title`, `http-<code>`, `timeout` or `unreachable`. A `bot-walled` entry (a Cloudflare challenge, or a 403 or timeout on an entry tagged `bot-walled`) is a warning, not a failure |
+| Catalog links (weekly) | Sundays (UTC) only, or with `--force-links` / `DAILIES_FORCE_LINKS=1` (the manual run's `force_links` input): `scripts/check_links.py` finds an active catalog entry that is `redirected-cross-domain`, `blocked-title`, `hijacked`, `http-<code>`, `timeout` or `unreachable`. A `bot-walled` entry (a Cloudflare challenge, or a 403 or timeout on an entry tagged `bot-walled`) is a warning, not a failure |
 
 The alerts come from `gh api repos/$GITHUB_REPOSITORY/dependabot/alerts?state=open`, read with the job's `GITHUB_TOKEN`
 through the `vulnerability-alerts: read` permission, so no secret is needed.
@@ -145,9 +145,35 @@ domain equal to the entry's `domain`, and no gambling keyword in the page title.
 grouped by host, at most two a second, with the validator's User-Agent. The report lists each failing or bot-walled
 game with its reason and a suggested `status`; the script exits 0 when nothing failed, 1 when an entry did and 2 on an
 error. In the workflow (`--open-issue`) a failure also opens one issue `data: N broken links (week W)` labelled `data`,
-or updates the open one (found by the report marker or that title), using the job's `issues: write` permission. The
-maintainer then sets `status: broken` (or `retired` when the game has ended) with a `history` event in a pull request,
-and never deletes the entry.
+or updates the open one (found by the report marker or that title), using the job's `issues: write` permission.
+
+### Automatic status changes
+
+On `main` the workflow also flips `status` itself, through a pull request (issue #81). With `LINKS_STATUS_DIR` set,
+`scripts/nightly-compliance.sh` passes `--previous-state`, `--state-out` and `--status-out` to the link checker, which
+then also checks the `broken` entries (left out of the report and the exit code) and keeps a streak per game in a
+small state file (`scripts/lib/linkstatus.py`):
+
+| Situation | Change |
+| --- | --- |
+| An active game fails the **same** check (e.g. `http-404`) in two consecutive ISO weeks | `status: broken`, history event `broken` with the check and reason |
+| A broken game passes in two consecutive ISO weeks | `status: active`, history event `restored` |
+| The link leads to another site whose page title holds a blocklisted keyword (`hijacked`) | `status: retired` at once, history event `retired`; the pull request gets `priority::high` |
+| A single failure, another check, a skipped week, a pass or a bot wall in between | nothing; the issue row only |
+
+A second run in the same week (a manual run) is not a second week. When a status should change, the checker writes
+`changes.json` and `pr-body.md`; the `link-status` job checks out the newest `main`, applies the changes with
+`scripts/apply_link_status.py` (sets `status`, appends the `history` event, updates `generated_at`, writes the file
+in its committed format, never removes an entry), and opens or updates the pull request on branch `data/link-status`
+with `peter-evans/create-pull-request`, labelled `data` and `automated`. A maintainer reviews and merges it; a game
+that only moved needs its `url` and `domain` changed by hand instead. Pull requests opened with `GITHUB_TOKEN` start no
+CI, as with the popularity pull request.
+
+The streaks live in the `link-check-state` workflow artifact (90-day retention; each weekly run on `main` downloads the
+newest one with the job's `actions: read` permission and uploads a fresh one), not in a committed file: `main` is
+protected, so a committed state would need a merged pull request every week. Losing the artifact (it expired after
+the workflow was disabled, or a download failed) only restarts the streaks, so it can delay a change by a week but
+never make a wrong one. Runs on other branches start from no state and open no pull request.
 
 ### Accepting an advisory
 

@@ -32,6 +32,11 @@
 #      GitHub Actions (GITHUB_ACTIONS=true) a failure also opens, or updates,
 #      the one `data: N broken links (week W)` issue (needs GH_TOKEN with
 #      issues: write). CHECK_LINKS replaces the script; the tests use it.
+#      With LINKS_STATUS_DIR set, it also tracks the weekly streaks: it reads
+#      the last run's state from LINKS_PREVIOUS_STATE (when set), writes this
+#      run's to $LINKS_STATUS_DIR/state.json and, when a game's status should
+#      change, $LINKS_STATUS_DIR/changes.json and pr-body.md for the
+#      data/link-status pull request (issue #81).
 # Diagnostics go to stderr and to a Failures section in the report, so stdout
 # stays a clean report. Every check runs even when an earlier one fails; the
 # script exits non-zero if any failed, and 2 on a usage error. Needs jq and
@@ -192,6 +197,12 @@ row "External data checker image is :latest" "$digest_check"
 if [ "$force_links" = 1 ] || [ "$(date -u +%u)" = 7 ]; then
   links_md="$(mktemp)"
   links_args=(--catalog data/v1/games.json --out "$links_md")
+  if [ -n "${LINKS_STATUS_DIR:-}" ]; then
+    if [ -n "${LINKS_PREVIOUS_STATE:-}" ]; then
+      links_args+=(--previous-state "$LINKS_PREVIOUS_STATE")
+    fi
+    links_args+=(--state-out "$LINKS_STATUS_DIR/state.json" --status-out "$LINKS_STATUS_DIR")
+  fi
   if [ "${GITHUB_ACTIONS:-}" = true ]; then
     links_args+=(--open-issue)
   fi

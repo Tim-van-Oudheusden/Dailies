@@ -226,3 +226,22 @@ def test_an_unknown_argument_is_a_usage_error(tmp_path: Path) -> None:
 
     assert result.returncode == 2
     assert "usage" in result.stderr
+
+
+def test_link_status_tracking_is_passed_on_when_asked(tmp_path: Path) -> None:
+    status_dir = tmp_path / "link-status"
+    env = {"LINKS_PREVIOUS_STATE": str(tmp_path / "prev" / "state.json"), "LINKS_STATUS_DIR": str(status_dir)}
+
+    result = run(tmp_path, [], FAKE_WEEKDAY="7", GITHUB_ACTIONS="true", **env)
+
+    assert result.returncode == 0, result.stderr
+    assert (links_args(tmp_path) or "").endswith(
+        f" --previous-state {tmp_path}/prev/state.json --state-out {status_dir}/state.json"
+        f" --status-out {status_dir} --open-issue"
+    )
+
+
+def test_link_status_tracking_is_off_by_default(tmp_path: Path) -> None:
+    run(tmp_path, [], FAKE_WEEKDAY="7")
+
+    assert "state" not in (links_args(tmp_path) or "")

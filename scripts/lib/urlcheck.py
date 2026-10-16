@@ -337,6 +337,7 @@ class SiteCheck:
     Attributes:
         unreachable: Why the site did not answer 2xx (rule 2); the later checks were not run.
         other_site: Why the site is not the entry's site any more (rule 3); the title was not checked.
+        other_url: The URL on the other site where the link ended up, set with other_site.
         title_error: Why the page could not be read for its title.
         title: The page title, when it was read.
         keyword: The gambling keyword in the title (rule 4), or None.
@@ -344,6 +345,7 @@ class SiteCheck:
 
     unreachable: CheckError | None = None
     other_site: str | None = None
+    other_url: str | None = None
     title_error: CheckError | None = None
     title: str = ""
     keyword: str | None = None
@@ -367,14 +369,14 @@ def check_site(url: str, domain: str, session: Session, resolve: Resolver, block
         return SiteCheck(unreachable=error)
     other_site = _other_site(final_url, domain)
     if other_site is not None:
-        return SiteCheck(other_site=other_site)
+        return SiteCheck(other_site=other_site, other_url=final_url)
     try:
         title_url, title = read_title(final_url, session, resolve)
     except CheckError as error:
         return SiteCheck(title_error=error)
     other_site = _other_site(title_url, domain)
     if other_site is not None:
-        return SiteCheck(other_site=other_site)
+        return SiteCheck(other_site=other_site, other_url=title_url)
     return SiteCheck(title=title, keyword=blocked_keyword(title, blocklist))
 
 

@@ -46,12 +46,16 @@ JOB_PERMISSIONS: dict[tuple[str, str], dict[str, str]] = {
     ("game-submission-approve.yml", "add"): {"contents": "write", "pull-requests": "write", "issues": "write"},
     # actions/labeler reads .github/labeler.yml and labels the PR.
     ("labeler.yml", "label"): {"contents": "read", "pull-requests": "write"},
-    # List Dependabot alerts; open or update the broken-links `data` issue.
+    # List Dependabot alerts; open or update the broken-links `data` issue; download last week's link-check state
+    # artifact.
     ("nightly-compliance.yml", "compliance"): {
+        "actions": "read",
         "contents": "read",
         "issues": "write",
         "vulnerability-alerts": "read",
     },
+    # create-pull-request pushes data/link-status and opens the status-change PR.
+    ("nightly-compliance.yml", "link-status"): {"contents": "write", "pull-requests": "write"},
     # actions/deploy-pages: deploy the artifact, authenticated through OIDC.
     ("pages.yml", "deploy"): {"pages": "write", "id-token": "write"},
     # create-pull-request pushes data/popularity and opens the numbers-only PR.

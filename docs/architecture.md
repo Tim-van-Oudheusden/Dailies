@@ -242,7 +242,9 @@ formatting, so the diff is the new entry plus that one line; the whole catalog i
 `pytest tests/data`, and `data/add-<slug>` becomes a pull request `data(games): add <name>` that closes the issue.
 Pull requests opened with `GITHUB_TOKEN` start no CI, so the required checks never appear and the maintainer merges
 with the ruleset's admin bypass, on the strength of stage B's checks. A weekly link check (Sundays, in the nightly
-compliance workflow) opens one issue listing broken entries; the fix is a `status` change, never a deletion.
+compliance workflow) opens one issue listing broken entries, and a `data/link-status` pull request with the `status`
+change once a game failed the same check two weeks in a row (or passed again two weeks in a row, or was hijacked to a
+gambling page), never a deletion; the maintainer merges it.
 
 **Popularity.** Numbers are computed by deterministic Python; a language model may only write prose. The only source in
 the MVP is the Tranco rank of each game's registrable domain, smoothed over seven days and log-scaled; every game on a
