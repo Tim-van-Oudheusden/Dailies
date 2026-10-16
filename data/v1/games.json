@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-10-16T13:07:40Z",
+  "generated_at": "2026-10-16T18:33:54Z",
   "games": [
     {
       "id": "absurdle",
@@ -19,6 +19,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "qntm.org",
+      "icon": "icons/absurdle.png",
+      "icon_source": "site",
       "wikipedia": "Absurdle",
       "history": [
         {
@@ -44,6 +46,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "actorle.com",
+      "icon": "icons/actorle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -67,6 +71,8 @@
       "added": "2026-10-16",
       "status": "active",
       "domain": "angle.wtf",
+      "icon": "icons/angle.png",
+      "icon_source": "site",
       "source_issue": 110,
       "history": [
         {
@@ -92,6 +98,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "antiwordle.com",
+      "icon": "icons/antiwordle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -117,6 +125,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "nga.gov",
+      "icon": "icons/artle.png",
+      "icon_source": "google",
       "history": [
         {
           "date": "2026-10-15",
@@ -141,6 +151,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "bandle.app",
+      "icon": "icons/bandle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -165,6 +177,7 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "betweenle.com",
+      "icon_source": "none",
       "history": [
         {
           "date": "2026-10-15",
@@ -189,6 +202,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "merriam-webster.com",
+      "icon": "icons/blossom.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -214,6 +229,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "boxofficega.me",
+      "icon": "icons/box-office-game.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -240,6 +257,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "theatlantic.com",
+      "icon": "icons/bracket-city.png",
+      "icon_source": "google",
       "history": [
         {
           "date": "2026-10-15",
@@ -265,6 +284,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "certitudes.org",
+      "icon": "icons/cemantix.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -288,6 +309,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "chessguessr.com",
+      "icon": "icons/chessguessr.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -312,6 +335,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "chessle.net",
+      "icon": "icons/chessle.png",
+      "icon_source": "google",
       "history": [
         {
           "date": "2026-10-15",
@@ -336,6 +361,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "chronophoto.app",
+      "icon": "icons/chronophoto.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -361,6 +388,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "cinenerdle2.app",
+      "icon": "icons/cine2nerdle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -387,6 +416,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "vulture.com",
+      "icon": "icons/cinematrix.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -411,6 +442,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "cluesbysam.com",
+      "icon": "icons/clues-by-sam.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -435,6 +468,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "colorfle.com",
+      "icon": "icons/colorfle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -460,6 +495,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "conexo.ws",
+      "icon": "icons/conexo.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -483,6 +520,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "contexto.me",
+      "icon": "icons/contexto.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -508,6 +547,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "costcodle.com",
+      "icon": "icons/costcodle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -532,6 +573,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "countryle.com",
+      "icon": "icons/countryle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -556,6 +599,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "crossovergrid.com",
+      "icon": "icons/crossover-grid.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -580,6 +625,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "crosswordle.vercel.app",
+      "icon": "icons/crosswordle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -604,6 +651,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "dailydozentrivia.com",
+      "icon": "icons/daily-dozen-trivia.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -629,6 +678,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "itch.io",
+      "icon": "icons/dordle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -653,6 +704,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "dotadle.net",
+      "icon": "icons/dotadle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -678,6 +731,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "dungleon.com",
+      "icon": "icons/dungleon.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -703,6 +758,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "teuteuf.fr",
+      "icon": "icons/emovi.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -727,6 +784,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "frontofficesports.com",
+      "icon": "icons/factle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -751,6 +810,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "flagle.io",
+      "icon": "icons/flagle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -775,6 +836,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "flickle.app",
+      "icon": "icons/flickle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -799,6 +862,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "foodguessr.com",
+      "icon": "icons/foodguessr.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -823,6 +888,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "framed.wtf",
+      "icon": "icons/framed.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -847,6 +914,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "gamedle.wtf",
+      "icon": "icons/gamedle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -872,6 +941,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "geogridgame.com",
+      "icon": "icons/geogrid.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -896,6 +967,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "geoguessr.com",
+      "icon": "icons/geoguessr-daily.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -920,6 +993,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "globle-game.com",
+      "icon": "icons/globle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -943,6 +1018,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "guessthe.game",
+      "icon": "icons/guess-the-game.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -967,6 +1044,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "harmonies.io",
+      "icon": "icons/harmonies.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -992,6 +1071,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "heardledecades.com",
+      "icon": "icons/heardle-decades.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -1016,6 +1097,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "hexcodle.com",
+      "icon": "icons/hexcodle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -1041,6 +1124,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "sports-reference.com",
+      "icon": "icons/immaculate-footy.png",
+      "icon_source": "google",
       "history": [
         {
           "date": "2026-10-15",
@@ -1074,6 +1159,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "sports-reference.com",
+      "icon": "icons/immaculate-grid.png",
+      "icon_source": "google",
       "wikipedia": "Immaculate Grid",
       "history": [
         {
@@ -1099,6 +1186,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "jumblie.com",
+      "icon": "icons/jumblie.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -1124,6 +1213,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "washingtonpost.com",
+      "icon": "icons/keyword.png",
+      "icon_source": "google",
       "history": [
         {
           "date": "2026-10-15",
@@ -1154,6 +1245,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "jonesnxt.github.io",
+      "icon": "icons/kilordle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -1179,6 +1272,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "lapalabradeldia.com",
+      "icon": "icons/la-palabra-del-dia.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -1204,6 +1299,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "louan.me",
+      "icon": "icons/le-mot.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -1228,6 +1325,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "lingule.xyz",
+      "icon": "icons/lingule.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -1253,6 +1352,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "linkedin.com",
+      "icon": "icons/linkedin-pinpoint.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -1278,6 +1379,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "linkedin.com",
+      "icon": "icons/linkedin-queens.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -1303,6 +1406,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "loldle.net",
+      "icon": "icons/loldle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -1327,6 +1432,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "lyricle.app",
+      "icon": "icons/lyricle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -1351,6 +1458,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "mathler.com",
+      "icon": "icons/mathler.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -1376,6 +1485,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "metazooa.com",
+      "icon": "icons/metaflora.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -1401,6 +1512,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "metazooa.com",
+      "icon": "icons/metazooa.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -1425,6 +1538,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "minutecryptic.com",
+      "icon": "icons/minute-cryptic.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -1449,6 +1564,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "moviegrid.io",
+      "icon": "icons/movie-grid.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -1473,6 +1590,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "moviedle.xyz",
+      "icon": "icons/moviedle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -1497,6 +1616,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "murdle.com",
+      "icon": "icons/murdle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -1521,6 +1642,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "narutodle.net",
+      "icon": "icons/narutodle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -1545,6 +1668,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "nerdlegame.com",
+      "icon": "icons/nerdle.png",
+      "icon_source": "site",
       "wikipedia": "Nerdle",
       "history": [
         {
@@ -1570,6 +1695,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "numble.wtf",
+      "icon": "icons/numble.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -1594,6 +1721,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "nytimes.com",
+      "icon": "icons/nyt-connections.png",
+      "icon_source": "site",
       "wikipedia": "The New York Times Connections",
       "history": [
         {
@@ -1619,6 +1748,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "nytimes.com",
+      "icon": "icons/nyt-letter-boxed.png",
+      "icon_source": "site",
       "wikipedia": "Letter Boxed",
       "history": [
         {
@@ -1644,6 +1775,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "nytimes.com",
+      "icon": "icons/nyt-mini-crossword.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -1669,6 +1802,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "nytimes.com",
+      "icon": "icons/nyt-pips.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -1694,6 +1829,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "nytimes.com",
+      "icon": "icons/nyt-spelling-bee.png",
+      "icon_source": "site",
       "wikipedia": "The New York Times Spelling Bee",
       "history": [
         {
@@ -1719,6 +1856,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "nytimes.com",
+      "icon": "icons/nyt-strands.png",
+      "icon_source": "site",
       "wikipedia": "The New York Times Strands",
       "history": [
         {
@@ -1744,6 +1883,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "nytimes.com",
+      "icon": "icons/nyt-sudoku.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -1769,6 +1910,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "nytimes.com",
+      "icon": "icons/nyt-tiles.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -1794,6 +1937,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "merriam-webster.com",
+      "icon": "icons/octordle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -1818,6 +1963,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "onepiecedle.net",
+      "icon": "icons/onepiecedle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -1843,6 +1990,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "certitudes.org",
+      "icon": "icons/pedantle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -1866,6 +2015,8 @@
       "added": "2026-10-16",
       "status": "active",
       "domain": "phoodle.net",
+      "icon": "icons/phoodle.png",
+      "icon_source": "site",
       "source_issue": 109,
       "history": [
         {
@@ -1891,6 +2042,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "solitaired.com",
+      "icon": "icons/phrazle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -1915,6 +2068,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "plotwords.com",
+      "icon": "icons/plotwords.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -1939,6 +2094,7 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "nbpa.com",
+      "icon_source": "none",
       "history": [
         {
           "date": "2026-10-15",
@@ -1964,6 +2120,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "pokedle.net",
+      "icon": "icons/pokedle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -1989,6 +2147,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "pokedoku.com",
+      "icon": "icons/pokedoku.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -2014,6 +2174,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "converged.yt",
+      "icon": "icons/primel.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -2039,6 +2201,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "puzzgrid.com",
+      "icon": "icons/puzzgrid.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -2065,6 +2229,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "puzzmo.com",
+      "icon": "icons/puzzmo.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -2090,6 +2256,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "merriam-webster.com",
+      "icon": "icons/quordle.png",
+      "icon_source": "site",
       "wikipedia": "Quordle",
       "history": [
         {
@@ -2115,6 +2283,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "rankdle.com",
+      "icon": "icons/rankdle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -2139,6 +2309,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "redactle.net",
+      "icon": "icons/redactle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -2164,6 +2336,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "scrandle.com",
+      "icon": "icons/scrandle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -2188,6 +2362,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "sedecordle.com",
+      "icon": "icons/sedecordle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -2212,6 +2388,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "semantle.com",
+      "icon": "icons/semantle.png",
+      "icon_source": "site",
       "wikipedia": "Semantle",
       "history": [
         {
@@ -2237,6 +2415,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "smashdle.net",
+      "icon": "icons/smashdle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -2262,6 +2442,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "lessgames.com",
+      "icon": "icons/songless.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -2286,6 +2468,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "spotle.io",
+      "icon": "icons/spotle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -2310,6 +2494,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "fubargames.se",
+      "icon": "icons/squardle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -2334,6 +2520,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "squaredle.app",
+      "icon": "icons/squaredle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -2359,6 +2547,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "teuteuf.fr",
+      "icon": "icons/statele.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -2383,6 +2573,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "summle.net",
+      "icon": "icons/summle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -2408,6 +2600,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "sumplete.com",
+      "icon": "icons/sumplete.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -2433,6 +2627,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "nocle.fr",
+      "icon": "icons/sutom.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -2458,6 +2654,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "term.ooo",
+      "icon": "icons/termo.png",
+      "icon_source": "site",
       "wikipedia": "Termo (video game)",
       "history": [
         {
@@ -2483,6 +2681,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "geekswhodrink.com",
+      "icon": "icons/thrice.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -2508,6 +2708,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "timeguessr.com",
+      "icon": "icons/timeguessr.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -2533,6 +2735,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "oec.world",
+      "icon": "icons/tradle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -2558,6 +2762,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "travle.earth",
+      "icon": "icons/travle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -2582,6 +2788,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "merriam-webster.com",
+      "icon": "icons/twofer-goofer.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -2606,6 +2814,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "wafflegame.net",
+      "icon": "icons/waffle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -2629,6 +2839,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "wordwormdormdork.com",
+      "icon": "icons/weaver.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -2653,6 +2865,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "weddlegame.com",
+      "icon": "icons/weddle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -2679,6 +2893,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "whentaken.com",
+      "icon": "icons/whentaken.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -2703,6 +2919,7 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "wheredle.xyz",
+      "icon_source": "none",
       "history": [
         {
           "date": "2026-10-15",
@@ -2728,6 +2945,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "teuteuf.fr",
+      "icon": "icons/wheretaken.png",
+      "icon_source": "google",
       "history": [
         {
           "date": "2026-10-15",
@@ -2753,6 +2972,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "woordle.nl",
+      "icon": "icons/woordle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -2777,6 +2998,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "vegeta897.github.io",
+      "icon": "icons/word-peaks.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",
@@ -2802,6 +3025,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "nytimes.com",
+      "icon": "icons/wordle.png",
+      "icon_source": "site",
       "wikipedia": "Wordle",
       "history": [
         {
@@ -2828,6 +3053,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "teuteuf.fr",
+      "icon": "icons/worldle.png",
+      "icon_source": "site",
       "wikipedia": "Worldle",
       "history": [
         {
@@ -2853,6 +3080,8 @@
       "added": "2026-10-15",
       "status": "active",
       "domain": "xordle.org",
+      "icon": "icons/xordle.png",
+      "icon_source": "site",
       "history": [
         {
           "date": "2026-10-15",

@@ -112,6 +112,17 @@ adds the game to the catalog and closes the issue. What a game needs to get in (
 without an account or labelled as needing one, not a duplicate) is in
 [Submission rules](docs/data-format.md#submission-rules) in `docs/data-format.md`.
 
+## Game icons
+
+Each game's icon is its site's own icon (the web-app manifest icon, the `apple-touch-icon` or the favicon), or else the
+one Google or DuckDuckGo shows for the site, normalised to a 64×64 PNG by `scripts/icons/fetch_icon.py`. The icons are
+published with the catalog on GitHub Pages under `v1/icons/`, are not part of the Flatpak, and remain the marks of
+their owners; [Icons](docs/data-format.md#icons) in `docs/data-format.md` has the details.
+
+**Takedown.** If you run a listed game and want its icon removed, open an issue or reach the maintainer through
+[Contact](#contact). The game's id goes into `scripts/data/icon-takedowns.txt`; the next fetch deletes the icon and
+never downloads it again, and Dailies shows the game's category glyph instead.
+
 ## Tech stack
 
 - **App:** Python 3 with PyGObject, GTK 4.24, libadwaita 1.10, WebKitGTK 6.0 for the built-in browser, libsoup 3 for
@@ -221,8 +232,8 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for setup, project layout and the quali
 
 ## Disclaimer
 
-Dailies is not affiliated with The New York Times, Merriam-Webster, LinkedIn or any game listed. Game names are
-trademarks of their owners; Dailies only opens their public websites.
+Dailies is not affiliated with The New York Times, Merriam-Webster, LinkedIn or any game listed. Game names and icons
+are trademarks of their owners; Dailies only opens their public websites and shows their icons to identify them.
 
 ## Contact
 
@@ -240,3 +251,4 @@ trademarks of their owners; Dailies only opens their public websites.
 | `data/io.github.tim_van_oudheusden.Dailies.metainfo.xml.in` | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
 | `data/v1/games.json` and `data/v1/schema/` (the catalog) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
 | `data/v1/popularity.json` | Reuse with the credit lines in its `attribution` array ([Licences](docs/data-format.md#licences)) |
+| `data/v1/icons/` | Not licensed by Dailies: the games' own logos and favicons, marks of their owners ([Icons](docs/data-format.md#icons)) |

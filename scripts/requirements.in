@@ -5,6 +5,8 @@
 
 # Validates data/v1/*.json against their JSON Schemas.
 check-jsonschema
+# Decodes game icons and normalises them to 64x64 PNGs (scripts/icons/fetch_icon.py, #77).
+pillow
 # HTTP for the link checker and the game-submission validator.
 requests
 # Registrable-domain comparison for submitted URLs (public suffix list).

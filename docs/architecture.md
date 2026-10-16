@@ -349,6 +349,13 @@ turns on Wikipedia for the games with an article ([#103][issue-103]); since [#13
 an article can raise a game's score but never lower it, see
 [`data-format.md`](data-format.md#how-method_version-4-is-computed).
 
+**Game icons.** `scripts/icons/fetch_icon.py` ([#77][issue-77]) downloads each game's icon (web-app manifest,
+`apple-touch-icon`, `<link rel="icon">`, `/favicon.ico`, then Google's and DuckDuckGo's favicon services), normalises
+it with Pillow to a 64×64 PNG in `data/v1/icons/<id>.png` and records `icon` and `icon_source` in the entry. Every
+request goes through `scripts/lib/urlcheck.py`, so only public https addresses are fetched. Ids in
+`scripts/data/icon-takedowns.txt` are never fetched and their icon is deleted. The icons reach Pages with the rest of
+`data/v1/` and are never installed with the app ([`data-format.md`](data-format.md#icons)).
+
 **Publishing.** `pages.yml` publishes `data/v1/` (schemas included) and `docs/popularity/` to GitHub Pages at
 `https://tim-van-oudheusden.github.io/Dailies/v1/` on every push to `main` that touches them. The app tries that URL
 first and falls back to `raw.githubusercontent.com` on a server error, a 429 or a network failure.
@@ -419,6 +426,12 @@ smoke test.
 
 **Decision:** the icon is the "Daily Grid" calendar card with a Blue/Orange solved row ([#8][issue-8]), not the
 genre's green and yellow. Why: the launcher gains nothing from Wordle's trade dress and loses a risk by avoiding it.
+
+**Decision:** game icons are build-time favicons served from GitHub Pages, option (b) of [#17][issue-17], not runtime
+favicons fetched by the app. Why: one origin the app already trusts and caches, no request from the user's machine to
+every game's site, and icons that are fetched, checked and reviewed once in a pull request. The cost is that Dailies
+redistributes third-party marks, so they stay out of the Flatpak, are not covered by the catalog's CC0, and a takedown
+list removes one on request.
 
 **Decision:** the catalog is a curated seed, and fan-made games based on someone else's IP are included with the
 `fan-made` tag ([#10][issue-10]). Why: a curated list keeps quality and link health manageable for one maintainer, and
@@ -558,12 +571,14 @@ approximate cold start that left shared libraries in memory; re-measure on a lap
 [issue-12]: https://github.com/Tim-van-Oudheusden/Dailies/issues/12
 [issue-13]: https://github.com/Tim-van-Oudheusden/Dailies/issues/13
 [issue-16]: https://github.com/Tim-van-Oudheusden/Dailies/issues/16
+[issue-17]: https://github.com/Tim-van-Oudheusden/Dailies/issues/17
 [issue-45]: https://github.com/Tim-van-Oudheusden/Dailies/issues/45
 [issue-46]: https://github.com/Tim-van-Oudheusden/Dailies/issues/46
 [issue-52]: https://github.com/Tim-van-Oudheusden/Dailies/issues/52
 [issue-78]: https://github.com/Tim-van-Oudheusden/Dailies/issues/78
 [issue-75]: https://github.com/Tim-van-Oudheusden/Dailies/issues/75
 [issue-76]: https://github.com/Tim-van-Oudheusden/Dailies/issues/76
+[issue-77]: https://github.com/Tim-van-Oudheusden/Dailies/issues/77
 [issue-88]: https://github.com/Tim-van-Oudheusden/Dailies/issues/88
 [issue-103]: https://github.com/Tim-van-Oudheusden/Dailies/issues/103
 [issue-136]: https://github.com/Tim-van-Oudheusden/Dailies/issues/136
