@@ -133,7 +133,7 @@ flatpak-builder --user --install --force-clean _flatpak build-aux/flatpak/io.git
 | --- | --- |
 | `ruff check . && ruff format --check .` | Lint and formatting of every Python file |
 | `pytest` | `tests/core`, `tests/scripts`, `tests/data` and `tests/tooling` (the `testpaths` in `pyproject.toml`) |
-| `meson setup … && meson test -C _build` | Native build, then `desktop-file-validate`, `appstreamcli validate`, `glib-compile-schemas --strict` and the Blueprint compile |
+| `meson setup … && meson test -C _build` | Native build, then `desktop-file-validate`, `appstreamcli validate`, `glib-compile-schemas --strict`, the Blueprint compile and the `po/dailies.pot` freshness check |
 | `flatpak-builder … Devel.json` | The Devel Flatpak in the GNOME 51 SDK with `run-tests`, so the Meson tests and the e2e smoke test run inside the sandbox |
 
 `meson setup` refuses an existing `_build`; use `meson setup --reconfigure _build -Dprofile=development` after the
@@ -362,6 +362,10 @@ meson compile -C _build dailies-update-po
 This needs gettext, which the GNOME SDK has (`flatpak run --filesystem=$PWD --command=sh org.gnome.Sdk//51`).
 xgettext warns that it does not know the `.blp` extension and reads those files as C, which is expected; a warning
 about a missing file means `po/POTFILES.in` is out of date.
+
+The Meson test `Template is up to date` (`tests/tooling/check_pot.py`) regenerates the template into a temporary
+directory and fails when its strings differ from the committed `po/dailies.pot`, so a forgotten `dailies-pot` shows up
+in `meson test` and the Flatpak build.
 
 ### Adding a language
 

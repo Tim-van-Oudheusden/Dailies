@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: dailies\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-16 02:50+0200\n"
-"PO-Revision-Date: 2026-10-16 02:46+0200\n"
+"POT-Creation-Date: 2026-10-16 15:21+0000\n"
+"PO-Revision-Date: 2026-10-16 17:30+0200\n"
 "Last-Translator: Dailies contributors\n"
 "Language-Team: Dutch\n"
 "Language: nl\n"
@@ -324,19 +324,18 @@ msgstr "Verwijderd uit favorieten"
 msgid "Undo"
 msgstr "Ongedaan maken"
 
-#: data/io.github.tim_van_oudheusden.Dailies.desktop.in:2
+#: data/io.github.tim_van_oudheusden.Dailies.desktop.in:3
 #: data/io.github.tim_van_oudheusden.Dailies.metainfo.xml.in:8
 #: data/ui/window.blp:5 data/ui/window.blp:34 data/ui/window.blp:42
 msgid "Dailies"
 msgstr "Dailies"
 
-#: data/io.github.tim_van_oudheusden.Dailies.desktop.in:3
-#: data/io.github.tim_van_oudheusden.Dailies.metainfo.xml.in:9
+#: data/io.github.tim_van_oudheusden.Dailies.desktop.in:4
 msgid "Play your daily guessing games in one place"
 msgstr "Speel uw dagelijkse raadspellen op één plek"
 
 #. Translators: Search terms to find this application. Do NOT translate or localize the semicolons. The list MUST also end with a semicolon.
-#: data/io.github.tim_van_oudheusden.Dailies.desktop.in:10
+#: data/io.github.tim_van_oudheusden.Dailies.desktop.in:11
 msgid "daily;puzzle;wordle;guessing;game;dle;"
 msgstr "dagelijks;puzzel;wordle;raden;raadspel;spel;dle;daily;puzzle;game;"
 
@@ -466,23 +465,52 @@ msgstr ""
 msgid "Give this game a session of its own even while games share one"
 msgstr "Dit spel een eigen sessie geven, ook als spellen er een delen"
 
+#: data/io.github.tim_van_oudheusden.Dailies.metainfo.xml.in:9
+msgid "Play your daily guessing games"
+msgstr "Speel uw dagelijkse raadspellen"
+
 #: data/io.github.tim_van_oudheusden.Dailies.metainfo.xml.in:11
 msgid ""
-"Dailies collects daily guessing games like Wordle and Connections in one "
-"window. Pick a game from a category, keep your favourites at the top, and "
-"see which games are popular this week."
+"Dailies gathers daily guessing games like Wordle, Connections and Worldle in "
+"one window, sorted into ten categories from words and logic to music, movies "
+"and geography. Popular and Trending shelves, refreshed every week, show "
+"which games are popular right now and which are on the rise. Star the games "
+"you play every day to keep them together in Favorites."
 msgstr ""
-"Dailies verzamelt dagelijkse raadspellen zoals Wordle en Connections in één "
-"venster. Kies een spel uit een categorie, houd uw favorieten bovenaan en zie "
-"welke spellen deze week populair zijn."
+"Dailies verzamelt dagelijkse raadspellen zoals Wordle, Connections en "
+"Worldle in één venster, verdeeld over tien categorieën, van woorden en "
+"logica tot muziek, films en aardrijkskunde. De planken Populair en In "
+"opkomst, die elke week worden vernieuwd, tonen welke spellen nu populair "
+"zijn en welke in opkomst zijn. Geef de spellen die u elke dag speelt een "
+"ster om ze bij elkaar te houden in Favorieten."
 
-#: data/io.github.tim_van_oudheusden.Dailies.metainfo.xml.in:33
-msgid "First release."
-msgstr "Eerste uitgave."
+#: data/io.github.tim_van_oudheusden.Dailies.metainfo.xml.in:17
+msgid ""
+"Games open in a built-in browser that keeps your streaks between sessions, "
+"or in your default web browser if you prefer. Dailies needs no account and "
+"collects no data: your favorites stay on your device, and the app only "
+"downloads the game list and the game pages you open."
+msgstr ""
+"Spellen openen in een ingebouwde browser die uw reeksen tussen sessies "
+"bewaart, of desgewenst in uw standaardwebbrowser. Dailies heeft geen account "
+"nodig en verzamelt geen gegevens: uw favorieten blijven op uw apparaat, en "
+"de app downloadt alleen de spellijst en de spelpagina's die u opent."
 
-#: data/io.github.tim_van_oudheusden.Dailies.metainfo.xml.in:34
-msgid "Music games play sound inside Dailies."
-msgstr "Muziekspellen spelen geluid af binnen Dailies."
+#: data/io.github.tim_van_oudheusden.Dailies.metainfo.xml.in:67
+msgid "Your favorite daily games together in one place"
+msgstr "Uw favoriete dagelijkse spellen bij elkaar op één plek"
+
+#: data/io.github.tim_van_oudheusden.Dailies.metainfo.xml.in:71
+msgid "The games that are popular this week"
+msgstr "De spellen die deze week populair zijn"
+
+#: data/io.github.tim_van_oudheusden.Dailies.metainfo.xml.in:75
+msgid "Playing a game in the built-in browser"
+msgstr "Een spel spelen in de ingebouwde browser"
+
+#: data/io.github.tim_van_oudheusden.Dailies.metainfo.xml.in:79
+msgid "Word games in the dark style"
+msgstr "Woordspellen in de donkere stijl"
 
 #: data/ui/browser-page.blp:19
 msgid "Previous Page"
@@ -835,3 +863,18 @@ msgstr "_Moeilijkheid"
 #: data/ui/window.blp:273
 msgid "N_ot Done First"
 msgstr "Eerst niet _gespeeld"
+
+#~ msgid ""
+#~ "Dailies collects daily guessing games like Wordle and Connections in one "
+#~ "window. Pick a game from a category, keep your favourites at the top, and "
+#~ "see which games are popular this week."
+#~ msgstr ""
+#~ "Dailies verzamelt dagelijkse raadspellen zoals Wordle en Connections in "
+#~ "één venster. Kies een spel uit een categorie, houd uw favorieten bovenaan "
+#~ "en zie welke spellen deze week populair zijn."
+
+#~ msgid "First release."
+#~ msgstr "Eerste uitgave."
+
+#~ msgid "Music games play sound inside Dailies."
+#~ msgstr "Muziekspellen spelen geluid af binnen Dailies."
