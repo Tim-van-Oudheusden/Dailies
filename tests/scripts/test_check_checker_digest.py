@@ -221,7 +221,8 @@ def test_https_fetch_requests_a_url_without_a_query_by_its_path(monkeypatch: pyt
     assert connections.opened[0]["target"] == "/v2/flathub/flatpak-external-data-checker/manifests/latest"
 
 
-@pytest.mark.parametrize("status", [301, 401, 404, 429, 503])
+# 499, 520 and 530 are codes http.HTTPStatus does not name (Cloudflare uses 520-530).
+@pytest.mark.parametrize("status", [301, 401, 404, 429, 499, 503, 520, 530])
 def test_https_fetch_raises_oserror_on_an_answer_that_is_not_2xx(monkeypatch: pytest.MonkeyPatch, status: int) -> None:
     connections = FakeConnections(FakeResponse(status, "Nope", [], b""))
     monkeypatch.setattr(ccd.http.client, "HTTPSConnection", connections)
@@ -229,6 +230,12 @@ def test_https_fetch_raises_oserror_on_an_answer_that_is_not_2xx(monkeypatch: py
     with pytest.raises(OSError, match=rf"^HEAD {re.escape(MANIFEST_URL)}: HTTP {status} Nope$"):
         ccd.https_fetch("HEAD", MANIFEST_URL, {})
     assert connections.opened[0]["closed"] is True
+
+
+def test_https_fetch_accepts_a_2xx_status_http_does_not_name(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(ccd.http.client, "HTTPSConnection", FakeConnections(FakeResponse(299, "", [], b"ok")))
+
+    assert ccd.https_fetch("GET", AUTH_URL, {})[1] == b"ok"
 
 
 def test_https_fetch_raises_oserror_when_the_connection_breaks(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -244,9 +251,10 @@ def test_https_fetch_raises_oserror_when_the_connection_breaks(monkeypatch: pyte
     "connections",
     [
         FakeConnections(FakeResponse(401, "Unauthorized", [], b"")),
+        FakeConnections(FakeResponse(520, "", [], b"")),
         FakeConnections(fail=http.client.IncompleteRead(b"")),
     ],
-    ids=["http-401", "incomplete-read"],
+    ids=["http-401", "http-520", "incomplete-read"],
 )
 def test_the_default_fetch_reports_a_failed_request_as_unreadable(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str], connections: FakeConnections

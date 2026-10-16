@@ -57,7 +57,7 @@ def https_fetch(method: str, url: str, headers: dict[str, str]) -> tuple[Mapping
         raise OSError(msg) from error
     finally:
         connection.close()
-    if not http.HTTPStatus(response.status).is_success:
+    if not http.HTTPStatus.OK <= response.status < http.HTTPStatus.MULTIPLE_CHOICES:
         msg = f"{method} {url}: HTTP {response.status} {response.reason}"
         raise OSError(msg)
     return dict(response.getheaders()), body
