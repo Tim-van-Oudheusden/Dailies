@@ -10,12 +10,15 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
   label:
     name: Label by changed paths
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # Read .github/labeler.yml and label the pull request.
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13 # v7.0.0

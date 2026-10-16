@@ -1,9 +1,11 @@
 # Path-based PR labels, applied by .github/workflows/labeler.yml (actions/labeler).
 # The labels name the area a PR touches; its risk tier comes from .github/policies/risk-tiers.policy.
+# Every path the policy names gets a label and every labelled path has a policy rule, apart from the exemptions
+# listed with their reasons in tests/tooling/test_workflows.py, which fails when the two files drift apart.
 
 app:
   - changed-files:
-      - any-glob-to-any-file: ['dailies/**', 'data/ui/**']
+      - any-glob-to-any-file: ['dailies/**', 'data/ui/**', 'data/*.gschema.xml.in']
 
 data:
   - changed-files:
@@ -16,11 +18,17 @@ data:
 
 flatpak:
   - changed-files:
-      - any-glob-to-any-file: ['build-aux/**', 'data/*.metainfo.xml.in', 'data/*.desktop.in']
+      - any-glob-to-any-file:
+          - 'build-aux/**'
+          - 'meson.build'
+          - 'meson_options.txt'
+          - 'data/*.metainfo.xml.in'
+          - 'data/*.desktop.in'
 
 ci:
   - changed-files:
-      - any-glob-to-any-file: '.github/**'
+      # CI gates, the scripts they run, and the agent instructions and settings.
+      - any-glob-to-any-file: ['.github/**', 'scripts/**', '.claude/**', '.cursor/**', 'prompts/**']
 
 documentation:
   - changed-files:

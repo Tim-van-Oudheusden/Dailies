@@ -13,8 +13,8 @@ You need:
 - Flatpak with the Flathub remote, and `flatpak-builder` (your distribution's package, or `org.flatpak.Builder` from
   Flathub)
 - The GNOME 51 SDK and Platform from Flathub; the Devel manifest builds against them
-- Python ≥ 3.12 with `ruff`, `pytest`, `pytest-cov`, `pyyaml` and `check-jsonschema`, for the gates that run outside
-  Flatpak
+- Python ≥ 3.12 with `ruff`, `pytest`, `pytest-cov` and `check-jsonschema` (which brings `ruamel.yaml`, used by the
+  workflow tests), for the gates that run outside Flatpak
 - For a native Meson build: Meson ≥ 1.4, Ninja, GTK ≥ 4.24, libadwaita ≥ 1.10, PyGObject, `desktop-file-utils`,
   `appstream` and the GLib schema tools. `blueprint-compiler` comes from `subprojects/blueprint-compiler.wrap` (pinned
   to v0.22.2) when the system has none
@@ -22,7 +22,7 @@ You need:
 ```sh
 flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 flatpak install --user flathub org.gnome.Sdk//51 org.gnome.Platform//51
-python3 -m pip install --user ruff pytest pytest-cov pyyaml check-jsonschema
+python3 -m pip install --user ruff pytest pytest-cov check-jsonschema
 ```
 
 If your distribution does not ship the GNOME 51 libraries, skip the native build: the Flatpak gate runs the same Meson
@@ -71,7 +71,8 @@ read from GLib APIs and render with GTK. UI layout lives in Blueprint files unde
 **Where a test goes.** In the `tests/` directory that mirrors the code it covers: a test for `dailies/core/catalog.py`
 goes in `tests/core/test_catalog.py`, one for `scripts/validate_submission.py` in `tests/scripts/`. Checks on the
 committed data files go in `tests/data/`; checks on `.github/` (workflow invariants, label and policy parity) go in
-`tests/tooling/`. Adding a workflow means adding its reviewed token scopes to `tests/tooling/test_workflows.py`.
+`tests/tooling/`. A workflow job that needs more than `contents: read` declares its own `permissions:` and gets a
+reviewed row in `JOB_PERMISSIONS` in `tests/tooling/test_workflows.py`.
 
 ## Finding and claiming work
 
