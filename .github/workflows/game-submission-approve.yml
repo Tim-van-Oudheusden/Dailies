@@ -1,7 +1,7 @@
 name: Game submission approve
 
-# Stage B of the submission IssueOps (docs/research/data-pipeline.md §1.4): when an
-# owner, member or collaborator adds `approved` to a game submission, validate it
+# Stage B of the submission IssueOps (docs/research/data-pipeline.md §1.4): when a
+# maintainer with write access adds `approved` to a game submission, validate it
 # again with scripts/validate_submission.py (never trust stage A: the issue may have
 # been edited since, and labels can be removed and re-added), insert the entry
 # with scripts/add_game.py, re-check the whole catalog and open a pull request
@@ -33,7 +33,7 @@ jobs:
     if: >-
       github.event.label.name == 'approved'
       && contains(github.event.issue.labels.*.name, 'game-submission')
-      && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.sender.author_association)
+      && github.event.sender.type == 'User'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -41,6 +41,23 @@ jobs:
       pull-requests: write
       issues: write
     steps:
+      # Webhook payloads carry no author_association for the sender (#113), so ask for the labeller's permission.
+      # The legacy `permission` field folds maintain into write and triage into read. The job token reads it through
+      # its implicit metadata access.
+      - name: Check that a maintainer applied the label
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SENDER: ${{ github.event.sender.login }}
+        run: |
+          permission="$(gh api "repos/$GH_REPO/collaborators/$SENDER/permission" --jq .permission)"
+          case "$permission" in
+            admin | write) echo "$SENDER has $permission access" ;;
+            *)
+              echo "::error::$SENDER has $permission access; only maintainers with write access approve submissions"
+              exit 1
+              ;;
+          esac
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # create-pull-request configures its own token for the push.

@@ -113,6 +113,8 @@ VERSION_COMMENT = re.compile(r"^#\s*v\d+\.\d+(\.\d+)?(\s|$)")
 DOCKER_DIGEST = re.compile(r"@sha256:[0-9a-f]{64}$")
 USES_LINE = re.compile(r"^\s*(?:-\s+)?uses:\s*(?P<ref>[^\s#]+)\s*(?P<comment>#.*)?$")
 EVENT_EXPRESSION = re.compile(r"\$\{\{[^}]*\bgithub\.event(?!_)\b")
+# Webhook payloads give author_association on issue, comment and review objects, never on `sender`.
+SENDER_ASSOCIATION = re.compile(r"\bgithub\.event\.sender\.author_association\b")
 
 
 def load_yaml(text: str) -> dict:
@@ -203,6 +205,24 @@ def event_in_run_violations(name: str, workflow: dict) -> list[str]:
         for job_id, step in steps_of(workflow)
         if EVENT_EXPRESSION.search(str(step.get("run", "")))
     ]
+
+
+def strings_in(value: object) -> list[str]:
+    """Every string in a parsed YAML document, keys included."""
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, dict):
+        return [s for key, item in value.items() for s in (*strings_in(key), *strings_in(item))]
+    if isinstance(value, list):
+        return [s for item in value for s in strings_in(item)]
+    return []
+
+
+def sender_association_violations(name: str, workflow: dict) -> list[str]:
+    """`github.event.sender.author_association` is always empty, so a guard on it never passes (#113)."""
+    if any(SENDER_ASSOCIATION.search(s) for s in strings_in(workflow)):
+        return [f"{name}: guards on github.event.sender.author_association, which webhook payloads never carry"]
+    return []
 
 
 def pull_request_target_violations(name: str, workflow: dict) -> list[str]:
@@ -445,6 +465,11 @@ def test_no_event_field_is_interpolated_into_run(path: Path) -> None:
 
 
 @pytest.mark.parametrize("path", FILES, ids=IDS)
+def test_no_guard_reads_the_senders_author_association(path: Path) -> None:
+    assert sender_association_violations(path.name, load(path)) == []
+
+
+@pytest.mark.parametrize("path", FILES, ids=IDS)
 def test_pull_request_target_only_in_labeler_without_checkout(path: Path) -> None:
     assert pull_request_target_violations(path.name, load(path)) == []
 
@@ -596,6 +621,27 @@ jobs:
     assert event_in_run_violations("x.yml", workflow) == [
         "x.yml: job review interpolates github.event into a run: script; pass it through env:"
     ]
+
+
+def test_fixture_sender_author_association_guard_fails() -> None:
+    workflow = load_yaml("""
+jobs:
+  add:
+    if: contains(fromJSON('["OWNER"]'), github.event.sender.author_association)
+""")
+    assert sender_association_violations("x.yml", workflow) == [
+        "x.yml: guards on github.event.sender.author_association, which webhook payloads never carry"
+    ]
+
+
+def test_fixture_comment_author_association_guard_passes() -> None:
+    workflow = load_yaml("""
+jobs:
+  apply:
+    # A comment about github.event.sender.author_association is not a guard.
+    if: contains(fromJSON('["OWNER"]'), github.event.comment.author_association)
+""")
+    assert sender_association_violations("x.yml", workflow) == []
 
 
 def test_fixture_pull_request_target_outside_labeler_fails() -> None:
