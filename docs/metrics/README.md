@@ -1,8 +1,8 @@
 # Metrics
 
 The repository's metrics: what is measured about the codebase and the work landing in it (agent-authored and
-otherwise), where each number is published, and how to reproduce it locally. Every metric here comes from a script or
-workflow in the repo; nothing is collected from the app or its users.
+otherwise), where each number is published, and how to reproduce it locally. Every metric here comes from a script,
+workflow or documented query in the repo; nothing is collected from the app or its users.
 
 Results are published as GitHub Actions **job summaries** (open the workflow run on the Actions tab) and, where noted,
 as a downloadable **run artifact**. Thresholds that gate merges live in version control, so changes to them are
@@ -31,6 +31,7 @@ To add a metric:
 | [PR acceptance rate](#pr-acceptance-rate) | Merged vs. closed-unmerged PRs, agent vs. other | `scripts/pr-metrics.sh` via `pr-metrics.yml` | Weekly (Mon 06:17 UTC), manual | Job summary |
 | [Nightly compliance](#nightly-compliance) | Checks that can go stale without a code change | `scripts/nightly-compliance.sh` via `nightly-compliance.yml` | Nightly (03:23 UTC), manual | Job summary + `nightly-compliance` artifact |
 | [Risk tier](#risk-tier) | Review risk of each PR from the paths it changes | `scripts/tier-classify.sh` via `tier-classifier.yml` | Every PR | `Risk tier` job summary |
+| [Popularity report](#popularity-report) | Weekly popularity run success, stale weeks, data PRs merged unchanged vs edited | `gh` and `git` queries over `popularity.yml` runs, `data/popularity` PRs and `data/v1/popularity.json` history | On demand (review monthly) | Not published; reproduce with the commands below |
 
 ## Quality gates
 
@@ -87,8 +88,9 @@ gh pr list -R Tim-van-Oudheusden/Dailies --state closed --limit 1000 --search "c
 ## Nightly compliance
 
 Checks that can go stale without a code change, run every night so drift shows up before the next PR trips over it:
-Dependabot alerts, advisories in the CI tools, the GNOME runtime's end of life, the ACMM self-check, and on Sundays the
-liveness of every game link. The checks and when each fails are listed in
+Dependabot alerts, advisories in the CI tools, the GNOME runtime's end of life, the ACMM self-check, a newer
+`flatpak-external-data-checker` image than the pinned one, and on Sundays the liveness of every game link. The checks
+and when each fails are listed in
 [`docs/testing.md`](../testing.md#nightly-compliance).
 
 ```sh
@@ -107,3 +109,31 @@ git diff --name-only --no-renames origin/main...HEAD | scripts/tier-classify.sh
 
 `--no-renames` lists a file moved out of a high-risk path under its old path too, as `tier-classifier.yml` does;
 without it, the move reads as a change to its new path only.
+
+## Popularity report
+
+How well the weekly [`popularity.yml`](../../.github/workflows/popularity.yml) pipeline runs without the maintainer:
+
+- **Run success rate:** finished runs that succeeded, of all finished runs (cancelled and skipped runs excluded). A
+  failure published nothing, so last week's shelves stayed.
+- **Stale weeks:** files whose `generated_at` came after the previous file's `valid_until`, i.e. the shelves had
+  already expired (the app showed "as of") when the next run produced new ones.
+- **Merged unchanged vs edited:** merged `data/popularity` pull requests with only the workflow's single commit, vs
+  ones the maintainer pushed to before merging (a branch update counts as an edit too). A rising edit count means the
+  computed shelves need a method change or a `data/v1/domain_weights.json` change instead of hand fixes.
+
+There is no script or workflow for it yet; with an authenticated `gh` in a clone of `main`:
+
+```sh
+gh run list -R Tim-van-Oudheusden/Dailies --workflow popularity.yml --limit 100 --json conclusion \
+  --jq 'map(select(.conclusion != "" and .conclusion != "cancelled" and .conclusion != "skipped"))
+        | "\(map(select(.conclusion == "success")) | length) of \(length) runs succeeded"'
+git log --reverse --format=%H -- data/v1/popularity.json | while read -r commit; do
+  git show "$commit:data/v1/popularity.json" | jq -r '[.generated_at, .valid_until] | @tsv'
+done | awk 'NR > 1 && $1 > expiry { stale++ } { expiry = $2 } END { print stale + 0, "stale weeks" }'
+gh pr list -R Tim-van-Oudheusden/Dailies --state merged --head data/popularity --limit 49 --json commits \
+  --jq 'map(.commits | length) | "\(map(select(. == 1)) | length) merged unchanged, \(map(select(. > 1)) | length) edited"'
+```
+
+`--limit 49` is the most pull requests GitHub's GraphQL node limit allows with their commits, about a year of weeks.
+When a week went wrong, the [popularity runbook](../runbooks/popularity.md) says what to do.

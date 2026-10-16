@@ -1,0 +1,130 @@
+name: Game submission approve
+
+# Stage B of the submission IssueOps (docs/research/data-pipeline.md §1.4): when an
+# owner, member or collaborator adds `approved` to a game submission, validate it
+# again with scripts/validate_submission.py (never trust stage A: the issue may have
+# been edited since, and labels can be removed and re-added), insert the entry
+# with scripts/add_game.py, re-check the whole catalog and open a pull request
+# that closes the issue. An invalid submission gets a comment and no PR.
+# Never pushes to main. The PR is opened with GITHUB_TOKEN, so no pull_request
+# workflow runs on it; the maintainer merges with the ruleset's admin bypass on
+# the strength of the checks below (a DATA_BOT_TOKEN comes later, #79).
+# Needs Settings > Actions > General > "Allow GitHub Actions to create and approve
+# pull requests".
+# Security: the issue is untrusted input. Nothing from it is executed or
+# interpolated into `run:`; values reach the shell only through `env:`, and the
+# PR body and comment are files written by the scripts (untrusted text fenced as code).
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  # One approval run per issue at a time; never cancel one that may be pushing.
+  group: ${{ github.workflow }}-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  add:
+    name: Open catalog PR
+    if: >-
+      github.event.label.name == 'approved'
+      && contains(github.event.issue.labels.*.name, 'game-submission')
+      && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.sender.author_association)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # create-pull-request configures its own token for the push.
+          persist-credentials: false
+      - name: Parse issue form
+        id: parse
+        uses: stefanbuck/github-issue-parser@cb6e97157cbf851e3a393ff8d57c93a484cc323f # v3.2.5
+        with:
+          template-path: .github/ISSUE_TEMPLATE/new-game.yml
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install script dependencies
+        # pytest is the version ci.yml pins; the scripts' own dependencies come from the hash-pinned lock.
+        run: |
+          python -m pip install --require-hashes -r scripts/requirements.txt
+          python -m pip install pytest==9.1.1
+      - name: Validate again
+        # Exit status: 0 valid, 1 invalid (both write the report), 2 usage or internal error (no report).
+        id: validate
+        env:
+          PARSED_JSON: ${{ steps.parse.outputs.jsonString }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          printf '%s' "$PARSED_JSON" > "$RUNNER_TEMP/parsed.json"
+          status=0
+          python -I scripts/validate_submission.py \
+            --parsed "$RUNNER_TEMP/parsed.json" \
+            --catalog data/v1/games.json \
+            --schema data/v1/schema/catalog.schema.json \
+            --issue "$ISSUE_NUMBER" \
+            --out "$RUNNER_TEMP/result.json" \
+            --report "$RUNNER_TEMP/report.md" || status=$?
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit "$status"
+      - name: Comment on an invalid submission
+        if: ${{ failure() && steps.validate.outputs.status == '1' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          # Drop the report's first line, stage A's comment marker, so stage A keeps updating its own comment.
+          {
+            echo "## Approval failed: no pull request opened"
+            echo
+            echo "The submission no longer passes the checks it passed before. Fix the issue, wait for the"
+            echo "submission check to pass, then remove and add the \`approved\` label again."
+            echo
+            tail -n +2 "$RUNNER_TEMP/report.md"
+          } > "$RUNNER_TEMP/comment.md"
+          gh issue comment "$ISSUE_NUMBER" --body-file "$RUNNER_TEMP/comment.md"
+      - name: Add entry
+        # Exit status: 0 added, 1 refused (the id is already in the catalog), 2 input error.
+        id: add
+        run: |
+          python -I scripts/add_game.py \
+            --entry "$RUNNER_TEMP/result.json" \
+            --catalog data/v1/games.json \
+            --pr-body "$RUNNER_TEMP/pr-body.md" \
+            --github-output "$GITHUB_OUTPUT"
+      - name: Validate catalog
+        run: |
+          check-jsonschema --schemafile data/v1/schema/catalog.schema.json data/v1/games.json
+          pytest tests/data
+      - name: Create pull request
+        id: cpr
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          branch: data/add-${{ steps.add.outputs.slug }}
+          delete-branch: true
+          add-paths: data/v1/games.json
+          commit-message: "data(games): add ${{ steps.add.outputs.name }}"
+          title: "data(games): add ${{ steps.add.outputs.name }}"
+          body-path: ${{ runner.temp }}/pr-body.md
+          labels: |
+            data
+            automated
+      - name: Link the pull request on the issue
+        if: steps.cpr.outputs.pull-request-url
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          PR_URL: ${{ steps.cpr.outputs.pull-request-url }}
+        run: gh issue comment "$ISSUE_NUMBER" --body "Approved, opened $PR_URL. Merging it adds the game and closes this issue."

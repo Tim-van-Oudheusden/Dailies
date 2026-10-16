@@ -216,7 +216,7 @@ flowchart TD
   subgraph weekly["Weekly popularity"]
     CRON["Monday 04:17 UTC<br/>popularity.yml"] --> COLLECT["Collect Tranco ranks"]
     COLLECT --> COMPUTE["Compute shelves<br/>deterministic Python"]
-    COMPUTE -.->|"optional, M3"| REPORT["Claude writes<br/>docs/popularity/WEEK.md"]
+    COMPUTE -.->|"schedule or narrate: true"| REPORT["Claude writes<br/>docs/popularity/WEEK.md<br/>report_guard.py checks"]
     COMPUTE --> PR2["PR: data(popularity): week WEEK"]
     REPORT --> PR2
   end
@@ -230,27 +230,42 @@ flowchart TD
   end
 ```
 
-**Game submissions.** Until the automation lands (M2), the maintainer edits `data/v1/games.json` by hand from the
-issues the form creates. Stage A runs on `issues: opened/edited` with a read-only contents token, passes form values to
+**Game submissions.** Issues from the **Add a game** form go through two workflows. Stage A
+(`game-submission-check.yml`) runs on `issues: opened/edited` with a read-only contents token, passes form values to
 the validator only through `env:`, and checks: https only, the host resolves to a public address, the URL answers
 within 10 s and five redirects, the final registrable domain equals the submitted one, no blocklisted title, no
-duplicate URL, id or alias, and the candidate entry passes the schema. Stage B runs when an owner, member or
-collaborator adds `approved`; it validates again rather than trusting stage A, inserts the entry sorted by id and opens
-a pull request. Pull requests opened with `GITHUB_TOKEN` start no CI, so the maintainer merges on the strength of stage
-B. A weekly link check (Sundays, in the nightly compliance workflow) opens one issue listing broken entries; the fix is
-a `status` change, never a deletion.
+duplicate URL, id or alias, and the candidate entry passes the schema. Stage B (`game-submission-approve.yml`) runs
+when an owner, member or collaborator adds `approved`; anyone else adding the label starts nothing. It validates again
+rather than trusting stage A (the issue may have been edited since); an invalid submission gets a comment and no pull
+request. Otherwise `scripts/add_game.py` inserts the entry sorted by id, bumps `generated_at` and keeps the file's
+formatting, so the diff is the new entry plus that one line; the whole catalog is checked with `check-jsonschema` and
+`pytest tests/data`, and `data/add-<slug>` becomes a pull request `data(games): add <name>` that closes the issue.
+Pull requests opened with `GITHUB_TOKEN` start no CI, so the required checks never appear and the maintainer merges
+with the ruleset's admin bypass, on the strength of stage B's checks. A weekly link check (Sundays, in the nightly
+compliance workflow) opens one issue listing broken entries, and a `data/link-status` pull request with the `status`
+change once a game failed the same check two weeks in a row (or passed again two weeks in a row, or was hijacked to a
+gambling page), never a deletion; the maintainer merges it.
 
 **Popularity.** Numbers are computed by deterministic Python; a language model may only write prose. The only source in
 the MVP is the Tranco rank of each game's registrable domain, smoothed over seven days and log-scaled; every game on a
 domain gets its full score, and a shelf holds at most two games of one domain, picked in the order of
 `data/v1/domain_weights.json`. `popular` holds the top `max(5, min(12, 10 % of active games))`; `trending` holds rising
 games outside the top five, topped up with the newest games (`reason: "new"`) so the shelf is never empty. If Tranco
-fails for more than 20 % of domains the job fails and the old file stays. The current `popularity.json` is hand-written
+fails for more than 20 % of domains the job fails and the old file stays. Wikipedia pageviews, Hacker News story
+counts and Cloudflare Radar buckets are optional collector flags, off by default ([#78][issue-78]); see
+[`data-format.md`](data-format.md#how-method_version-3-is-computed). The current `popularity.json` is hand-written
 (`method_version: 0`).
 
-**Publishing.** `pages.yml` publishes `data/v1/` (schemas included) and, once it exists, `docs/popularity/` to GitHub
-Pages at `https://tim-van-oudheusden.github.io/Dailies/v1/` on every push to `main` that touches them. The app tries
-that URL first and falls back to `raw.githubusercontent.com` on a server error, a 429 or a network failure.
+**Publishing.** `pages.yml` publishes `data/v1/` (schemas included) and `docs/popularity/` to GitHub Pages at
+`https://tim-van-oudheusden.github.io/Dailies/v1/` on every push to `main` that touches them. The app tries that URL
+first and falls back to `raw.githubusercontent.com` on a server error, a 429 or a network failure.
+
+**Weekly report.** In the `publish` job of `popularity.yml`, `anthropics/claude-code-action` writes
+`docs/popularity/<week>.md` from `summary.json` and `popularity.json`; it may write that one file and nothing else.
+`scripts/popularity/report_guard.py` then fails the job unless `git status` shows only that report and a
+`popularity.json` byte-identical to the `compute` artifact, and only then sets `report` to `../popularity/<week>.md`.
+The step has `continue-on-error`, so a failed report still leaves the numbers-only pull request
+([`docs/popularity/`](popularity/README.md), [`SECURITY-AI.md`](security/SECURITY-AI.md#the-popularity-report)).
 
 **Releases.** See [Releasing in `CONTRIBUTING.md`](../CONTRIBUTING.md#releasing). The tag, `version:` in `meson.build`
 and the newest metainfo `<release>` must agree, which the `verify` job checks before anything is built. Bundles do not
@@ -320,6 +335,14 @@ orders a domain's games (highest weight first, unlisted games last) instead of s
 domains, not pages; without a split the best domains' games show up, and the cap keeps one publisher from filling a
 shelf. Rejected: no split without a cap (LinkedIn plus all nine NYT games), and 1/√n damping (still no NYT game).
 
+**Decision:** Wikipedia, Hacker News and Cloudflare Radar are optional signals behind `collect.py` flags, off by default
+([#78][issue-78]). With them, `popularity` is the weighted mean of the scores a game has (Tranco 0.80, Wikipedia 0.15,
+HN 0.05, Radar 0.20), renormalised over the ones present, and the file is `method_version: 3`; without them it stays
+byte-identical to `method_version: 2`. Why: Wikipedia covers only a handful of games and HN title search is noisy, so
+neither may outvote Tranco or penalise a game for having no article; Radar needs a token and is CC BY-NC, so it must
+be skippable, and a missing token or a source failing for more than 20 % of its items drops it with `ok: false` in
+`sources` instead of failing the week.
+
 ## Measurements
 
 To be filled in by [#52][issue-52] once the app builds as a Flatpak. Nothing here is measured yet. The proposal names
@@ -334,4 +357,5 @@ results here.
 [issue-13]: https://github.com/Tim-van-Oudheusden/Dailies/issues/13
 [issue-16]: https://github.com/Tim-van-Oudheusden/Dailies/issues/16
 [issue-52]: https://github.com/Tim-van-Oudheusden/Dailies/issues/52
+[issue-78]: https://github.com/Tim-van-Oudheusden/Dailies/issues/78
 [issue-88]: https://github.com/Tim-van-Oudheusden/Dailies/issues/88

@@ -13,8 +13,8 @@ You need:
 - Flatpak with the Flathub remote, and `flatpak-builder` (your distribution's package, or `org.flatpak.Builder` from
   Flathub)
 - The GNOME 51 SDK and Platform from Flathub; the Devel manifest builds against them
-- Python ≥ 3.12 with `ruff`, `pytest`, `pytest-cov`, `pyyaml` and `check-jsonschema`, for the gates that run outside
-  Flatpak
+- Python ≥ 3.12 with `ruff`, `pytest`, `pytest-cov` and `check-jsonschema` (which brings `ruamel.yaml`, used by the
+  workflow tests), for the gates that run outside Flatpak
 - For a native Meson build: Meson ≥ 1.4, Ninja, GTK ≥ 4.24, libadwaita ≥ 1.10, PyGObject, `desktop-file-utils`,
   `appstream` and the GLib schema tools. `blueprint-compiler` comes from `subprojects/blueprint-compiler.wrap` (pinned
   to v0.22.2) when the system has none
@@ -22,7 +22,7 @@ You need:
 ```sh
 flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 flatpak install --user flathub org.gnome.Sdk//51 org.gnome.Platform//51
-python3 -m pip install --user ruff pytest pytest-cov pyyaml check-jsonschema
+python3 -m pip install --user ruff pytest pytest-cov check-jsonschema
 ```
 
 If your distribution does not ship the GNOME 51 libraries, skip the native build: the Flatpak gate runs the same Meson
@@ -71,7 +71,8 @@ read from GLib APIs and render with GTK. UI layout lives in Blueprint files unde
 **Where a test goes.** In the `tests/` directory that mirrors the code it covers: a test for `dailies/core/catalog.py`
 goes in `tests/core/test_catalog.py`, one for `scripts/validate_submission.py` in `tests/scripts/`. Checks on the
 committed data files go in `tests/data/`; checks on `.github/` (workflow invariants, label and policy parity) go in
-`tests/tooling/`. Adding a workflow means adding its reviewed token scopes to `tests/tooling/test_workflows.py`.
+`tests/tooling/`. A workflow job that needs more than `contents: read` declares its own `permissions:` and gets a
+reviewed row in `JOB_PERMISSIONS` in `tests/tooling/test_workflows.py`.
 
 ## Finding and claiming work
 
@@ -91,9 +92,14 @@ We favour small, focused changes tied to a tracked issue.
 `main` is protected by the ruleset in [`.github/rulesets/main.json`](.github/rulesets/main.json): no direct pushes,
 force-pushes or deletion; changes land only through pull requests whose `PR review rubric`, `Build, lint, test`,
 `Unit-test coverage floors` and `Static checks` checks pass. Pull requests merge with a merge commit only (no squash or
-rebase), so each issue's single commit lands on `main` unchanged, and the head branch is deleted on merge. The file is
-the source of truth: a change to it lands by PR, then a maintainer applies it with
-`gh api -X PUT repos/Tim-van-Oudheusden/Dailies/rulesets/<id> --input .github/rulesets/main.json`.
+rebase), so each issue's single commit lands on `main` unchanged, and the head branch is deleted on merge. Repository
+admins can bypass the ruleset when merging a pull request (bot data pull requests opened with `GITHUB_TOKEN` run no
+checks), never to push directly. The file is the source of truth: a change to it lands by PR, then a maintainer applies
+it with `gh api -X PUT repos/Tim-van-Oudheusden/Dailies/rulesets/<id> --input .github/rulesets/main.json` (the first
+time, when no ruleset exists yet:
+`gh api -X POST repos/Tim-van-Oudheusden/Dailies/rulesets --input .github/rulesets/main.json`).
+`tests/tooling/test_ruleset.py` checks that every required check is the `name:` of a workflow job, so renaming a job
+without updating the ruleset fails `pytest`.
 
 [conventional-commits]: https://www.conventionalcommits.org/
 
@@ -200,6 +206,19 @@ For reviews, point Claude at the shared rubric in [`prompts/code-review.md`](pro
 `@claude review this PR using prompts/code-review.md against issue #12`; [`prompts/`](prompts/README.md) also holds the
 PR-body template.
 
+### Approving game submissions
+
+Games are added through the **Add a game** issue form, never by hand. `game-submission-check.yml` (stage A) checks
+each submission on every edit and labels it `validated` or `needs-changes`. To accept one, add the `approved` label:
+`game-submission-approve.yml` (stage B) validates it again, runs `scripts/add_game.py` to insert the entry sorted by
+id, checks the whole catalog with `check-jsonschema` and `pytest tests/data`, and opens a pull request
+`data(games): add <name>` from `data/add-<slug>` with `Closes #<issue>`. The label only counts from an owner, member or
+collaborator. If the submission no longer passes, stage B comments on the issue and opens no pull request; once it
+passes again, remove and re-add `approved`. The workflow opens the pull request with `GITHUB_TOKEN`, which starts no
+CI, so its required checks never appear: review the diff (only `data/v1/games.json`, the new entry and
+`generated_at`) and merge with the ruleset's admin bypass. It needs "Allow GitHub Actions to create and approve pull
+requests" under Settings > Actions > General.
+
 ## Releasing
 
 A release is a pushed tag `vX.Y.Z`. Three places name the version and must agree: `version:` in `project()` in
@@ -262,7 +281,7 @@ python3 scripts/release_check.py notes
 To retry a failed run, re-run its failed jobs from the Actions tab. If the tag points at the wrong commit, or Verify
 reports that the pinned commit differs from the tag, delete the tag (`git push origin :refs/tags/vX.Y.Z`) and any
 release it created, fix the cause, and tag again. A published release that turns out to be broken is fixed forward
-with a new patch release; see [`docs/runbooks/`](docs/runbooks/README.md).
+with a new patch release; see [`docs/runbooks/bad-release.md`](docs/runbooks/bad-release.md).
 
 ### Manual checklist before tagging
 
@@ -324,6 +343,14 @@ the access is detected.
   WebKitGTK) and the standard library. A new runtime dependency means a new Flatpak module and needs explicit approval.
 - Tools that only CI and `scripts/` use live in `scripts/requirements.txt`, pinned with hashes.
 - GitHub Actions are pinned to a commit SHA with a `# vX.Y.Z` comment; Dependabot proposes updates.
+- The one Docker image a workflow runs, `ghcr.io/flathub/flatpak-external-data-checker` in
+  `.github/workflows/external-data-checker.yml`, is pinned by digest. Dependabot does not update `docker://`
+  references, so the nightly compliance row "External data checker image is :latest" (`scripts/check_checker_digest.py`)
+  fails once Flathub publishes a newer `:latest`; its report shows the pinned and the latest digest. To bump it, open a
+  `ci:` pull request that replaces the `sha256:…` after `@` with the reported latest digest and updates the date in the
+  comment above it. `python3 -I scripts/check_checker_digest.py` checks the result locally (exit 0 when the pin is the
+  current `:latest`). Skim the checker's changes since the old digest first, as the image runs with `contents: write`
+  and `pull-requests: write`.
 
 ## Agent safety layers
 

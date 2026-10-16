@@ -6,9 +6,9 @@ How Dailies' tests and quality checks run, and where each one can run.
 
 | Layer | What | Where it runs | Gate |
 | --- | --- | --- | --- |
-| Unit (pure Python) | `tests/core/`: catalog parsing, including tolerance of an unknown category or status; popularity parsing and staleness; search folding and whether a new query narrows or widens the matches; the cache decisions (`test_cache.py`: maximum age, `If-None-Match`, URL fall-through order, `Retry-After`, validation before any write, atomic cache files, the stale-banner rule); the sidebar sections (`test_sections.py`: categories without an active game hidden, the restored section, the "as of" date of stale shelves, what each section holds (Favorites keep unavailable games, categories only active ones), the default and overriding sort orders, which empty-state page shows). `tests/scripts/`: the submission validator (with fixtures for dead and hijacked domains), the popularity computation on synthetic ranking data, the full domain score and the two-per-domain shelf cap, the committed `domain_weights.json`, the fail-closed threshold, the link checker; the CI scripts (coverage gate, quality report, floor tuner, PR metrics, review-suggestion applier, nightly compliance) run against fixtures and stub tools; the shell suites `scripts/pr-review-check.test.sh` (PR title and issue-link rubric) and `scripts/tier-classify.test.sh` (risk-tier engine and the shipped policy, whose rules `docs/risk-tiers.md` must list) | `ubuntu-latest`, plain pytest, seconds | `Build, lint, test`; coverage floors on `dailies/core` and `scripts` |
+| Unit (pure Python) | `tests/core/`: catalog parsing, including tolerance of an unknown category or status; popularity parsing and staleness; search folding and whether a new query narrows or widens the matches; the cache decisions (`test_cache.py`: maximum age, `If-None-Match`, URL fall-through order, `Retry-After`, validation before any write, atomic cache files, the stale-banner rule); the sidebar sections (`test_sections.py`: categories without an active game hidden, the restored section, the "as of" date of stale shelves, what each section holds (Favorites keep unavailable games, categories only active ones), the default and overriding sort orders, which empty-state page shows). `tests/scripts/`: the submission validator (with fixtures for dead and hijacked domains), adding an approved submission (`test_add_game.py`: insertion sorted by id, a diff against the real `games.json` of only the new entry and `generated_at`, refusal of an existing id or a failed validation, the PR body and step outputs), the popularity computation on synthetic ranking data, the full domain score and the two-per-domain shelf cap, the committed `domain_weights.json`, the fail-closed threshold, the weekly report guard (only the week's report and byte-identical shelves may change; a tampered `games.json` fails it), the optional Wikipedia, HN and Radar collectors against a fake session and the composite score with its renormalisation over missing sources, output byte-identical to `method_version: 2` without them (`tests/scripts/fixtures/popularity/`), the link checker; the CI scripts (coverage gate, quality report, floor tuner, PR metrics, review-suggestion applier, nightly compliance) run against fixtures and stub tools; the shell suites `scripts/pr-review-check.test.sh` (PR title and issue-link rubric) and `scripts/tier-classify.test.sh` (risk-tier engine and the shipped policy, whose rules `docs/risk-tiers.md` must list) | `ubuntu-latest`, plain pytest, seconds | `Build, lint, test`; coverage floors on `dailies/core` and `scripts` |
 | Data | `tests/data/test_catalog_file.py`: schema, sorted unique ids, unique normalised URLs, every `domain` matches its `url`, enum membership, every id in `popularity.json` exists in the catalog | same | `Build, lint, test` |
-| Tooling | `tests/tooling/test_workflows.py` (PyYAML): top-level and per-job permissions, `timeout-minutes` on every job, actions pinned to 40-hex SHAs with version comments, no `${{ github.event.* }}` in `run:`, `pull_request_target` only in `labeler.yml` and without a checkout, labeler and risk-tier policy parity, every `data/v1/*.json` published by `pages.yml` | same | `Build, lint, test` |
+| Tooling | `tests/tooling/test_workflows.py` (`ruamel.yaml`, from the scripts' lock), over every file in `.github/workflows/`: top-level permissions exactly `contents: read`, job permissions equal to the reviewed `JOB_PERMISSIONS` map, `timeout-minutes` on every job, actions pinned to 40-hex SHAs with a `# vX.Y.Z` comment (`docker://` images by digest, or listed in `DOCKER_TAG_ALLOWLIST` with a reason), no `${{ github.event.* }}` in `run:`, `pull_request_target` only in `labeler.yml` and without a checkout, no `cron` at minute 0, `.github/labeler.yml` labels equal to the path labels documented in #18, labeler and risk-tier policy parity (each glob's sample path is covered by the other file, exemptions listed with reasons), every `data/v1/*.json` copied into the `pages.yml` artifact. Each check also has a test that feeds it a broken inline YAML fixture | same | `Build, lint, test` |
 | Build validation | Meson tests: `desktop-file-validate`, `appstreamcli validate --no-net --explain`, `glib-compile-schemas --strict --dry-run`, and the Blueprint compile of every `.blp` (a syntax error fails the build) | inside `flatpak-builder --run-tests` | `Flatpak (x86_64)` |
 | GI integration | `tests/gi/`: the `dailies/data` and `dailies/ui` classes that need GLib, against the real schema. Stdlib `unittest` scripts (the SDK has no pytest), registered in `tests/meson.build` (suite `gi`) with `GSETTINGS_BACKEND=memory` and `GSETTINGS_SCHEMA_DIR` at the schema compiled into `_build/data`. `tests/gi/test_favorites.py`: toggle on and off, insertion order, undo restoring the index, one `changed` per toggle, external changes to the key. `test_store.py`: cold start from the bundled snapshot, a corrupt or older cache replaced by the bundle, ranks and favourites applied, diff by id on reload, stale popularity, lookup by id. `test_filters.py`: the grid's pipeline (section filter, search filter, section sorter) over `GameObject`s: shelf rank order, categories by name, favourite order with an unavailable favourite kept, the sort mode overriding it, accent-folded search narrowing the current section; the `GameObject` texts that follow its game. `test_tile.py`: the game tile from the built resources on a private Broadway display (`gtk4-broadwayd`): its labels and colour classes following the game, the accessible name and description, opening through `win.open-game`, the star as a separate labelled button that follows the favourite state (icon, tooltip) and toggles it through `win.toggle-game-favorite`, the "Unavailable" pill on a broken game. `test_dialogs.py`, on its own `gtk4-broadwayd` display: `Adw.Application` wiring the bundled Shortcuts dialog to Ctrl+?, every accelerator listed in its section, and the About dialog's version, licence and release notes read from the bundled metainfo. `test_fetcher.py`: the fetcher against a local `http.server` with ETags: unconditional first fetch, no request while fresh, 304 changing only `.fetched`, a truncated body leaving the cache untouched, fall-through on 503 and on a refused connection, the User-Agent. Plain `pytest` skips the directory (`--ignore=tests/gi` in `pyproject.toml`) | `meson test` inside the SDK, so also `flatpak-builder --run-tests` | `Flatpak (x86_64)` |
 | E2E smoke | `tests/e2e/test_smoke.py`: starts the installed app with the hidden `--smoke` flag, which skips the network refresh and quits half a second after the window has mapped, under `dbus-run-session` on a private `gtk4-broadwayd` display (`GDK_BACKEND=broadway`; the SDK has no Xvfb, and broadway needs no host display) with `GSETTINGS_BACKEND=memory`; asserts exit status 0 within 30 s and no `CRITICAL` or `Traceback` on stderr. A stdlib `unittest` script registered as a Meson test (suite `e2e`); it reports SKIP when the app is not installed, and plain `pytest` deselects it by its `e2e` marker | inside `flatpak-builder --run-tests` | `Flatpak (x86_64)` |
@@ -131,7 +131,8 @@ check even when an earlier one fails, and exits non-zero if any failed:
 | CI tool advisories | `pip-audit` finds a known vulnerability in `scripts/requirements.txt` that is not on the ignore list |
 | GNOME runtime | `flatpak remote-info flathub org.gnome.Platform//51` reports the runtime as end-of-life |
 | ACMM self-check | `scripts/acmm-self-check.py` finds that a file a Hive ACMM criterion looks for has gone missing |
-| Catalog links (weekly) | Sundays (UTC) only, or with `--force-links` / `DAILIES_FORCE_LINKS=1` (the manual run's `force_links` input): `scripts/check_links.py` finds an active catalog entry that is `redirected-cross-domain`, `blocked-title`, `http-<code>`, `timeout` or `unreachable`. A `bot-walled` entry (a Cloudflare challenge, or a 403 on an entry tagged `bot-walled`) is a warning, not a failure |
+| External data checker image | `scripts/check_checker_digest.py` finds that the `flatpak-external-data-checker` digest pinned in `.github/workflows/external-data-checker.yml` is no longer the image's `:latest` on ghcr.io, or cannot read ghcr.io. To bump the pin, see CONTRIBUTING.md, "Dependencies" |
+| Catalog links (weekly) | Sundays (UTC) only, or with `--force-links` / `DAILIES_FORCE_LINKS=1` (the manual run's `force_links` input): `scripts/check_links.py` finds an active catalog entry that is `redirected-cross-domain`, `blocked-title`, `hijacked`, `http-<code>`, `timeout` or `unreachable`. A `bot-walled` entry (a Cloudflare challenge, or a 403 or timeout on an entry tagged `bot-walled`) is a warning, not a failure |
 
 The alerts come from `gh api repos/$GITHUB_REPOSITORY/dependabot/alerts?state=open`, read with the job's `GITHUB_TOKEN`
 through the `vulnerability-alerts: read` permission, so no secret is needed.
@@ -144,9 +145,35 @@ domain equal to the entry's `domain`, and no gambling keyword in the page title.
 grouped by host, at most two a second, with the validator's User-Agent. The report lists each failing or bot-walled
 game with its reason and a suggested `status`; the script exits 0 when nothing failed, 1 when an entry did and 2 on an
 error. In the workflow (`--open-issue`) a failure also opens one issue `data: N broken links (week W)` labelled `data`,
-or updates the open one (found by the report marker or that title), using the job's `issues: write` permission. The
-maintainer then sets `status: broken` (or `retired` when the game has ended) with a `history` event in a pull request,
-and never deletes the entry.
+or updates the open one (found by the report marker or that title), using the job's `issues: write` permission.
+
+### Automatic status changes
+
+On `main` the workflow also flips `status` itself, through a pull request (issue #81). With `LINKS_STATUS_DIR` set,
+`scripts/nightly-compliance.sh` passes `--previous-state`, `--state-out` and `--status-out` to the link checker, which
+then also checks the `broken` entries (left out of the report and the exit code) and keeps a streak per game in a
+small state file (`scripts/lib/linkstatus.py`):
+
+| Situation | Change |
+| --- | --- |
+| An active game fails the **same** check (e.g. `http-404`) in two consecutive ISO weeks | `status: broken`, history event `broken` with the check and reason |
+| A broken game passes in two consecutive ISO weeks | `status: active`, history event `restored` |
+| The link leads to another site whose page title holds a blocklisted keyword (`hijacked`) | `status: retired` at once, history event `retired`; the pull request gets `priority::high` |
+| A single failure, another check, a skipped week, a pass or a bot wall in between | nothing; the issue row only |
+
+A second run in the same week (a manual run) is not a second week. When a status should change, the checker writes
+`changes.json` and `pr-body.md`; the `link-status` job checks out the newest `main`, applies the changes with
+`scripts/apply_link_status.py` (sets `status`, appends the `history` event, updates `generated_at`, writes the file
+in its committed format, never removes an entry), and opens or updates the pull request on branch `data/link-status`
+with `peter-evans/create-pull-request`, labelled `data` and `automated`. A maintainer reviews and merges it; a game
+that only moved needs its `url` and `domain` changed by hand instead. Pull requests opened with `GITHUB_TOKEN` start no
+CI, as with the popularity pull request.
+
+The streaks live in the `link-check-state` workflow artifact (90-day retention; each weekly run on `main` downloads the
+newest one with the job's `actions: read` permission and uploads a fresh one), not in a committed file: `main` is
+protected, so a committed state would need a merged pull request every week. Losing the artifact (it expired after
+the workflow was disabled, or a download failed) only restarts the streaks, so it can delay a change by a week but
+never make a wrong one. Runs on other branches start from no state and open no pull request.
 
 ### Accepting an advisory
 
@@ -161,5 +188,6 @@ scripts/nightly-compliance.sh [--force-links] > nightly-compliance.md
 ```
 
 This reads the alerts with your `gh` login (needs `jq`). Set `ALERTS_JSON=<file>` to read an alerts JSON array from a
-file instead, and `CHECK_LINKS=<script>` to replace the link checker; the tests in `tests/scripts/` use them. Outside
-GitHub Actions the link check only writes its report and never touches issues.
+file instead, `CHECK_LINKS=<script>` to replace the link checker and `CHECKER_DIGEST=<script>` to replace the image
+digest check; the tests in `tests/scripts/` use them. Outside GitHub Actions the link check only writes its report and
+never touches issues.

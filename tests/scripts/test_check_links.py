@@ -213,6 +213,16 @@ def test_403_on_a_game_the_catalog_marks_bot_walled_is_a_warning() -> None:
     assert result.warning
 
 
+def test_timeout_on_a_game_the_catalog_marks_bot_walled_is_a_warning() -> None:
+    # Some walls never answer a script at all (washingtonpost.com stalls until the read timeout).
+    result = check(ARTLE, {("HEAD", ARTLE["url"]): requests.Timeout()})
+
+    assert result.outcome == "bot-walled"
+    assert result.warning
+    assert not result.failed
+    assert result.suggested_status is None
+
+
 def test_403_without_a_challenge_on_an_ordinary_game_fails() -> None:
     result = check(WORLDLE, {("HEAD", WORLDLE["url"]): FakeResponse(403), ("GET", WORLDLE["url"]): FakeResponse(403)})
 
@@ -538,3 +548,157 @@ def test_cli_exits_2_on_an_unreadable_catalog(tmp_path: Path) -> None:
     assert cl.main(["--catalog", str(tmp_path / "missing.json"), "--out", str(tmp_path / "links.md")]) == 2
     bad.write_text('{"games": "none"}', encoding="utf-8")
     assert cl.main(["--catalog", str(bad), "--out", str(tmp_path / "links.md")], session=FakeSession()) == 2
+
+
+def casino_landing(url: str) -> dict[tuple[str, str], FakeResponse | Exception]:
+    return {**hijacked(url), ("GET", LANDING): FakeResponse(200, body="<title>Lucky Spin Casino - Slots</title>")}
+
+
+def test_redirect_to_a_gambling_page_on_another_site_is_hijacked() -> None:
+    result = check(MOVIEDLE, casino_landing(MOVIEDLE["url"]))
+
+    assert result.outcome == "hijacked"
+    assert result.failed
+    assert result.reason == (
+        'redirects to another site (lucky-spin-777.net); its page title "Lucky Spin Casino - Slots" contains "casino"'
+    )
+    assert result.suggested_status == "retired"
+
+
+def test_redirect_to_another_site_whose_title_cannot_be_read_is_a_cross_domain_redirect() -> None:
+    routes = {**hijacked(MOVIEDLE["url"]), ("GET", LANDING): FakeResponse(500)}
+
+    assert check(MOVIEDLE, routes).outcome == "redirected-cross-domain"
+
+
+def test_report_suggests_retiring_a_hijacked_game() -> None:
+    result = check(MOVIEDLE, casino_landing(MOVIEDLE["url"]))
+
+    assert "| ❌ hijacked |" in cl.render_report([result], SUNDAY)
+    assert "`active` → `retired`" in cl.render_report([result], SUNDAY)
+
+
+def test_catalog_checks_broken_entries_when_asked() -> None:
+    catalog = {"games": [WORLDLE, game("flagle", "https://www.flagle.io/", "flagle.io", status="broken")]}
+    routes = {**live(WORLDLE["url"]), **live("https://www.flagle.io/")}
+
+    results = cl.check_catalog(catalog, FakeSession(routes), resolve_public, [], statuses=("active", "broken"))
+
+    assert sorted(result.entry["id"] for result in results) == ["flagle", "worldle"]
+
+
+FLAGLE = game("flagle", "https://www.flagle.io/", "flagle.io", status="broken")
+
+
+def run_tracked(
+    tmp_path: Path, games: list[dict], routes: dict, day: date, *extra: str, api: object = None
+) -> tuple[int, str]:
+    """One weekly run that keeps its streaks in tmp_path/state.json and writes changes to tmp_path/status/."""
+    state = tmp_path / "state.json"
+    previous = tmp_path / "previous.json"
+    if state.exists():
+        state.replace(previous)
+    status = tmp_path / "status"
+    for name in ("changes.json", "pr-body.md"):
+        (status / name).unlink(missing_ok=True)
+    out = tmp_path / "links.md"
+    argv = [
+        "--catalog",
+        str(write_catalog(tmp_path, games)),
+        "--out",
+        str(out),
+        "--previous-state",
+        str(previous),
+        "--state-out",
+        str(state),
+        "--status-out",
+        str(status),
+        *extra,
+    ]
+    code = cl.main(argv, session=FakeSession(routes), resolve=resolve_public, api=api, today=day)
+    return code, out.read_text(encoding="utf-8")
+
+
+LAST_SUNDAY = date(2026, 10, 11)
+NOT_FOUND = {("HEAD", WORLDLE["url"]): FakeResponse(404)}
+
+
+@pytest.mark.usefixtures("token")
+def test_a_single_failure_only_opens_the_issue(tmp_path: Path) -> None:
+    github = FakeGitHub()
+
+    code, report = run_tracked(tmp_path, [WORLDLE], NOT_FOUND, SUNDAY, "--open-issue", "--repo", "o/r", api=github)
+
+    assert code == 1
+    assert "| `worldle` |" in report
+    assert len(github.issues) == 1
+    assert not (tmp_path / "status" / "changes.json").exists()
+    state = json.loads((tmp_path / "state.json").read_text(encoding="utf-8"))
+    assert state["games"] == {"worldle": {"check": "http-404", "since": "2026-W42", "last": "2026-W42"}}
+
+
+@pytest.mark.usefixtures("token")
+def test_a_game_failing_twice_gets_a_broken_status_change(tmp_path: Path) -> None:
+    github = FakeGitHub()
+    args = ("--open-issue", "--repo", "o/r")
+
+    run_tracked(tmp_path, [WORLDLE], NOT_FOUND, LAST_SUNDAY, *args, api=github)
+    code, _ = run_tracked(tmp_path, [WORLDLE], NOT_FOUND, SUNDAY, *args, api=github)
+
+    assert code == 1
+    assert len(github.issues) == 1  # the issue is still opened, then updated
+    changes = json.loads((tmp_path / "status" / "changes.json").read_text(encoding="utf-8"))
+    assert changes == {
+        "week": "2026-W42",
+        "changes": [
+            {
+                "id": "worldle",
+                "status": "broken",
+                "event": "broken",
+                "note": "link check: http-404 in 2026-W41 and 2026-W42 (https://worldle.teuteuf.fr/ answered HTTP 404)",
+            }
+        ],
+    }
+    body = (tmp_path / "status" / "pr-body.md").read_text(encoding="utf-8")
+    assert "| `worldle` | `active` → `broken` |" in body
+
+
+def test_a_broken_game_passing_twice_is_restored_without_a_report_row(tmp_path: Path) -> None:
+    routes = {**live(WORLDLE["url"]), **live(FLAGLE["url"])}
+
+    run_tracked(tmp_path, [WORLDLE, FLAGLE], routes, LAST_SUNDAY)
+    code, report = run_tracked(tmp_path, [WORLDLE, FLAGLE], routes, SUNDAY)
+
+    assert code == 0
+    assert "All 1 active entries passed." in report
+    changes = json.loads((tmp_path / "status" / "changes.json").read_text(encoding="utf-8"))
+    assert [(change["id"], change["status"], change["event"]) for change in changes["changes"]] == [
+        ("flagle", "active", "restored")
+    ]
+
+
+def test_a_failing_broken_game_does_not_fail_the_run(tmp_path: Path) -> None:
+    code, report = run_tracked(tmp_path, [WORLDLE, FLAGLE], live(WORLDLE["url"]), SUNDAY)
+
+    assert code == 0
+    assert "flagle" not in report
+
+
+def test_a_hijacked_game_is_retired_on_the_first_run(tmp_path: Path) -> None:
+    code, _ = run_tracked(tmp_path, [MOVIEDLE], casino_landing(MOVIEDLE["url"]), SUNDAY)
+
+    assert code == 1
+    changes = json.loads((tmp_path / "status" / "changes.json").read_text(encoding="utf-8"))
+    assert [(change["id"], change["status"]) for change in changes["changes"]] == [("moviedle", "retired")]
+    assert "`active` → `retired`" in (tmp_path / "status" / "pr-body.md").read_text(encoding="utf-8")
+
+
+def test_an_unreadable_previous_state_starts_over(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    (tmp_path / "state.json").write_text("garbage", encoding="utf-8")
+
+    code, _ = run_tracked(tmp_path, [WORLDLE], NOT_FOUND, SUNDAY)
+
+    assert code == 1
+    assert "starting the streaks over" in capsys.readouterr().err
+    assert not (tmp_path / "status" / "changes.json").exists()
+    assert json.loads((tmp_path / "state.json").read_text(encoding="utf-8"))["games"]["worldle"]["since"] == "2026-W42"

@@ -1,9 +1,10 @@
 name: Weekly popularity
 
 # Every Monday: collect the Tranco ranks of every active game's domain, compute the Popular and Trending shelves
-# deterministically, validate them against the schema and open a numbers-only pull request (issue #62; the Claude
-# report follows in #66). Fails closed: when Tranco failed for too many domains, compute.py exits non-zero, nothing
-# is published and data/v1/popularity.json stays as it is. A maintainer merges the PR; main is protected.
+# deterministically, validate them against the schema, let Claude write the weekly report (issue #66) and open a pull
+# request. Fails closed: when Tranco failed for too many domains, compute.py exits non-zero, nothing is published and
+# data/v1/popularity.json stays as it is. The model writes prose only: a guard fails the job if it changed anything but
+# docs/popularity/<week>.md, and a failed report never blocks the numbers. A maintainer merges the PR; main is protected.
 # Scheduled workflows in public repositories are disabled after 60 days without activity; re-enable this one from
 # the Actions tab (docs/runbooks/re-enable-cron.md).
 
@@ -14,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       narrate:
-        description: Write the Claude report (not used yet; see #66)
+        description: Write the Claude report (always on for the schedule)
         type: boolean
         default: false
 
@@ -84,13 +85,15 @@ jobs:
           retention-days: 7
 
   publish:
-    name: Open the data pull request
+    name: Write the report and open the data pull request
     needs: compute
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 25
     permissions:
       contents: write
       pull-requests: write
+    env:
+      WEEK: ${{ needs.compute.outputs.week }}
     steps:
       # create-pull-request configures its own token for the push.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -102,32 +105,67 @@ jobs:
           path: ${{ runner.temp }}/result
       - name: Put popularity.json in place
         run: cp "$RUNNER_TEMP/result/popularity.json" data/v1/popularity.json
-      # Only the shelves (and, from #66, the weekly report) may change.
-      - name: Guard the changed paths
+      # Taken before the model runs: the guard runs from this copy, and .git/config is restored from it afterwards
+      # (claude-code-action writes its token into the remote URL; a changed config could make git run a command).
+      - name: Keep trusted copies of the guard and the git config
         run: |
-          set -euo pipefail
-          status=0
-          while IFS= read -r line; do
-            path=${line:3}
-            case "$path" in
-              data/v1/popularity.json | docs/popularity/*) ;;
-              *)
-                echo "::error::Unexpected change: $path"
-                status=1
-                ;;
-            esac
-          done < <(git status --porcelain --untracked-files=all)
-          exit "$status"
+          mkdir "$RUNNER_TEMP/trusted"
+          cp scripts/popularity/report_guard.py .git/config "$RUNNER_TEMP/trusted/"
+      # The model's only inputs: numbers and maintainer-approved game names. It never sees issue text or fetched HTML.
+      - name: Stage the report inputs
+        if: github.event_name == 'schedule' || inputs.narrate
+        run: cp "$RUNNER_TEMP/result/summary.json" summary.json
+      # Write path rules are never consulted and a bare Write would allow writes anywhere on the runner, so the one
+      # file the model may create is granted as an Edit rule (Edit rules cover every file-writing tool). Reads stay
+      # inside the checkout; anything else is denied, because a headless session cannot ask.
+      - name: Write the weekly report with Claude
+        id: narrate
+        if: github.event_name == 'schedule' || inputs.narrate
+        continue-on-error: true
+        timeout-minutes: 15
+        uses: anthropics/claude-code-action@a26b07d8c778b0c43f64618e5fd29fd0f8af72e8 # v1.0.250
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ github.token }}
+          prompt: >-
+            You write the weekly popularity report for Dailies, a launcher for daily guessing games. Read summary.json
+            and data/v1/popularity.json. Write docs/popularity/${{ needs.compute.outputs.week }}.md, in English and
+            about 400 words of plain Markdown without emoji, starting with the heading
+            "# Popularity report ${{ needs.compute.outputs.week }}" and then these sections: Overview (3 to 5
+            sentences), a Popular table, a Trending table, Movers (the biggest rises and falls), and Data quality
+            (source health and carried-forward domains). Use only numbers present in the inputs; do not round, compute
+            or guess new ones, and do not speculate about causes the data does not show. Do not edit any other file.
+          claude_args: >-
+            --max-turns 6
+            --allowedTools "Edit(/docs/popularity/${{ needs.compute.outputs.week }}.md)"
+            --disallowedTools "Bash,NotebookEdit,WebSearch,WebFetch,mcp__*"
+      - name: Remove the report inputs and restore the git config
+        run: |
+          rm -f summary.json
+          cp "$RUNNER_TEMP/trusted/config" .git/config
+      # Downloaded again after the model ran, so the reference cannot have been touched.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: popularity-result
+          path: ${{ runner.temp }}/reference
+      # Only the shelves (byte-identical to the compute artifact) and the week's report may change; on success the
+      # report, if written, is linked from popularity.json.
+      - name: Guard the changed paths and link the report
+        run: >-
+          python3 -I "$RUNNER_TEMP/trusted/report_guard.py" --week "$WEEK"
+          --reference "$RUNNER_TEMP/reference/popularity.json" --git-config "$RUNNER_TEMP/trusted/config"
       - name: Create pull request
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         with:
           branch: data/popularity
           delete-branch: true
-          # #66 adds docs/popularity/ here with the report; a pathspec that matches no file makes `git add` fail.
-          add-paths: data/v1/popularity.json
+          # docs/popularity/ always exists (README.md), so the pathspec matches even in a week without a report.
+          add-paths: |
+            data/v1/popularity.json
+            docs/popularity/
           commit-message: "data(popularity): week ${{ needs.compute.outputs.week }}"
           title: "data(popularity): week ${{ needs.compute.outputs.week }}"
-          body-path: ${{ runner.temp }}/result/pr-body.md
+          body-path: ${{ runner.temp }}/reference/pr-body.md
           labels: |
             data
             automated

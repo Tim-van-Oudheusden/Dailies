@@ -9,22 +9,31 @@ Each entry gets one outcome:
     ok                       the game passed every check
     redirected-cross-domain  the link (or a redirect hop) leads to another site
     blocked-title            the page title holds a gambling keyword
+    hijacked                 the link leads to another site whose page title holds a gambling keyword
     http-<code>              the site answered a non-2xx status, e.g. http-404
     timeout                  a request or the page body took longer than 10 s
     unreachable              the host does not resolve, refuses the connection, or is not a public https site
-    bot-walled               a bot challenge (Cloudflare, or a 403 on an entry tagged bot-walled): a warning only
+    bot-walled               a bot challenge (Cloudflare, or a 403 or timeout on an entry tagged bot-walled): a warning
 
 Requests are polite: one at a time, so one host at a time (entries are grouped by host), at most two a second
 overall, with the validator's descriptive User-Agent.
 
 Usage:
     python -I scripts/check_links.py --catalog data/v1/games.json --out links.md [--open-issue] [--repo OWNER/REPO]
+        [--previous-state FILE] [--state-out FILE] [--status-out DIR]
 
 Writes a Markdown report (it starts with REPORT_MARKER) listing each failing or bot-walled game with its reason and a
 suggested status change. With --open-issue and at least one failure, it opens one issue "data: N broken links
 (week W)" labelled `data`, or updates the open one, through the GitHub API; the token comes from GH_TOKEN or
 GITHUB_TOKEN and the repository from --repo or GITHUB_REPOSITORY. Exits 0 when no entry failed (bot-walled warnings
 allowed), 1 when one did, and 2 on a usage or internal error, or when the issue could not be written.
+
+With --state-out or --status-out it also checks the `broken` entries (they are left out of the report and the exit
+code) and tracks streaks with scripts/lib/linkstatus.py: it reads the last run's streaks from --previous-state (a
+missing or unreadable file starts them over), writes this run's to --state-out and, when a game's status should
+change, writes DIR/changes.json (for scripts/apply_link_status.py) and DIR/pr-body.md. An active game failing the same
+check two weeks in a row becomes `broken`, a broken game passing two weeks in a row becomes `active` again, and a
+`hijacked` game is `retired` at once.
 """
 
 import argparse
@@ -46,6 +55,7 @@ import requests
 
 # scripts/lib is not a package and `python -I` leaves the script's directory off sys.path, so add it by path.
 sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
+import linkstatus
 import urlcheck
 
 REPORT_MARKER = "<!-- dailies-link-check -->"
@@ -124,6 +134,8 @@ class LinkResult:
     @property
     def suggested_status(self) -> str | None:
         """The status a maintainer should consider for the entry, or None to keep it active."""
+        if self.outcome == linkstatus.HIJACKED:
+            return "retired"
         return "broken" if self.failed else None
 
 
@@ -134,7 +146,7 @@ def _classify(error: urlcheck.CheckError, entry: dict[str, Any]) -> LinkResult:
             entry, "redirected-cross-domain", f"redirects to another site ({domain or error.url}): {reason}"
         )
     tagged = "bot-walled" in entry.get("tags", [])
-    if error.bot_wall or (tagged and error.status in urlcheck.BOT_WALL_STATUSES):
+    if error.bot_wall or (tagged and (error.timed_out or error.status in urlcheck.BOT_WALL_STATUSES)):
         return LinkResult(entry, "bot-walled", reason)
     if error.timed_out:
         return LinkResult(entry, "timeout", reason)
@@ -143,15 +155,31 @@ def _classify(error: urlcheck.CheckError, entry: dict[str, Any]) -> LinkResult:
     return LinkResult(entry, "unreachable", reason)
 
 
+def _gambling_title(url: str | None, session: urlcheck.Session, resolve: urlcheck.Resolver, keywords: list[str]) -> str:
+    """Why the page at `url` is a gambling page, or "" when it is not or cannot be read."""
+    if url is None:
+        return ""
+    try:
+        _final_url, title = urlcheck.read_title(url, session, resolve)
+    except urlcheck.CheckError:
+        return ""
+    keyword = urlcheck.blocked_keyword(title, keywords)
+    return "" if keyword is None else f'its page title "{title}" contains "{keyword}"'
+
+
 def check_entry(
     entry: dict[str, Any], session: urlcheck.Session, resolve: urlcheck.Resolver, blocklist: Iterable[str]
 ) -> LinkResult:
     """Check one catalog entry's link."""
-    site = urlcheck.check_site(entry["url"], entry["domain"], session, resolve, blocklist)
+    keywords = list(blocklist)
+    site = urlcheck.check_site(entry["url"], entry["domain"], session, resolve, keywords)
     error = site.unreachable or site.title_error
     if error is not None:
         return _classify(error, entry)
     if site.other_site is not None:
+        # A hijacked domain: retire the game at once instead of waiting for a second week.
+        if gambling := _gambling_title(site.other_url, session, resolve, keywords):
+            return LinkResult(entry, linkstatus.HIJACKED, f"{site.other_site}; {gambling}")
         return LinkResult(entry, "redirected-cross-domain", site.other_site)
     if site.keyword is not None:
         return LinkResult(entry, "blocked-title", f'title "{site.title}" contains "{site.keyword}"')
@@ -166,35 +194,35 @@ def _host(entry: dict[str, Any]) -> str:
 
 
 def check_catalog(
-    catalog: dict[str, Any], session: urlcheck.Session, resolve: urlcheck.Resolver, blocklist: Iterable[str]
+    catalog: dict[str, Any],
+    session: urlcheck.Session,
+    resolve: urlcheck.Resolver,
+    blocklist: Iterable[str],
+    statuses: Iterable[str] = ("active",),
 ) -> list[LinkResult]:
-    """Check every active entry, one host at a time.
+    """Check every entry with one of `statuses`, one host at a time.
 
     Returns:
-        One result per active entry, grouped by host.
+        One result per checked entry, grouped by host.
     """
     games = catalog["games"]
     if not isinstance(games, list) or not all(isinstance(game, dict) for game in games):
         msg = "the catalog's games is not a list of objects"
         raise TypeError(msg)
-    active = sorted((game for game in games if game.get("status") == "active"), key=lambda g: (_host(g), g["id"]))
+    wanted = frozenset(statuses)
+    checked = sorted((game for game in games if game.get("status") in wanted), key=lambda g: (_host(g), g["id"]))
     keywords = tuple(blocklist)
     results = []
-    for entry in active:
+    for entry in checked:
         result = check_entry(entry, session, resolve, keywords)
         sys.stderr.write(f"check_links: {entry['id']}: {result.outcome}\n")
         results.append(result)
     return results
 
 
-def _week(day: date) -> str:
-    iso = day.isocalendar()
-    return f"{iso.year}-W{iso.week:02d}"
-
-
 def issue_title(failures: int, day: date) -> str:
     """The title of the broken-links issue for a run on `day`."""
-    return f"data: {failures} broken links (week {_week(day)})"
+    return f"data: {failures} broken links (week {linkstatus.iso_week(day)})"
 
 
 def _suggestion(result: LinkResult) -> str:
@@ -211,7 +239,7 @@ def render_report(results: list[LinkResult], day: date) -> str:
     warnings = [result for result in results if result.warning]
     lines = [
         REPORT_MARKER,
-        f"### Link check: {len(failures)} broken links, {len(warnings)} bot-walled (week {_week(day)})",
+        f"### Link check: {len(failures)} broken links, {len(warnings)} bot-walled (week {linkstatus.iso_week(day)})",
         "",
         (
             f"Checked {len(results)} active entries of `data/v1/games.json` on {day.isoformat()} with the submission"
@@ -232,10 +260,46 @@ def render_report(results: list[LinkResult], day: date) -> str:
     lines += [
         "",
         (
-            "Fix a broken entry in a pull request: set its `status` to `broken` (or `retired` when the game has ended)"
-            " and add a matching `history` event; if the game moved, update its `url` and `domain` with a `url-changed`"
-            " event instead. Never delete an entry. ⚠️ bot-walled sites answer scripts with a bot challenge; they are"
-            " likely live, so they are warnings, not failures."
+            "An active game that fails the same check next week gets a `data/link-status` pull request that sets its"
+            " `status` to `broken`, and a `hijacked` game one that sets `retired` at once. A game that moved needs its"
+            " `url` and `domain` updated by hand with a `url-changed` event instead. Never delete an entry. ⚠️"
+            " bot-walled sites answer scripts with a bot challenge; they are likely live, so they are warnings, not"
+            " failures."
+        ),
+        "",
+    ]
+    return "\n".join(lines)
+
+
+STATUS_MARKER = "<!-- dailies-link-status -->"
+
+
+def render_pr_body(changes: list[linkstatus.Change], results: list[LinkResult], week: str) -> str:
+    """The Markdown body of the status pull request: one row per change, with the history note it adds."""
+    before = {result.entry["id"]: result.entry["status"] for result in results}
+    lines = [
+        STATUS_MARKER,
+        f"### Link status changes (week {week})",
+        "",
+        (
+            "The weekly link check (`scripts/check_links.py`, in the nightly compliance workflow) proposes these status"
+            " changes for `data/v1/games.json`: `broken` after the same failed check two weeks in a row, `active` again"
+            " after two passing weeks, `retired` at once when the link leads to a gambling page on another site."
+        ),
+        "",
+        "| Game | Status | History note |",
+        "| --- | --- | --- |",
+    ]
+    lines += [
+        f"| {urlcheck.table_cell(change.id)} | `{before.get(change.id, '?')}` → `{change.status}` "
+        f"| {urlcheck.table_cell(change.note)} |"
+        for change in changes
+    ]
+    lines += [
+        "",
+        (
+            "Open each game before merging. If a game only moved, close this pull request and update its `url` and"
+            " `domain` with a `url-changed` event instead. Entries are never deleted; a maintainer merges."
         ),
         "",
     ]
@@ -310,6 +374,31 @@ def _open_issue(api: Api | None, repo: str | None, title: str, body: str) -> boo
     return True
 
 
+def _track(
+    results: list[LinkResult], day: date, previous: Path | None, state_out: Path | None, status_out: Path | None
+) -> None:
+    """Update the streaks and, when a status should change, write the changes and the pull-request body."""
+    week = linkstatus.iso_week(day)
+    state: dict[str, Any] = {}
+    if previous is not None:
+        try:
+            state = linkstatus.load_state(previous)
+        except ValueError as error:
+            sys.stderr.write(f"check_links: {error}; starting the streaks over\n")
+    observations = [
+        linkstatus.Observation(result.entry["id"], result.entry["status"], result.outcome, result.reason)
+        for result in results
+    ]
+    state, changes = linkstatus.track(observations, state, week)
+    if state_out is not None:
+        linkstatus.write_state(state_out, state)
+    if status_out is not None and changes:
+        linkstatus.write_changes(status_out / "changes.json", week, changes)
+        (status_out / "pr-body.md").write_text(render_pr_body(changes, results, week), encoding="utf-8")
+    for change in changes:
+        sys.stderr.write(f"check_links: {change.id}: propose status {change.status}\n")
+
+
 def main(
     argv: list[str] | None = None,
     *,
@@ -336,14 +425,24 @@ def main(
     parser.add_argument("--out", type=Path, required=True, help="where to write the Markdown report")
     parser.add_argument("--open-issue", action="store_true", help="open or update the broken-links issue on failure")
     parser.add_argument("--repo", help="OWNER/REPO for --open-issue; GITHUB_REPOSITORY by default")
+    parser.add_argument("--previous-state", type=Path, help="the streaks the last run wrote (--state-out)")
+    parser.add_argument("--state-out", type=Path, help="where to write this run's streaks")
+    parser.add_argument("--status-out", type=Path, help="directory for changes.json and pr-body.md")
     args = parser.parse_args(argv)
     day = today or datetime.now(UTC).date()
     try:
         catalog = _load_catalog(args.catalog)
         with urlcheck.public_session() as default_session:
-            results = check_catalog(catalog, session or Throttle(default_session), resolve, urlcheck.load_blocklist())
+            statuses = ("active", "broken") if args.state_out or args.status_out else ("active",)
+            checked = check_catalog(
+                catalog, session or Throttle(default_session), resolve, urlcheck.load_blocklist(), statuses
+            )
+        # Broken entries are only checked to see whether they recovered: the report is about active ones.
+        results = [result for result in checked if result.entry["status"] == "active"]
         report = render_report(results, day)
         args.out.write_text(report, encoding="utf-8")
+        if args.state_out or args.status_out:
+            _track(checked, day, args.previous_state, args.state_out, args.status_out)
     except (OSError, KeyError, TypeError, ValueError) as error:
         sys.stderr.write(f"check_links: {error!r}\n")
         return 2

@@ -1,12 +1,21 @@
 #!/usr/bin/env python3
-"""Compute the weekly Popular and Trending shelves from the collected Tranco ranks (method_version 2).
+"""Compute the weekly Popular and Trending shelves from the collected popularity signals (method_version 2 or 3).
 
-Every number is deterministic: the same catalog, raw ranks, previous file, weights file and --now give a
+Every number is deterministic: the same catalog, raw signals, previous file, weights file and --now give a
 byte-identical popularity.json and summary.json. The method (docs/proposals/mvp-first.md section 8, decision #88):
 
 - tranco_score = clamp(1 - (log10(rank) - 2) / 4.5, 0, 1) on the mean of the last 7 daily ranks; no rank scores 0.
-- popularity = tranco_score while the other sources are off. Every game gets its registrable domain's full score.
-- A domain whose fetch failed keeps the game's popularity of last week (reason "carried_forward"), or 0 without one.
+- With only raw/tranco.json (method_version 2), popularity = tranco_score. Every game gets its registrable domain's
+  full score.
+- With any of raw/wikipedia.json, raw/hn.json or raw/radar.json (written by collect.py --wikipedia, --hn, --radar;
+  method_version 3), popularity is the weighted mean of the scores a game has (docs/research/data-pipeline.md 4.2):
+  tranco 0.80, wiki_score = clamp(log10(views_7d + 1) / 6, 0, 1) 0.15, hn_score = clamp(log10(stories_28d + 1) / 2,
+  0, 1) 0.05, radar_score = tranco_score of the Radar rank or bucket 0.20. A missing score (no `wikipedia` article,
+  a failed fetch, a source that is off or unusable) drops out and the remaining weights are renormalised.
+- An optional source is unusable when its collector reported an error (e.g. no Radar token) or more than 20 % of its
+  items failed; its health says so in `sources` and the week still computes.
+- A domain whose Tranco fetch failed keeps the game's popularity of last week (reason "carried_forward"), or 0
+  without one.
 - trend = popularity - mean of the previous 4 weeks' popularity; null until two prior weeks exist. The history comes
   from the previous popularity.json (up to 8 weeks per game) when its method_version matches.
 - N = max(5, min(12, 10 % of active games)). Popular: top N by popularity. Trending: trend > 0.02 outside the top 5
@@ -29,6 +38,7 @@ import math
 import sys
 import tempfile
 from collections import Counter
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -36,6 +46,7 @@ from typing import Any
 import jsonschema
 
 METHOD_VERSION = 2
+COMPOSITE_METHOD_VERSION = 3
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA = ROOT / "data" / "v1" / "schema" / "popularity.schema.json"
 VALIDITY = timedelta(days=10)
@@ -54,6 +65,20 @@ WEIGHT_TOLERANCE = 1e-9
 ATTRIBUTION = [
     "Tranco (https://tranco-list.eu): domain ranks, used with attribution; licence not stated by its maintainers",
 ]
+# The optional sources, the raw file key holding their items, and the scores field of their raw number.
+OPTIONAL_SOURCES = ("wikipedia", "hn", "radar")
+ITEMS = {"wikipedia": "articles", "hn": "games", "radar": "domains"}
+FIELDS = {"wikipedia": "wiki_views_7d", "hn": "hn_stories_28d", "radar": "radar_bucket"}
+# Proposed in docs/research/data-pipeline.md section 4.2 and issue #78; Radar's weight is ours (#78 left it open).
+WEIGHTS = {"tranco": 0.80, "wikipedia": 0.15, "hn": 0.05, "radar": 0.20}
+SOURCE_ATTRIBUTION = {
+    "wikipedia": "Wikimedia Analytics API (https://wikimedia.org/api/rest_v1/): English Wikipedia pageviews, CC0 1.0",
+    "hn": "Hacker News Search by Algolia (https://hn.algolia.com/api): Hacker News story counts",
+    "radar": (
+        "Cloudflare Radar (https://radar.cloudflare.com): domain ranking buckets, CC BY-NC 4.0; "
+        "used for non-commercial purposes only"
+    ),
+}
 
 
 class WeightsError(ValueError):
@@ -69,6 +94,16 @@ def tranco_score(rank: float | None) -> float:
     if rank is None:
         return 0.0
     return min(1.0, max(0.0, 1 - (math.log10(rank) - 2) / 4.5))
+
+
+def wiki_score(views: int) -> float:
+    """0.0 without views, 1.0 at a million views a week and above, log-linear between."""
+    return min(1.0, max(0.0, math.log10(views + 1) / 6))
+
+
+def hn_score(stories: int) -> float:
+    """0.0 without stories, 1.0 at 99 stories in 28 days and above, log-linear between."""
+    return min(1.0, max(0.0, math.log10(stories + 1) / 2))
 
 
 def mean_rank(ranks: list[dict[str, Any]]) -> float | None:
@@ -155,13 +190,13 @@ def capped(ordered: list[str], domains: dict[str, str], size: int, taken: list[s
     return shelf
 
 
-def prior_weeks(previous: dict[str, Any] | None, week: str) -> dict[str, list[float]]:
+def prior_weeks(previous: dict[str, Any] | None, week: str, method_version: int) -> dict[str, list[float]]:
     """Each game's popularity in the weeks before this one, newest first, at most HISTORY_WEEKS.
 
     A rerun in the same week replaces that week instead of counting it twice; history computed with another
     method_version is not comparable and is dropped.
     """
-    if not previous or previous.get("method_version") != METHOD_VERSION:
+    if not previous or previous.get("method_version") != method_version:
         return {}
     weeks = {}
     for game_id, score in previous.get("scores", {}).items():
@@ -180,49 +215,104 @@ def tranco_health(raw: dict[str, Any], domains: set[str]) -> tuple[int, list[str
     return len(domains) - len(failed) - len(unranked), failed, unranked
 
 
-def compute(
-    catalog: dict[str, Any],
-    raw: dict[str, Any],
-    previous: dict[str, Any] | None,
-    overrides: dict[str, dict[str, float]],
-    now: datetime,
-) -> tuple[dict[str, Any], dict[str, Any]]:
-    """Compute popularity.json and summary.json.
+def signal_key(name: str, game: dict[str, Any]) -> str:
+    """What an optional source is asked about: the domain for Radar, the game for the others."""
+    return game["domain"] if name == "radar" else game["id"]
 
-    Args:
-        catalog: The parsed games.json.
-        raw: The collector's raw/tranco.json.
-        previous: Last week's popularity.json, or None.
-        overrides: The checked domain_weights.json, from load_weights.
-        now: The generation time (UTC).
 
-    Returns:
-        The popularity.json and summary.json documents.
+@dataclass(frozen=True)
+class Signal:
+    """One optional source of one week: what was asked, what failed, and whether it is used at all."""
 
-    Raises:
-        SourceFailedError: Tranco failed for more than 20 % of the domains.
+    name: str
+    fetched_at: str
+    keys: frozenset[str]
+    failed: list[str]
+    error: str | None
+    entries: dict[str, dict[str, Any]]
+
+    def key(self, game: dict[str, Any]) -> str:
+        """What the source was asked about for `game`."""
+        return signal_key(self.name, game)
+
+    def value(self, game: dict[str, Any]) -> tuple[int | None, float | None]:
+        """The game's raw number for its scores field and its score in [0, 1]; (None, None) when it has none."""
+        entry = self.entries.get(self.key(game))
+        if entry is None:
+            return None, None
+        if self.name == "wikipedia":
+            return entry["views_7d"], wiki_score(entry["views_7d"])
+        if self.name == "hn":
+            return entry["stories_28d"], hn_score(entry["stories_28d"])
+        return entry.get("bucket"), tranco_score(entry.get("rank") or entry.get("bucket"))
+
+    def health(self) -> tuple[dict[str, Any], dict[str, Any]]:
+        """The entry for popularity.json `sources` and the one for summary.json."""
+        source: dict[str, Any] = {"ok": self.error is None, "fetched_at": self.fetched_at}
+        summary: dict[str, Any] = {
+            "ok": len(self.keys) - len(self.failed),
+            "failed": len(self.failed),
+            "count": len(self.keys),
+            "fetched_at": self.fetched_at,
+            "used": self.error is None,
+            "failed_domains" if self.name == "radar" else "failed_games": self.failed,
+        }
+        if self.error is not None:
+            source["error"] = summary["error"] = self.error
+        elif self.name == "radar":
+            source["domains_requested"] = len(self.keys)
+            source["domains_resolved"] = sum(1 for entry in self.entries.values() if entry.get("bucket") is not None)
+        return source, summary
+
+
+def read_signal(name: str, data: dict[str, Any], games: list[dict[str, Any]], now: datetime) -> Signal:
+    """An optional source's raw file, checked against the active games.
+
+    Wikipedia is asked about games with a `wikipedia` article, HN about every game, Radar about every domain. The
+    source is unused when its collector reported an error (e.g. no Radar token) or more than MAX_FAILED_SHARE of its
+    keys failed.
     """
-    games = active_games(catalog)
-    domains = {game["domain"] for game in games}
-    resolved, failed, unranked = tranco_health(raw, domains)
-    if len(failed) > MAX_FAILED_SHARE * len(domains) or not domains:
-        msg = f"Tranco failed for {len(failed)} of {len(domains)} domains (more than {MAX_FAILED_SHARE:.0%})"
-        raise SourceFailedError(msg)
+    keys = frozenset(signal_key(name, game) for game in games if name != "wikipedia" or game.get("wikipedia"))
+    entries = data.get(ITEMS[name], {})
+    failed = sorted(key for key in keys if not entries.get(key, {}).get("ok"))
+    error = data.get("error")
+    if error is None and len(failed) > MAX_FAILED_SHARE * len(keys):
+        error = f"{name} failed for {len(failed)} of {len(keys)} (more than {MAX_FAILED_SHARE:.0%})"
+    resolved = {} if error else {key: entries[key] for key in keys if key not in failed}
+    return Signal(name, data.get("fetched_at", timestamp(now)), keys, failed, error, resolved)
 
-    week = iso_week(now)
-    priors = prior_weeks(previous, week)
+
+def _scores(
+    games: list[dict[str, Any]],
+    tranco: dict[str, Any],
+    failed: list[str],
+    priors: dict[str, list[float]],
+    signals: list[Signal],
+) -> tuple[dict[str, dict[str, Any]], dict[str, str]]:
+    """Each game's scores entry and its shelf reason."""
     scores: dict[str, dict[str, Any]] = {}
     reasons: dict[str, str] = {}
     for game in games:
         game_id, domain = game["id"], game["domain"]
         prior = priors.get(game_id, [])
+        fields: dict[str, int | None] = {}
+        parts: list[tuple[float, float]] = []
+        for source in signals:
+            value, score = source.value(game)
+            fields[FIELDS[source.name]] = value
+            if score is not None:
+                parts.append((WEIGHTS[source.name], score))
         if domain in failed:
             rank = None
             popularity = prior[0] if prior else 0.0
             reasons[game_id] = "carried_forward" if prior else "score"
         else:
-            rank = mean_rank(raw["domains"][domain]["ranks"])
-            popularity = round(tranco_score(rank), DIGITS)
+            rank = mean_rank(tranco["domains"][domain]["ranks"])
+            combined = tranco_score(rank)
+            if parts:
+                parts.append((WEIGHTS["tranco"], combined))
+                combined = sum(weight * score for weight, score in parts) / sum(weight for weight, _ in parts)
+            popularity = round(combined, DIGITS)
             reasons[game_id] = "score"
         recent = prior[:TREND_WEEKS]
         trend = round(popularity - sum(recent) / len(recent), DIGITS) if len(recent) >= MIN_TREND_WEEKS else None
@@ -230,9 +320,19 @@ def compute(
             "popularity": popularity,
             "trend": trend,
             "tranco_rank": None if rank is None else round(rank),
+            **fields,
             "history": prior,
         }
+    return scores, reasons
 
+
+def _shelves(
+    games: list[dict[str, Any]],
+    scores: dict[str, dict[str, Any]],
+    reasons: dict[str, str],
+    overrides: dict[str, dict[str, float]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """The popular[] and trending[] shelves."""
     size = shelf_size(len(games))
     domain_of = {game["id"]: game["domain"] for game in games}
     order = weight_order(overrides)
@@ -270,11 +370,72 @@ def compute(
         {"id": game_id, "rank": index, "score": score, "delta": scores[game_id]["trend"], "reason": reason}
         for index, (game_id, score, reason) in enumerate(picks, start=1)
     ]
+    return popular, trending
 
-    fetched_at = raw["fetched_at"]
+
+def compute(
+    catalog: dict[str, Any],
+    raw: dict[str, dict[str, Any]],
+    previous: dict[str, Any] | None,
+    overrides: dict[str, dict[str, float]],
+    now: datetime,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Compute popularity.json and summary.json.
+
+    Args:
+        catalog: The parsed games.json.
+        raw: The collector's raw files by source: "tranco" always; any of "wikipedia", "hn" and "radar" makes the
+            score composite (method_version 3).
+        previous: Last week's popularity.json, or None.
+        overrides: The checked domain_weights.json, from load_weights.
+        now: The generation time (UTC).
+
+    Returns:
+        The popularity.json and summary.json documents.
+
+    Raises:
+        SourceFailedError: Tranco failed for more than 20 % of the domains.
+    """
+    tranco = raw["tranco"]
+    games = active_games(catalog)
+    domains = {game["domain"] for game in games}
+    resolved, failed, unranked = tranco_health(tranco, domains)
+    if len(failed) > MAX_FAILED_SHARE * len(domains) or not domains:
+        msg = f"Tranco failed for {len(failed)} of {len(domains)} domains (more than {MAX_FAILED_SHARE:.0%})"
+        raise SourceFailedError(msg)
+
+    signals = [read_signal(name, raw[name], games, now) for name in OPTIONAL_SOURCES if name in raw]
+    method_version = COMPOSITE_METHOD_VERSION if signals else METHOD_VERSION
+    week = iso_week(now)
+    scores, reasons = _scores(games, tranco, failed, prior_weeks(previous, week, method_version), signals)
+    popular, trending = _shelves(games, scores, reasons, overrides)
+
+    fetched_at = tranco["fetched_at"]
+    sources = {
+        "tranco": {
+            "ok": True,
+            "fetched_at": fetched_at,
+            "domains_requested": len(domains),
+            "domains_resolved": resolved,
+        },
+    }
+    summary_sources = {
+        "tranco": {
+            "ok": len(domains) - len(failed),
+            "failed": len(failed),
+            "count": len(domains),
+            "fetched_at": fetched_at,
+            "failed_domains": failed,
+            "unranked_domains": unranked,
+        },
+    }
+    for source in signals:
+        sources[source.name], summary_sources[source.name] = source.health()
+    used = [SOURCE_ATTRIBUTION[source.name] for source in signals if source.error is None]
+
     popularity_doc = {
         "schema_version": 1,
-        "method_version": METHOD_VERSION,
+        "method_version": method_version,
         "week": week,
         "generated_at": timestamp(now),
         "valid_until": timestamp(now + VALIDITY),
@@ -282,31 +443,15 @@ def compute(
         "popular": popular,
         "trending": trending,
         "scores": scores,
-        "sources": {
-            "tranco": {
-                "ok": True,
-                "fetched_at": fetched_at,
-                "domains_requested": len(domains),
-                "domains_resolved": resolved,
-            },
-        },
-        "attribution": ATTRIBUTION,
+        "sources": sources,
+        "attribution": ATTRIBUTION + used,
     }
     names = {game["id"]: game.get("name", game["id"]) for game in games}
     summary = {
         "week": week,
         "generated_at": timestamp(now),
-        "method_version": METHOD_VERSION,
-        "sources": {
-            "tranco": {
-                "ok": len(domains) - len(failed),
-                "failed": len(failed),
-                "count": len(domains),
-                "fetched_at": fetched_at,
-                "failed_domains": failed,
-                "unranked_domains": unranked,
-            },
-        },
+        "method_version": method_version,
+        "sources": summary_sources,
         "popular": [{"id": item["id"], "name": names[item["id"]], "score": item["score"]} for item in popular],
         "trending": [
             {"id": item["id"], "name": names[item["id"]], "delta": item["delta"], "reason": item["reason"]}
@@ -370,9 +515,11 @@ def main(argv: list[str] | None = None) -> int:
     Returns:
         0 when both files were written, 1 when the sources failed, 2 on a usage error or invalid input.
     """
-    parser = argparse.ArgumentParser(description="Compute the weekly popularity shelves from collected Tranco ranks.")
+    parser = argparse.ArgumentParser(description="Compute the weekly popularity shelves from the collected signals.")
     parser.add_argument("--catalog", type=Path, required=True, help="data/v1/games.json")
-    parser.add_argument("--raw", type=Path, required=True, help="the collector's output directory (tranco.json)")
+    parser.add_argument(
+        "--raw", type=Path, required=True, help="the collector's output directory (tranco.json; optional sources)"
+    )
     parser.add_argument("--out", type=Path, required=True, help="where to write popularity.json")
     parser.add_argument("--summary", type=Path, required=True, help="where to write summary.json")
     parser.add_argument("--previous", type=Path, help="last week's popularity.json; --out by default")
@@ -384,7 +531,8 @@ def main(argv: list[str] | None = None) -> int:
     weights_path = args.weights or args.catalog.parent / "domain_weights.json"
     try:
         catalog = _load(args.catalog)
-        raw = _load(args.raw / "tranco.json")
+        raw = {"tranco": _load(args.raw / "tranco.json")}
+        raw |= {name: _load(path) for name in OPTIONAL_SOURCES if (path := args.raw / f"{name}.json").exists()}
         previous = _load(previous_path) if previous_path.exists() else None
         overrides = load_weights(weights_path, catalog)
         popularity, summary = compute(catalog, raw, previous, overrides, args.now or datetime.now(UTC))

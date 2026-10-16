@@ -134,7 +134,7 @@ Flags are the tags software acts on:
 | `subscription-limited` | Part of the game, or of its archive, needs a paid subscription |
 | `weekdays-only` | A new puzzle on weekdays only |
 | `not-daily` | Not a once-a-day puzzle (endless or on demand); a few seed entries carry it; new submissions must be daily |
-| `bot-walled` | The site answers scripts with a bot challenge (HTTP 403 or a Cloudflare page), so automated checks cannot prove it is live |
+| `bot-walled` | The site answers scripts with a bot challenge (HTTP 403 or a Cloudflare page) or never answers them at all, so automated checks cannot prove it is live |
 | `low-confidence` | Some details (difficulty, free play, liveness) could not be confirmed |
 
 ## Difficulty
@@ -171,7 +171,7 @@ week's trend.
 | `scores` | object: game `id` → [score](#score) | no | Per-game detail behind the shelves |
 | `sources` | object: source name → [source health](#source-health) | yes | One entry per signal collected this week; `{}` when hand-curated |
 | `attribution` | array of strings | yes | Credit lines for every external source used, including its licence; `[]` when none was used |
-| `report` | string | no | Relative URL of the human-readable weekly report, e.g. `../docs/popularity/2026-W42.md` |
+| `report` | string | no | URL of the week's human-readable report relative to `popularity.json` on GitHub Pages, e.g. `../popularity/2026-W42.md` (`docs/popularity/2026-W42.md` in the repository). Set by the publish job only when a report was written; see [`docs/popularity/`](popularity/README.md) |
 
 ### Ranked item
 
@@ -190,9 +190,9 @@ week's trend.
 | `popularity` | number | yes | The game's popularity score this week |
 | `trend` | number or `null` | no | `popularity` minus the mean of the previous four weeks; `null` until two prior weeks exist |
 | `tranco_rank` | integer or `null` | no | Tranco rank of the game's `domain` (mean of the last seven daily ranks) |
-| `radar_bucket` | integer or `null` | no | Cloudflare Radar popularity bucket, if that source is enabled |
-| `wiki_views_7d` | integer or `null` | no | English Wikipedia pageviews over seven days, if enabled |
-| `hn_stories_28d` | integer or `null` | no | Hacker News stories over 28 days, if enabled |
+| `radar_bucket` | integer or `null` | no | Cloudflare Radar POPULAR bucket of the game's `domain` (e.g. `2000` for the top 2,000), written when Radar is enabled; `null` when Radar was unusable or the domain is not ranked |
+| `wiki_views_7d` | integer or `null` | no | English Wikipedia pageviews of the game's `wikipedia` article over seven days, written when Wikipedia is enabled; `null` without an article or when its fetch failed |
+| `hn_stories_28d` | integer or `null` | no | Hacker News stories of the last 28 days with the game's name in their title, written when HN is enabled; `null` when its fetch failed |
 | `shared_domain_weight` | number | no | Written only by `method_version: 1`: the share of a shared domain's score given to this game. Since `2` every game gets its domain's full score, so the field is left out |
 | `history` | array of numbers, at most 8 | no | Previous weekly `popularity` values, for the trend |
 
@@ -200,11 +200,11 @@ week's trend.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `ok` | boolean | yes | Whether the source was usable this week |
+| `ok` | boolean | yes | Whether the source was used this week |
 | `fetched_at` | string, `date-time` | yes | When it was queried |
-| `domains_resolved` | integer | no | Domains the source returned a value for |
-| `domains_requested` | integer | no | Domains asked for |
-| `error` | string | no | What went wrong, when `ok` is `false` |
+| `domains_resolved` | integer | no | Domains the source returned a value for (Tranco; Radar when used) |
+| `domains_requested` | integer | no | Domains asked for (Tranco; Radar when used) |
+| `error` | string | no | What went wrong, when `ok` is `false` (e.g. `CLOUDFLARE_RADAR_TOKEN is not set`) |
 
 ### How `method_version: 2` is computed
 
@@ -238,6 +238,39 @@ python -I scripts/popularity/compute.py --catalog data/v1/games.json --raw raw/ 
 - If Tranco failed for more than 20 % of the domains, `compute.py` exits 1 and writes nothing. It also writes
   `summary.json` (shelves with names, top movers, source health), the input for the weekly report.
 
+### How `method_version: 3` is computed
+
+The optional sources of #78 are off by default; each is a `collect.py` flag that writes one more raw file,
+and `compute.py` uses whichever files are in `--raw`:
+
+```sh
+python -I scripts/popularity/collect.py --catalog data/v1/games.json --out raw/ --wikipedia --hn --radar
+```
+
+| Flag | Raw file | Asks | Score |
+|---|---|---|---|
+| `--wikipedia` | `wikipedia.json` | Wikimedia Analytics API, user pageviews of each active game's `wikipedia` article over the seven full UTC days before the run (no key, a `DailiesPopularityBot` User-Agent with the repository URL, at most 2 requests a second) | `clamp(log10(views + 1) / 6, 0, 1)` |
+| `--hn` | `hn.json` | HN Search by Algolia, stories of the last 28 days with the game's `name` in their title (no key) | `clamp(log10(stories + 1) / 2, 0, 1)` |
+| `--radar` | `radar.json` | Cloudflare Radar `GET /radar/ranking/domain/{domain}?rankingType=POPULAR&format=JSON` per domain with the API token in `CLOUDFLARE_RADAR_TOKEN` | the Tranco formula on the Radar rank, else its bucket |
+
+With none of these files the output is exactly `method_version: 2`, byte for byte. With any of them the file is
+`method_version: 3` and a game's `popularity` is the weighted mean of the scores it has:
+
+$$popularity = \frac{\sum_s w_s \cdot score_s}{\sum_s w_s}, \quad w_{tranco} = 0.80,\ w_{wikipedia} = 0.15,\ w_{hn} = 0.05,\ w_{radar} = 0.20$$
+
+The first three weights are the proposal of `docs/research/data-pipeline.md` §4.2; #78 left Radar's open, and 0.20
+gives it a quarter of Tranco's say. A missing score drops out of both sums, so the other weights are renormalised:
+a game without a `wikipedia` article is not penalised for it, and neither is a game whose fetch failed. A whole source
+is left out, with `ok: false` and an `error` in `sources`, when its collector reported an error (no Radar token) or
+more than 20 % of its items failed; the week is still computed. Its `scores` field is then `null` for every game and
+its credit line is not added to `attribution`. History from `method_version: 2` is dropped for the trend.
+
+Notes on the signals: Wikipedia pageviews are lower than Tranco's score for almost every game (Wordle's 80,000 a week
+score 0.82), so a game with an article usually loses a little against one without; HN title search is noisy for
+common words (the game "Connections" matches unrelated stories). Both are why the weights stay small.
+`summary.json` lists each optional source's `ok`, `failed`, `count`, `used`, `error` and its `failed_games` (Wikipedia,
+HN) or `failed_domains` (Radar).
+
 ## Rules beyond the schemas
 
 `tests/data/test_catalog_file.py` enforces these on every pull request:
@@ -270,6 +303,11 @@ accepted when:
 - **Not a duplicate** of an existing URL, `id` or alias.
 - The submitter is not the author, or is and consents to the listing.
 
+A bot checks every submission when it is opened or edited and comments with the result (labels `validated` or
+`needs-changes`). When a maintainer adds `approved`, the checks run once more, and a passing submission becomes a pull
+request `data(games): add <name>` that adds the entry to `games.json` (sorted by `id`, with `source_issue` and an
+`added` history event) and closes the issue when merged. A submission that no longer passes gets a comment instead.
+
 Maintaining the catalog follows four rules:
 
 - **`id`s are immutable and never reused.** A renamed game keeps its `id`, gets a new `name`, the old name goes into
@@ -288,6 +326,8 @@ Maintaining the catalog follows four rules:
 - **Catalog** (`games.json` and the schemas): [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). Use it for
   anything, no attribution needed. Game names are trademarks of their owners; the catalog only links to their sites.
 - **Popularity data** (`popularity.json`): derived from third-party signals. Reuse it with the credit lines listed in
-  its `attribution[]` array, which names each source and its terms. The current hand-picked file
-  (`method_version: 0`) uses no external source, so its list is empty.
+  its `attribution[]` array, which names each source and its terms: Tranco (licence not stated), the Wikimedia
+  Analytics API (CC0 1.0), HN Search by Algolia, and Cloudflare Radar (CC BY-NC 4.0, so Radar-derived files are for
+  non-commercial use only; Dailies is non-commercial free software). Only sources used that week are listed. The
+  current hand-picked file (`method_version: 0`) uses no external source, so its list is empty.
 - The app's code is GPL-3.0-or-later (see [`LICENSE`](../LICENSE)).

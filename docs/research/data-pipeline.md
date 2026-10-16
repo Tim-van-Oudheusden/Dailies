@@ -177,6 +177,8 @@ Design (two workflows; the first runs on untrusted input with read-only token):
 
 Token facts [verified, create-pull-request README]: a PR created with the default `GITHUB_TOKEN` **does not trigger** `on: push`/`on: pull_request` workflows, so CI (schema check) would not run on it. Options: (a) use a fine-grained PAT (`contents`, `pull-requests` write) or a GitHub App token as `token:`; (b) run the schema check inside stage B before opening the PR and accept that the PR shows no checks; (c) use `workflows: write` if the PR could touch `.github/workflows` (it never should). The repository also needs "Allow GitHub Actions to create and approve pull requests" enabled under Settings > Actions > General. Repositories created after 2023-02-02 default `GITHUB_TOKEN` to read-only, so grant `contents: write` and `pull-requests: write` on the job.
 
+Shipped in #59 with option (b): stage B re-validates the entry and the whole catalog (`check-jsonschema`, `pytest tests/data`) before it opens the PR, and the maintainer merges with the ruleset's admin bypass because the required checks never appear. Option (a), a `DATA_BOT_TOKEN`, follows in #79.
+
 Full workflow skeletons are in Appendix A2/A3.
 
 ---
@@ -869,6 +871,8 @@ jobs:
           URL: ${{ steps.cpr.outputs.pull-request-url }}
         run: gh issue comment "$N" --body "Opened $URL. It will be merged after review."
 ```
+
+(The shipped `.github/workflows/game-submission-approve.yml`, #59, supersedes this skeleton: it re-runs `validate_submission.py`, comments and opens no PR when the submission became invalid, calls `add_game.py --entry result.json --catalog data/v1/games.json --pr-body … --github-output "$GITHUB_OUTPUT"` without icons (decision #17, icons in #77), runs `check-jsonschema` and `pytest tests/data`, and limits `add-paths` to `data/v1/games.json`. `peter-evans/create-pull-request` `v8.1.1` re-checked 2026-10-16: lightweight tag on commit `5f6978faf089d4d20b00c7766989d076bb2fc7f1`.)
 
 ### A4. `.github/workflows/popularity.yml` (skeleton)
 
