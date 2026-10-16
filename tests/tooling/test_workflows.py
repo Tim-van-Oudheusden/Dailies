@@ -364,6 +364,37 @@ def within(path: str, parent: str) -> bool:
     return path == parent or path.startswith(parent + "/") or fnmatch.fnmatchcase(path, parent)
 
 
+FLATHUB_MEDIA = "https://dl.flathub.org/media"
+FLATPAK_BUILDER_ACTION = "flatpak/flatpak-github-actions/flatpak-builder@"
+
+
+def screenshot_mirror_violations(name: str, workflow: dict) -> list[str]:
+    """A job that lints its exported repo by Flathub's rules without exceptions must mirror the screenshots.
+
+    Flathub's own build rewrites the screenshot URLs to dl.flathub.org/media and commits the images to the repo's
+    `screenshots/<arch>` ref; without that the repo lint fails with `appstream-external-screenshot-url` and
+    `appstream-screenshots-not-mirrored-in-ostree`, as the first v0.1.0 release run did.
+    """
+    violations = []
+    for job_id, job in jobs_of(workflow).items():
+        steps = job.get("steps") or []
+        strict_repo_lint = any(
+            "flatpak-builder-lint" in args and "repo" in args and "--exceptions" not in args
+            for step in steps
+            for args in (line.split() for line in str(step.get("run", "")).splitlines())
+        )
+        if not strict_repo_lint:
+            continue
+        builds = [step for step in steps if str(step.get("uses", "")).startswith(FLATPAK_BUILDER_ACTION)]
+        mirrors = [(step.get("with") or {}).get("mirror-screenshots-url") for step in builds]
+        if not builds or any(mirror != FLATHUB_MEDIA for mirror in mirrors):
+            violations.append(
+                f"{name}: job {job_id} lints its repo without exceptions but does not mirror screenshots to "
+                f"{FLATHUB_MEDIA}"
+            )
+    return violations
+
+
 # --- the repository's files -------------------------------------------------------------------------------------------
 
 FILES = workflow_files()
@@ -435,6 +466,11 @@ def test_pages_publishes_every_data_file() -> None:
     data_files = sorted(str(path.relative_to(ROOT)) for path in (ROOT / "data" / "v1").glob("*.json"))
     assert data_files
     assert pages_violations(load(WORKFLOWS / "pages.yml"), data_files) == []
+
+
+@pytest.mark.parametrize("path", FILES, ids=IDS)
+def test_strict_repo_lint_builds_with_mirrored_screenshots(path: Path) -> None:
+    assert screenshot_mirror_violations(path.name, load(path)) == []
 
 
 # --- each check catches a broken fixture ------------------------------------------------------------------------------
@@ -695,3 +731,35 @@ jobs:
           path: data/v1/
 """)
     assert pages_violations(workflow, ["data/v1/games.json"]) == []
+
+
+def strict_lint_fixture(mirror: str | None, lint: str = "flatpak-builder-lint --gha-format repo repo") -> dict:
+    with_mirror = f"\n          mirror-screenshots-url: {mirror}" if mirror else ""
+    return load_yaml(f"""
+jobs:
+  build:
+    steps:
+      - uses: {FLATPAK_BUILDER_ACTION}79327416609af08178ad73b352877e51450790b3 # v6.8
+        with:
+          manifest-path: app.json{with_mirror}
+      - run: {lint}
+""")
+
+
+def test_fixture_strict_repo_lint_without_mirrored_screenshots_fails() -> None:
+    assert screenshot_mirror_violations("release.yml", strict_lint_fixture(None)) == [
+        f"release.yml: job build lints its repo without exceptions but does not mirror screenshots to {FLATHUB_MEDIA}"
+    ]
+
+
+def test_fixture_strict_repo_lint_mirroring_elsewhere_fails() -> None:
+    assert screenshot_mirror_violations("release.yml", strict_lint_fixture("https://example.org/media"))
+
+
+def test_fixture_strict_repo_lint_with_mirrored_screenshots_passes() -> None:
+    assert screenshot_mirror_violations("release.yml", strict_lint_fixture(FLATHUB_MEDIA)) == []
+
+
+def test_fixture_repo_lint_with_exceptions_needs_no_mirror() -> None:
+    lint = "flatpak-builder-lint --exceptions --user-exceptions lint-exceptions.json repo repo"
+    assert screenshot_mirror_violations("ci.yml", strict_lint_fixture(None, lint)) == []
