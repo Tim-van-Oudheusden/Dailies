@@ -23,6 +23,12 @@ Play your daily guessing games in one place
   <img src="data/screenshots/3.png" width="440" alt="Absurdle being played in the built-in browser, with back, forward and reload buttons and the page title and host in the header bar.">
 </p>
 
+<p align="center">
+  <a href="https://youtu.be/LrEyWpnOZiE"><img src="https://img.youtube.com/vi/LrEyWpnOZiE/maxresdefault.jpg" width="640" alt="Introduction video thumbnail: game tiles for Wordle, Worldle, Bandle, Connections and other daily games around the line &quot;One home for your daily games&quot;. Opens the video on YouTube."></a>
+  <br>
+  <a href="https://youtu.be/LrEyWpnOZiE">Watch the introduction video on YouTube</a>
+</p>
+
 ## Status
 
 Early: releases are still 0.x, and the newest is on the
