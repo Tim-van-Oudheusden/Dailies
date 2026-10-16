@@ -235,7 +235,10 @@ Pushing the tag runs `.github/workflows/release.yml`:
    anything is built or published.
 2. **Build** builds the release manifest for x86_64 (`ubuntu-latest`) and aarch64 (`ubuntu-24.04-arm`) in the
    `gnome-51` image, and runs `flatpak-builder-lint` on the manifest before and the repo after, with Flathub's rules
-   and no exceptions.
+   and no exceptions. Like Flathub's builders, it mirrors the screenshots: it downloads them from the metainfo's tag
+   URLs (so they only resolve once the tag is pushed), rewrites them to `dl.flathub.org/media` and commits them to
+   the repo, which the repo lint requires. Until Dailies is on Flathub those media URLs do not resolve, so a software
+   centre shows no screenshots for a release bundle.
 3. **Publish** creates the GitHub Release with `Dailies-x86_64.flatpak`, `Dailies-aarch64.flatpak` and `SHA256SUMS`.
    The body (`scripts/release_check.py notes`) is the newest metainfo release's description and the install
    instructions, followed by notes generated from the merged PRs (`.github/release.yml` sorts them into categories).

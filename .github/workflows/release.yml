@@ -79,6 +79,10 @@ jobs:
         run: flatpak-builder-lint --gha-format manifest "$MANIFEST"
       # Builds the commit pinned in the manifest, exports repo/, writes the bundle and uploads it as an artifact.
       # No cache: a cache saved on a tag can only be restored by runs on that same tag.
+      # Screenshots are mirrored as on Flathub's builders: compose downloads the metainfo's tag URLs (so the tag must
+      # exist), rewrites them to dl.flathub.org/media and the action commits the images to the screenshots/<arch> ref.
+      # The repo lint below requires both. Until Dailies is on Flathub those media URLs do not resolve, so software
+      # centres show no screenshots for the bundle.
       - name: Build Flatpak
         uses: flatpak/flatpak-github-actions/flatpak-builder@79327416609af08178ad73b352877e51450790b3 # v6.8
         with:
@@ -88,6 +92,7 @@ jobs:
           arch: ${{ matrix.arch }}
           branch: stable
           cache: false
+          mirror-screenshots-url: https://dl.flathub.org/media
       - name: Lint exported repo
         run: flatpak-builder-lint --gha-format repo repo
 
