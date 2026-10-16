@@ -32,14 +32,16 @@ def popularity_bytes(**overrides: object) -> bytes:
 
 
 def test_the_published_file_parses() -> None:
+    # popularity.yml rewrites the file every week, so compare with its current contents instead of pinning them.
+    raw = json.loads(PUBLISHED.read_bytes())
     parsed = popularity.parse(PUBLISHED.read_bytes())
-    assert parsed.week == "2026-W42"
-    assert parsed.generated_at == datetime(2026, 10, 15, 12, tzinfo=UTC)
-    assert parsed.valid_until == VALID_UNTIL
-    assert parsed.popular[:3] == ("wordle", "nyt-connections", "nyt-strands")
-    assert len(parsed.popular) == 11
-    assert parsed.trending[0] == "nyt-pips"
-    assert parsed.scores == {}
+    assert parsed.week == raw["week"]
+    assert parsed.generated_at == datetime.fromisoformat(raw["generated_at"])
+    assert parsed.valid_until == datetime.fromisoformat(raw["valid_until"])
+    assert parsed.popular == tuple(entry["id"] for entry in sorted(raw["popular"], key=lambda e: e["rank"]))
+    assert parsed.trending == tuple(entry["id"] for entry in sorted(raw["trending"], key=lambda e: e["rank"]))
+    assert parsed.popular
+    assert parsed.scores == raw.get("scores", {})
 
 
 def test_shelves_are_ordered_by_rank_not_file_order() -> None:

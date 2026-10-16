@@ -42,12 +42,15 @@ def test_a_change_touches_only_its_entry_and_generated_at(tmp_path: Path) -> Non
 
     assert run(catalog, changes) == 0
 
-    before = CATALOG.read_text(encoding="utf-8").splitlines()
+    before_text = CATALOG.read_text(encoding="utf-8")
+    before = before_text.splitlines()
     after = catalog.read_text(encoding="utf-8").splitlines()
     changed = [line for line in difflib.unified_diff(before, after, lineterm="", n=0) if line[:1] in "+-"]
     removed = [line for line in changed[2:] if line.startswith("-")]
     added = [line for line in changed[2:] if line.startswith("+")]
-    assert removed == ['-  "generated_at": "2026-10-15T12:00:00Z",', '-      "status": "active",']
+    # The live catalog's stamp changes with every data PR, so read it instead of pinning it.
+    old_stamp = json.loads(before_text)["generated_at"]
+    assert removed == [f'-  "generated_at": "{old_stamp}",', '-      "status": "active",']
     assert added == [
         '+  "generated_at": "2026-10-18T03:30:05Z",',
         '+      "status": "broken",',

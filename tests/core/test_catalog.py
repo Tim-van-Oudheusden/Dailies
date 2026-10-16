@@ -1,5 +1,5 @@
 import json
-from datetime import UTC, date, datetime
+from datetime import date, datetime
 from pathlib import Path
 
 import pytest
@@ -38,8 +38,10 @@ def parse_one(**overrides: object) -> Game:
 
 
 def test_the_published_seed_parses() -> None:
+    raw = json.loads(SEED.read_bytes())
     parsed = catalog.parse(SEED.read_bytes())
-    assert parsed.generated_at == datetime(2026, 10, 15, 12, tzinfo=UTC)
+    # The data pipelines rewrite generated_at on every change, so compare it with the file instead of pinning it.
+    assert parsed.generated_at == datetime.fromisoformat(raw["generated_at"])
     assert len(parsed.games) > 100
     worldle = parsed.get("worldle")
     assert worldle is not None
