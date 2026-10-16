@@ -579,7 +579,7 @@ def test_without_optional_sources_output_is_byte_identical_to_method_version_2(t
         assert (tmp_path / f"{name}.json").read_bytes() == expected
 
 
-# --- composite score (method_version 3) ------------------------------------------------------------------------------
+# --- composite score (method_version 4) ------------------------------------------------------------------------------
 
 
 def wikipedia(views: dict[str, int | None], error: str | None = None) -> dict[str, Any]:
@@ -630,16 +630,16 @@ def test_wikipedia_and_hn_scores_follow_the_formulas() -> None:
 
 
 def test_composite_weighs_tranco_wikipedia_and_hn() -> None:
-    # tranco 1.0, wikipedia 0.5, hn 0.5: 0.8 * 1 + 0.15 * 0.5 + 0.05 * 0.5 = 0.9.
+    # tranco 1.0, wikipedia 1.0, hn 0.5: 0.8 * 1 + 0.15 * 1 + 0.05 * 0.5 = 0.975, above 0.825 / 0.85 without Wikipedia.
     cat = catalog(wiki_game("solo", "Solo"))
-    extras = {"wikipedia": wikipedia({"solo": 999}), "hn": hn({"solo": 9})}
+    extras = {"wikipedia": wikipedia({"solo": 10**6}), "hn": hn({"solo": 9})}
     popularity, _ = compute.compute(cat, {**raw({"solo.com": ranks(100)}), **extras}, None, {}, NOW)
-    assert popularity["method_version"] == 3
+    assert popularity["method_version"] == 4
     assert popularity["scores"]["solo"] == {
-        "popularity": 0.9,
+        "popularity": 0.975,
         "trend": None,
         "tranco_rank": 100,
-        "wiki_views_7d": 999,
+        "wiki_views_7d": 10**6,
         "hn_stories_28d": 9,
         "history": [],
     }
@@ -654,13 +654,52 @@ def test_game_without_a_wikipedia_article_is_renormalised_over_the_other_sources
     assert popularity["scores"]["solo"]["wiki_views_7d"] is None
 
 
+def test_wikipedia_raises_a_score_but_never_lowers_it() -> None:
+    # tranco 0.5 (rank 10^4.25): 999 views (0.5) leave it, 10^6 views (1.0) give (0.8 * 0.5 + 0.15) / 0.95. Tranco 1.0:
+    # 999 views would give (0.8 + 0.15 * 0.5) / 0.95, so they count for nothing and the game keeps 1.0.
+    games = [wiki_game("low", "Low"), wiki_game("high", "High"), wiki_game("top", "Top")]
+    data = raw({"low.com": ranks(round(10**4.25)), "high.com": ranks(round(10**4.25)), "top.com": ranks(100)})
+    views = wikipedia({"low": 999, "high": 10**6, "top": 999})
+    popularity, _ = compute.compute(catalog(*games), {**data, "wikipedia": views}, None, {}, NOW)
+    tranco = compute.tranco_score(round(10**4.25))
+    assert popularity["scores"]["low"]["popularity"] == round(tranco, 4)
+    assert popularity["scores"]["high"]["popularity"] == round((0.8 * tranco + 0.15) / 0.95, 4)
+    assert popularity["scores"]["top"]["popularity"] == 1.0
+    assert popularity["scores"]["top"]["wiki_views_7d"] == 999
+
+
+def test_wikipedia_is_a_bonus_over_the_other_sources() -> None:
+    # tranco 1.0, hn 0.0: 0.8 / 0.85 without Wikipedia; 999 views (0.5) would lower that, 10^6 views raise it.
+    games = [wiki_game("some", "Some"), wiki_game("many", "Many")]
+    data = raw({"some.com": ranks(100), "many.com": ranks(100)})
+    extras = {"wikipedia": wikipedia({"some": 999, "many": 10**6}), "hn": hn({"some": 0, "many": 0})}
+    popularity, _ = compute.compute(catalog(*games), {**data, **extras}, None, {}, NOW)
+    assert popularity["scores"]["some"]["popularity"] == round(0.8 / 0.85, 4)
+    assert popularity["scores"]["many"]["popularity"] == round(0.95 / 1.0, 4)
+
+
+def test_an_article_does_not_reorder_a_shared_domain() -> None:
+    # #136: every nytimes.com game has the same Tranco score. Wordle's and Connections' articles score below it, and
+    # used to drop them below The Mini, which has none, ahead of the order in domain_weights.json.
+    nyt = [wiki_game("wordle", "Wordle"), wiki_game("nyt-connections", "Connections"), game("nyt-mini-crossword")]
+    nyt = [{**entry, "domain": "nytimes.com"} for entry in nyt]
+    solos = [game(f"solo-{index}") for index in range(3)]
+    data = raw({"nytimes.com": ranks(156), **{entry["domain"]: ranks(40000) for entry in solos}})
+    views = wikipedia({"wordle": 93522, "nyt-connections": 1776})
+    weights = {"nytimes.com": {"wordle": 0.35, "nyt-connections": 0.2, "nyt-mini-crossword": 0.1}}
+    popularity, _ = compute.compute(catalog(*nyt, *solos), {**data, "wikipedia": views}, None, weights, NOW)
+    domain_score = round(compute.tranco_score(156), 4)
+    assert {popularity["scores"][entry["id"]]["popularity"] for entry in nyt} == {domain_score}
+    assert [item["id"] for item in popularity["popular"]][:2] == ["wordle", "nyt-connections"]
+
+
 def test_failed_article_is_renormalised_and_listed_in_the_summary() -> None:
     games = [wiki_game(f"game-{index}", f"Game {index}") for index in range(6)]
     data = raw({entry["domain"]: ranks(100) for entry in games})
-    views = {f"game-{index}": None if index == 0 else 999 for index in range(6)}
+    views = {f"game-{index}": None if index == 0 else 10**6 for index in range(6)}
     popularity, summary = compute.compute(catalog(*games), {**data, "wikipedia": wikipedia(views)}, None, {}, NOW)
     assert popularity["scores"]["game-0"]["popularity"] == 1.0
-    assert popularity["scores"]["game-1"]["popularity"] == round((0.8 + 0.15 * 0.5) / 0.95, 4)
+    assert popularity["scores"]["game-1"]["popularity"] == round((0.8 + 0.15 * 1.0) / 0.95, 4)
     assert popularity["sources"]["wikipedia"] == {"ok": True, "fetched_at": FETCHED}
     assert summary["sources"]["wikipedia"]["failed"] == 1
     assert summary["sources"]["wikipedia"]["failed_games"] == ["game-0"]
@@ -687,7 +726,7 @@ def test_radar_without_a_token_is_reported_and_left_out() -> None:
     cat = catalog(game("solo"))
     extras = {"radar": radar(error="CLOUDFLARE_RADAR_TOKEN is not set")}
     popularity, summary = compute.compute(cat, {**raw({"solo.com": ranks(1000)}), **extras}, None, {}, NOW)
-    assert popularity["method_version"] == 3
+    assert popularity["method_version"] == 4
     assert popularity["scores"]["solo"]["popularity"] == round(compute.tranco_score(1000), 4)
     assert popularity["scores"]["solo"]["radar_bucket"] is None
     assert popularity["sources"]["radar"] == {
@@ -720,16 +759,18 @@ def test_optional_source_failing_for_more_than_twenty_percent_is_left_out() -> N
     }
 
 
-def test_composite_ignores_method_version_2_history() -> None:
-    last = previous("2026-W42", {"game-00": (0.5, [0.5])}, method_version=2)
+@pytest.mark.parametrize("method_version", [2, 3])
+def test_composite_ignores_history_from_an_earlier_method_version(method_version: int) -> None:
+    # method_version 3 let a Wikipedia score below the others lower the game's popularity (#136).
+    last = previous("2026-W42", {"game-00": (0.5, [0.5])}, method_version=method_version)
     cat, data = simple(1)
     popularity, _ = compute.compute(cat, {**data, "hn": hn({"game-00": 0})}, last, {}, NOW)
     assert popularity["scores"]["game-00"]["history"] == []
     assert popularity["scores"]["game-00"]["trend"] is None
 
 
-def test_composite_keeps_method_version_3_history() -> None:
-    last = previous("2026-W42", {"game-00": (0.5, [0.5])}, method_version=3)
+def test_composite_keeps_method_version_4_history() -> None:
+    last = previous("2026-W42", {"game-00": (0.5, [0.5])}, method_version=4)
     cat, data = simple(1)
     popularity, _ = compute.compute(cat, {**data, "hn": hn({"game-00": 0})}, last, {}, NOW)
     assert popularity["scores"]["game-00"]["history"] == [0.5, 0.5]
@@ -748,7 +789,7 @@ def test_composite_output_validates_against_the_schema() -> None:
     popularity, summary = compute.compute(catalog(*games), {**data, **extras}, None, {}, NOW)
     jsonschema.Draft202012Validator(SCHEMA).validate(popularity)
     assert set(popularity["sources"]) == {"tranco", "wikipedia", "hn", "radar"}
-    assert summary["method_version"] == 3
+    assert summary["method_version"] == 4
     assert summary["sources"]["radar"]["failed_domains"] == ["tiny.com"]
     assert len(popularity["attribution"]) == 4
 
@@ -758,5 +799,5 @@ def test_main_reads_the_optional_raw_files(tmp_path: Path) -> None:
     write_json(tmp_path / "raw" / "hn.json", hn({f"game-{index:03d}": 0 for index in range(100)}))
     assert compute.main(args) == 0
     popularity = json.loads((tmp_path / "popularity.json").read_text(encoding="utf-8"))
-    assert popularity["method_version"] == 3
+    assert popularity["method_version"] == 4
     assert popularity["sources"]["hn"] == {"ok": True, "fetched_at": FETCHED}
