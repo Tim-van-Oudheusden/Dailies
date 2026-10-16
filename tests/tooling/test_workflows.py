@@ -247,6 +247,26 @@ def sender_association_violations(name: str, workflow: dict) -> list[str]:
     return []
 
 
+PER_EVENT_GATE = re.compile(r"\bgithub\.event\.(?:label\.name|comment\.body|review\.body)\b")
+
+
+def gated_concurrency_violations(name: str, workflow: dict) -> list[str]:
+    """A workflow-level group is resolved before the job's `if`, so with a per-event gate (one label, one command) a
+    burst of unrelated events replaces the pending run that was really asked for. Put the group on the gated job, or
+    give ungated events a group of their own with `github.run_id` as claude.yml does."""
+    concurrency = workflow.get("concurrency")
+    if concurrency is None:
+        return []
+    group = str(concurrency.get("group", "") if isinstance(concurrency, dict) else concurrency)
+    if "github.run_id" in group:
+        return []
+    return [
+        f"{name}: job {job_id} gates on one event under a workflow-level concurrency group; put the group on the job"
+        for job_id, job in jobs_of(workflow).items()
+        if PER_EVENT_GATE.search(str(job.get("if", "")))
+    ]
+
+
 def pull_request_target_violations(name: str, workflow: dict) -> list[str]:
     if "pull_request_target" not in triggers_of(workflow):
         return []
@@ -502,6 +522,11 @@ def test_no_guard_reads_the_senders_author_association(path: Path) -> None:
 
 
 @pytest.mark.parametrize("path", FILES, ids=IDS)
+def test_a_per_event_gate_does_not_share_a_workflow_level_group(path: Path) -> None:
+    assert gated_concurrency_violations(path.name, load(path)) == []
+
+
+@pytest.mark.parametrize("path", FILES, ids=IDS)
 def test_pull_request_target_only_in_labeler_without_checkout(path: Path) -> None:
     assert pull_request_target_violations(path.name, load(path)) == []
 
@@ -713,6 +738,52 @@ jobs:
     if: contains(fromJSON('["OWNER"]'), github.event.comment.author_association)
 """)
     assert sender_association_violations("x.yml", workflow) == []
+
+
+def test_fixture_label_gate_under_a_workflow_level_group_fails() -> None:
+    workflow = load_yaml("""
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.issue.number }}
+jobs:
+  add:
+    if: github.event.label.name == 'approved'
+""")
+    assert gated_concurrency_violations("x.yml", workflow) == [
+        "x.yml: job add gates on one event under a workflow-level concurrency group; put the group on the job"
+    ]
+
+
+@pytest.mark.parametrize(
+    "workflow",
+    [
+        # The group sits on the gated job, so a skipped event never joins it.
+        """
+jobs:
+  add:
+    if: github.event.label.name == 'approved'
+    concurrency:
+      group: add
+""",
+        # Ungated events get a group of their own (claude.yml).
+        """
+concurrency:
+  group: c-${{ github.event.label.name == 'x' && 'queue' || github.run_id }}
+jobs:
+  run:
+    if: github.event.label.name == 'x'
+""",
+        # The gate reads issue state, which every event on the issue shares (game-submission-check.yml).
+        """
+concurrency:
+  group: c-${{ github.event.issue.number }}
+jobs:
+  check:
+    if: contains(github.event.issue.labels.*.name, 'game-submission')
+""",
+    ],
+)
+def test_fixture_gate_with_its_own_group_passes(workflow: str) -> None:
+    assert gated_concurrency_violations("x.yml", load_yaml(workflow)) == []
 
 
 def test_fixture_pull_request_target_outside_labeler_fails() -> None:
