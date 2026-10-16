@@ -70,6 +70,10 @@ JOB_PERMISSIONS: dict[tuple[str, str], dict[str, str]] = {
 # (`docker://image@sha256:<64 hex>`); external-data-checker.yml does.
 DOCKER_TAG_ALLOWLIST: dict[str, str] = {}
 
+# Job `container:` images referenced by tag instead of a digest, with the reason. Pin by digest
+# (`image@sha256:<64 hex>`, with a `# <tag> as of <date>` comment); CONTRIBUTING.md says how to bump one.
+CONTAINER_TAG_ALLOWLIST: dict[str, str] = {}
+
 # The labels documented in #18, which the owner created by hand; actions/labeler cannot create them.
 LABELS = frozenset(
     {
@@ -132,6 +136,16 @@ def jobs_of(workflow: dict) -> dict[str, dict]:
 
 def steps_of(workflow: dict) -> list[tuple[str, dict]]:
     return [(job_id, step) for job_id, job in jobs_of(workflow).items() for step in job.get("steps") or []]
+
+
+def container_images_of(workflow: dict) -> list[tuple[str, str]]:
+    """(job id, image) for every job that runs in a container; `container:` is an image string or a mapping."""
+    images = []
+    for job_id, job in jobs_of(workflow).items():
+        container = job.get("container")
+        if container is not None:
+            images.append((job_id, str(container.get("image") if isinstance(container, dict) else container)))
+    return images
 
 
 def triggers_of(workflow: dict) -> set[str]:
@@ -197,6 +211,14 @@ def uses_violations(
         elif not VERSION_COMMENT.match(comment):
             violations.append(f"{name}: {ref} has no `# vX.Y.Z` version comment")
     return violations
+
+
+def container_violations(name: str, workflow: dict, allowlist: dict[str, str] = CONTAINER_TAG_ALLOWLIST) -> list[str]:
+    return [
+        f"{name}: job {job_id} container image {image} is neither pinned by digest nor in CONTAINER_TAG_ALLOWLIST"
+        for job_id, image in container_images_of(workflow)
+        if not DOCKER_DIGEST.search(image) and image not in allowlist
+    ]
 
 
 def event_in_run_violations(name: str, workflow: dict) -> list[str]:
@@ -460,6 +482,16 @@ def test_every_docker_allowlist_entry_is_used() -> None:
 
 
 @pytest.mark.parametrize("path", FILES, ids=IDS)
+def test_job_containers_are_pinned_by_digest(path: Path) -> None:
+    assert container_violations(path.name, load(path)) == []
+
+
+def test_every_container_allowlist_entry_is_used() -> None:
+    images = {image for path in FILES for _, image in container_images_of(load(path))}
+    assert sorted(set(CONTAINER_TAG_ALLOWLIST) - images) == []
+
+
+@pytest.mark.parametrize("path", FILES, ids=IDS)
 def test_no_event_field_is_interpolated_into_run(path: Path) -> None:
     assert event_in_run_violations(path.name, load(path)) == []
 
@@ -605,6 +637,45 @@ jobs:
     assert uses_violations("x.yml", load_yaml(text), text) == [
         "x.yml: `uses: actions/checkout@v7` is not on a plain `uses:` line"
     ]
+
+
+@pytest.mark.parametrize(
+    "container",
+    [
+        "\n      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-51\n      options: --privileged",
+        " ghcr.io/flathub-infra/flatpak-github-actions:gnome-51",
+        f"\n      image: ghcr.io/flathub-infra/flatpak-github-actions@sha256:{'a' * 63}",
+    ],
+    ids=["mapping", "string", "short-digest"],
+)
+def test_fixture_container_image_by_tag_fails(container: str) -> None:
+    workflow = load_yaml(f"""
+jobs:
+  flatpak:
+    container:{container}
+""")
+    violations = container_violations("x.yml", workflow, allowlist={})
+    assert len(violations) == 1
+    assert "job flatpak container image" in violations[0]
+    assert "neither pinned by digest nor in CONTAINER_TAG_ALLOWLIST" in violations[0]
+
+
+def test_fixture_container_image_by_digest_or_allowlisted_tag_passes() -> None:
+    workflow = load_yaml(f"""
+jobs:
+  flatpak:
+    container:
+      # gnome-51 as of 2026-10-16
+      image: ghcr.io/flathub-infra/flatpak-github-actions@sha256:{"a" * 64}
+      options: --privileged
+  short:
+    container: ghcr.io/flathub-infra/flatpak-github-actions:gnome-51@sha256:{"b" * 64}
+  reviewed:
+    container: example.org/tagged:1
+  host:
+    runs-on: ubuntu-latest
+""")
+    assert container_violations("x.yml", workflow, allowlist={"example.org/tagged:1": "fixture"}) == []
 
 
 def test_fixture_event_field_in_run_fails() -> None:
