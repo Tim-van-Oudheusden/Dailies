@@ -35,3 +35,5 @@ Every runbook here should say which of the two paths it concerns.
 - [Weekly popularity pull request missing or wrong](popularity.md): the Monday `data(popularity)` pull request did not
   appear, failed, or shows wrong shelves.
 - [Re-enable a scheduled workflow](re-enable-cron.md): no Monday popularity pull request; the app shows "as of".
+- [Game link hijacked, moved or dead](catalog-link.md): a catalog entry leads somewhere it should not; retire, break or
+  move it by hand without waiting for the weekly link check.
