@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-10-15T12:00:00Z",
+  "generated_at": "2026-10-16T13:07:59Z",
   "games": [
     {
       "id": "absurdle",
@@ -48,6 +48,30 @@
           "date": "2026-10-15",
           "event": "added",
           "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "angle",
+      "name": "Angle",
+      "url": "https://angle.wtf/",
+      "category": "numbers-logic",
+      "difficulty": "easy",
+      "description": "Guess the day's angle in degrees in four tries; each guess says whether to go higher or lower.",
+      "tags": [
+        "estimation",
+        "geometry"
+      ],
+      "language": "en",
+      "added": "2026-10-16",
+      "status": "active",
+      "domain": "angle.wtf",
+      "source_issue": 110,
+      "history": [
+        {
+          "date": "2026-10-16",
+          "event": "added",
+          "note": "issue #110"
         }
       ]
     },
