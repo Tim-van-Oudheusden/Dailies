@@ -131,7 +131,7 @@ check even when an earlier one fails, and exits non-zero if any failed:
 | CI tool advisories | `pip-audit` finds a known vulnerability in `scripts/requirements.txt` that is not on the ignore list |
 | GNOME runtime | `flatpak remote-info flathub org.gnome.Platform//51` reports the runtime as end-of-life |
 | ACMM self-check | `scripts/acmm-self-check.py` finds that a file a Hive ACMM criterion looks for has gone missing |
-| Catalog links (weekly) | Sundays (UTC) only, or with `--force-links` / `DAILIES_FORCE_LINKS=1` (the manual run's `force_links` input): `scripts/check_links.py` finds an active catalog entry that is `redirected-cross-domain`, `blocked-title`, `http-<code>`, `timeout` or `unreachable`. A `bot-walled` entry (a Cloudflare challenge, or a 403 on an entry tagged `bot-walled`) is a warning, not a failure |
+| Catalog links (weekly) | Sundays (UTC) only, or with `--force-links` / `DAILIES_FORCE_LINKS=1` (the manual run's `force_links` input): `scripts/check_links.py` finds an active catalog entry that is `redirected-cross-domain`, `blocked-title`, `http-<code>`, `timeout` or `unreachable`. A `bot-walled` entry (a Cloudflare challenge, or a 403 or timeout on an entry tagged `bot-walled`) is a warning, not a failure |
 
 The alerts come from `gh api repos/$GITHUB_REPOSITORY/dependabot/alerts?state=open`, read with the job's `GITHUB_TOKEN`
 through the `vulnerability-alerts: read` permission, so no secret is needed.

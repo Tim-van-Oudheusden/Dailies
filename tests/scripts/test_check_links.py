@@ -213,6 +213,16 @@ def test_403_on_a_game_the_catalog_marks_bot_walled_is_a_warning() -> None:
     assert result.warning
 
 
+def test_timeout_on_a_game_the_catalog_marks_bot_walled_is_a_warning() -> None:
+    # Some walls never answer a script at all (washingtonpost.com stalls until the read timeout).
+    result = check(ARTLE, {("HEAD", ARTLE["url"]): requests.Timeout()})
+
+    assert result.outcome == "bot-walled"
+    assert result.warning
+    assert not result.failed
+    assert result.suggested_status is None
+
+
 def test_403_without_a_challenge_on_an_ordinary_game_fails() -> None:
     result = check(WORLDLE, {("HEAD", WORLDLE["url"]): FakeResponse(403), ("GET", WORLDLE["url"]): FakeResponse(403)})
 

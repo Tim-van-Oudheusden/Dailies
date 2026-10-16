@@ -134,7 +134,7 @@ Flags are the tags software acts on:
 | `subscription-limited` | Part of the game, or of its archive, needs a paid subscription |
 | `weekdays-only` | A new puzzle on weekdays only |
 | `not-daily` | Not a once-a-day puzzle (endless or on demand); a few seed entries carry it; new submissions must be daily |
-| `bot-walled` | The site answers scripts with a bot challenge (HTTP 403 or a Cloudflare page), so automated checks cannot prove it is live |
+| `bot-walled` | The site answers scripts with a bot challenge (HTTP 403 or a Cloudflare page) or never answers them at all, so automated checks cannot prove it is live |
 | `low-confidence` | Some details (difficulty, free play, liveness) could not be confirmed |
 
 ## Difficulty

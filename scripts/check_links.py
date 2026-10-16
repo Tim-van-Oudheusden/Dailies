@@ -12,7 +12,7 @@ Each entry gets one outcome:
     http-<code>              the site answered a non-2xx status, e.g. http-404
     timeout                  a request or the page body took longer than 10 s
     unreachable              the host does not resolve, refuses the connection, or is not a public https site
-    bot-walled               a bot challenge (Cloudflare, or a 403 on an entry tagged bot-walled): a warning only
+    bot-walled               a bot challenge (Cloudflare, or a 403 or timeout on an entry tagged bot-walled): a warning
 
 Requests are polite: one at a time, so one host at a time (entries are grouped by host), at most two a second
 overall, with the validator's descriptive User-Agent.
@@ -134,7 +134,7 @@ def _classify(error: urlcheck.CheckError, entry: dict[str, Any]) -> LinkResult:
             entry, "redirected-cross-domain", f"redirects to another site ({domain or error.url}): {reason}"
         )
     tagged = "bot-walled" in entry.get("tags", [])
-    if error.bot_wall or (tagged and error.status in urlcheck.BOT_WALL_STATUSES):
+    if error.bot_wall or (tagged and (error.timed_out or error.status in urlcheck.BOT_WALL_STATUSES)):
         return LinkResult(entry, "bot-walled", reason)
     if error.timed_out:
         return LinkResult(entry, "timeout", reason)

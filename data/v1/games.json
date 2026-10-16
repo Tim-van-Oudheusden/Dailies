@@ -1091,7 +1091,7 @@
       "tags": [
         "washington-post",
         "letter-reveal",
-        "unverified-live"
+        "bot-walled"
       ],
       "language": "en",
       "free_no_account": true,
@@ -1103,6 +1103,11 @@
           "date": "2026-10-15",
           "event": "added",
           "note": "seed"
+        },
+        {
+          "date": "2026-10-16",
+          "event": "verified",
+          "note": "Live and playable without an account in a browser; washingtonpost.com stalls scripts until they time out, so tagged bot-walled instead of unverified-live (issue #93)"
         }
       ]
     },
