@@ -1,0 +1,27 @@
+# Path-based PR labels, applied by .github/workflows/labeler.yml (actions/labeler).
+# The labels name the area a PR touches; its risk tier comes from .github/policies/risk-tiers.policy.
+
+app:
+  - changed-files:
+      - any-glob-to-any-file: ['dailies/**', 'data/ui/**']
+
+data:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'data/v1/**'
+          - 'scripts/popularity/**'
+          - 'scripts/*submission*'
+          - 'scripts/add_game.py'
+          - 'scripts/check_links.py'
+
+flatpak:
+  - changed-files:
+      - any-glob-to-any-file: ['build-aux/**', 'data/*.metainfo.xml.in', 'data/*.desktop.in']
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file: '.github/**'
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file: ['docs/**', '*.md']

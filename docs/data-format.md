@@ -19,10 +19,9 @@ pytest tests/data
 
 `tests/data/test_catalog_file.py` also checks the [rules the schemas cannot express](#rules-beyond-the-schemas).
 
-**Where to get them.** The files are meant to be fetched from GitHub Pages at
-`https://tim-van-oudheusden.github.io/Dailies/v1/` once the Pages workflow exists, with
-`https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/main/data/v1/` as the fallback (and, until then, the
-only URL). Both send an ETag; please use conditional requests (`If-None-Match`) and fetch at most every few hours.
+**Where to get them.** Fetch the files from GitHub Pages at `https://tim-van-oudheusden.github.io/Dailies/v1/`, with
+`https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/main/data/v1/` as the fallback. Both send an ETag; please
+use conditional requests (`If-None-Match`) and fetch at most every few hours.
 
 ## `games.json`
 
@@ -194,7 +193,7 @@ week's trend.
 | `radar_bucket` | integer or `null` | no | Cloudflare Radar popularity bucket, if that source is enabled |
 | `wiki_views_7d` | integer or `null` | no | English Wikipedia pageviews over seven days, if enabled |
 | `hn_stories_28d` | integer or `null` | no | Hacker News stories over 28 days, if enabled |
-| `shared_domain_weight` | number | no | The share of the domain's signal given to this game when several games share a domain |
+| `shared_domain_weight` | number | no | Written only by `method_version: 1`: the share of a shared domain's score given to this game. Since `2` every game gets its domain's full score, so the field is left out |
 | `history` | array of numbers, at most 8 | no | Previous weekly `popularity` values, for the trend |
 
 ### Source health
@@ -207,7 +206,7 @@ week's trend.
 | `domains_requested` | integer | no | Domains asked for |
 | `error` | string | no | What went wrong, when `ok` is `false` |
 
-### How `method_version: 1` is computed
+### How `method_version: 2` is computed
 
 Two scripts produce the file; every number is deterministic, so the same inputs and `--now` give byte-identical
 output:
@@ -222,14 +221,20 @@ python -I scripts/popularity/compute.py --catalog data/v1/games.json --raw raw/ 
   answer, up to three on a 429; about two minutes for the seed catalog) and writes `raw/tranco.json` with each
   domain's daily ranks and the source's health.
 - `compute.py` scores each domain `clamp(1 − (log10(rank) − 2) / 4.5, 0, 1)` on the mean of its last seven daily
-  ranks (no rank scores 0). Games sharing a domain split that score equally, unless the optional
-  `data/v1/domain_weights.json` (`{"nytimes.com": {"wordle": 0.4, …}}`) sets their shares; the script rejects that file
-  unless each domain's weights are numbers that sum to 1 and name existing games on that domain. A game whose domain
-  could not be fetched keeps last week's `popularity` (`reason: "carried_forward"`). `trend` and `history` come from the
-  previous `popularity.json` (`--previous`, by default the `--out` file).
-- Shelves hold `N = max(5, min(12, 10 % of active games))` items. Popular is sorted by `popularity`, ties by `id`.
-  Trending takes games with `trend > 0.02` outside the top five Popular, sorted by `trend` (which is also their
-  `score`); with fewer than three, the newest games fill it to three with `reason: "new"` and `score: 0`.
+  ranks (no rank scores 0), and every game gets its domain's full score. A game whose domain could not be fetched
+  keeps last week's `popularity` (`reason: "carried_forward"`). `trend` and `history` come from the previous
+  `popularity.json` (`--previous`, by default the `--out` file) when its `method_version` is the same; history from
+  another version (including `1`) is dropped.
+- Shelves hold `N = max(5, min(12, 10 % of active games))` items. Popular is sorted by `popularity`. Trending takes
+  games with `trend > 0.02` outside the top five Popular, sorted by `trend` (which is also their `score`); with fewer
+  than three, the newest games fill it to three with `reason: "new"` and `score: 0`.
+- At most **2** games of one registrable domain go on each shelf; when more qualify, the next games, from other
+  domains, take the freed slots. Which two, and every tie, follows `data/v1/domain_weights.json`
+  (`{"nytimes.com": {"wordle": 0.35, …}}`): listed games first, highest weight first, then the domain's unlisted
+  games, then `id`. The weights only order a domain's games; they no longer split its score. The script rejects the
+  file unless each domain's weights are numbers between 0 and 1 that sum to 1 and name existing games on that
+  domain. The maintainer edits it by hand (decision #88, which superseded the equal split of #13 used by
+  `method_version: 1`).
 - If Tranco failed for more than 20 % of the domains, `compute.py` exits 1 and writes nothing. It also writes
   `summary.json` (shelves with names, top movers, source health), the input for the weekly report.
 

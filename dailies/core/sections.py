@@ -11,6 +11,7 @@ from datetime import date, datetime
 from enum import Enum
 from typing import Self
 
+from dailies.core import languages
 from dailies.core.catalog import Catalog
 from dailies.core.models import Category, Difficulty, Game, Status
 from dailies.core.popularity import Popularity
@@ -24,9 +25,16 @@ TRENDING = "trending"
 FIXED = (FAVORITES, POPULAR, TRENDING)
 
 
-def visible_categories(catalog: Catalog) -> set[Category]:
-    """Return the categories that have at least one active game; the sidebar hides the others."""
-    return {game.category for game in catalog.active()}
+def visible_categories(
+    catalog: Catalog, *, system_languages: Collection[str] = (), show_other: bool = True
+) -> set[Category]:
+    """Return the categories that have at least one active game shown; the sidebar hides the others.
+
+    Unless `show_other` is set, only games in one of `system_languages` count (see `languages.matches_language`).
+    """
+    return {
+        game.category for game in catalog.active() if languages.matches_language(game, system_languages, show_other)
+    }
 
 
 def restore(saved: str, visible: Collection[str]) -> str:

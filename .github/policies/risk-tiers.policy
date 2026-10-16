@@ -1,0 +1,30 @@
+# Risk-tier policy for pull requests. Evaluated by scripts/tier-classify.sh;
+# what each tier asks of reviewers is in docs/risk-tiers.md.
+#
+# One rule per line: `<tier> <glob>`, where tier is low, medium or high.
+# A changed path takes the tier of the FIRST rule whose glob matches it, so
+# high-risk rules come before the broad ones (AGENTS.md is high even though
+# *.md is low; data/v1/schema/* is high even though data/v1/*.json is medium).
+# `*` matches across `/`. A path matching no rule is medium. Blank lines and
+# lines starting with `#` are ignored.
+
+# high — gates, tooling, packaging, schemas, agent instructions
+high .github/*
+high scripts/*
+high build-aux/*
+high meson.build
+high meson_options.txt
+high data/*.metainfo.xml.in
+high data/*.gschema.xml.in
+high data/v1/schema/*
+high AGENTS.md
+high CLAUDE.md
+high .claude/*
+high .cursor/*
+high prompts/*
+# medium — app code and catalog data
+medium dailies/*
+medium data/v1/*.json
+# low — prose
+low docs/*
+low *.md

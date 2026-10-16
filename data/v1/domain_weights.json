@@ -1,0 +1,25 @@
+{
+  "merriam-webster.com": {
+    "quordle": 0.4,
+    "octordle": 0.3,
+    "blossom": 0.2,
+    "twofer-goofer": 0.1
+  },
+  "nytimes.com": {
+    "wordle": 0.35,
+    "nyt-connections": 0.2,
+    "nyt-strands": 0.12,
+    "nyt-mini-crossword": 0.1,
+    "nyt-spelling-bee": 0.08,
+    "nyt-pips": 0.05,
+    "nyt-letter-boxed": 0.04,
+    "nyt-sudoku": 0.03,
+    "nyt-tiles": 0.03
+  },
+  "teuteuf.fr": {
+    "worldle": 0.6,
+    "wheretaken": 0.2,
+    "statele": 0.12,
+    "emovi": 0.08
+  }
+}

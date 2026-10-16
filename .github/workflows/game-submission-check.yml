@@ -1,0 +1,100 @@
+name: Game submission check
+
+# Stage A of the submission IssueOps (docs/research/data-pipeline.md §1.4):
+# validates a "game-submission" issue form with scripts/validate_submission.py
+# (form fields, safe and reachable URL, same site, page title, duplicates,
+# catalog schema), keeps ONE comment with the result up to date on every edit
+# and toggles the validated / needs-changes labels.
+# Security: the issue is untrusted input. Nothing from it is executed or
+# interpolated into `run:`; values reach the shell only through `env:`, and the
+# comment body is written by the validator (untrusted text quoted as code) and
+# posted via `body-path`. The token can read contents and write issues only.
+
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  contents: read
+
+concurrency:
+  # One live run per issue: a newer edit cancels the check of the superseded text.
+  group: ${{ github.workflow }}-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Validate submission
+    if: contains(github.event.issue.labels.*.name, 'game-submission')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            data
+            scripts
+            .github/ISSUE_TEMPLATE
+      - name: Parse issue form
+        id: parse
+        uses: stefanbuck/github-issue-parser@cb6e97157cbf851e3a393ff8d57c93a484cc323f # v3.2.5
+        with:
+          template-path: .github/ISSUE_TEMPLATE/new-game.yml
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install validator dependencies
+        run: python -m pip install --require-hashes -r scripts/requirements.txt
+      - name: Validate
+        # Exit status: 0 valid, 1 invalid (both write the report), 2 usage or internal error (no report).
+        # The status is recorded before the step fails, so the comment and labels below still follow it.
+        id: validate
+        env:
+          PARSED_JSON: ${{ steps.parse.outputs.jsonString }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          printf '%s' "$PARSED_JSON" > "$RUNNER_TEMP/parsed.json"
+          status=0
+          python -I scripts/validate_submission.py \
+            --parsed "$RUNNER_TEMP/parsed.json" \
+            --catalog data/v1/games.json \
+            --schema data/v1/schema/catalog.schema.json \
+            --issue "$ISSUE_NUMBER" \
+            --out "$RUNNER_TEMP/result.json" \
+            --report "$RUNNER_TEMP/report.md" || status=$?
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit "$status"
+      - name: Find previous check comment
+        id: find
+        if: ${{ !cancelled() && (steps.validate.outputs.status == '0' || steps.validate.outputs.status == '1') }}
+        uses: peter-evans/find-comment@b30e6a3c0ed37e7c023ccd3f1db5c6c0b0c23aad # v4.0.0
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          comment-author: github-actions[bot]
+          body-includes: "<!-- dailies-submission-check -->"
+      - name: Comment result
+        if: ${{ !cancelled() && (steps.validate.outputs.status == '0' || steps.validate.outputs.status == '1') }}
+        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
+        with:
+          comment-id: ${{ steps.find.outputs.comment-id }}
+          issue-number: ${{ github.event.issue.number }}
+          body-path: ${{ runner.temp }}/report.md
+          edit-mode: replace
+      - name: Set labels
+        if: ${{ !cancelled() && (steps.validate.outputs.status == '0' || steps.validate.outputs.status == '1') }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          STATUS: ${{ steps.validate.outputs.status }}
+        run: |
+          if [ "$STATUS" = 0 ]; then
+            gh issue edit "$ISSUE_NUMBER" --add-label validated --remove-label needs-changes
+          else
+            gh issue edit "$ISSUE_NUMBER" --add-label needs-changes --remove-label validated
+          fi

@@ -1,0 +1,72 @@
+name: Pages
+
+# Publishes data/v1/ (catalog, popularity, schemas) and docs/popularity/ to GitHub Pages at
+# https://tim-van-oudheusden.github.io/Dailies/. The app fetches https://…/Dailies/v1/ first and falls back to
+# raw.githubusercontent.com (DATA_URLS in dailies/config.py.in). Needs the repository setting
+# "Pages → Source: GitHub Actions".
+on:
+  push:
+    branches: [main]
+    paths:
+      - "data/v1/**"
+      - "docs/popularity/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # One deployment at a time; a deployment in progress is never cancelled, only queued ones are replaced.
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build site
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Pages rejects symlinks and hard links in the artifact: copy with -L and fail if any link remains.
+      - name: Assemble _site
+        run: |
+          mkdir _site
+          cp -rL data/v1 _site/v1
+          if [ -d docs/popularity ]; then
+            cp -rL docs/popularity _site/popularity
+          fi
+          cat > _site/index.html <<'EOF'
+          <!doctype html>
+          <html lang="en">
+          <meta charset="utf-8">
+          <title>Dailies data</title>
+          <p>Data files for <a href="https://github.com/Tim-van-Oudheusden/Dailies">Dailies</a>:
+          <a href="v1/games.json">v1/games.json</a>, <a href="v1/popularity.json">v1/popularity.json</a>.</p>
+          </html>
+          EOF
+          if [ -n "$(find _site -type l)" ]; then
+            echo "::error::_site contains symlinks, which GitHub Pages rejects"
+            exit 1
+          fi
+          find _site -type f | sort
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: _site
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

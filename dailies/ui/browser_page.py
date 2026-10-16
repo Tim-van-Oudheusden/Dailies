@@ -123,7 +123,8 @@ def clear_site_data(host: str, callback: Callable[[], None] | None = None) -> No
 class BrowserPage(Adw.NavigationPage):
     """A game's website, with history buttons, the real host in the header and "Open in Browser" in the menu.
 
-    Call `close()` when the page is popped: it closes the web view, which ends its web process.
+    `open_external` opens a link in the default browser; `hand_off_pop_up` does the same for a script's pop-up, and
+    tells the user so. Call `close()` when the page is popped: it closes the web view, which ends its web process.
     """
 
     __gtype_name__ = "DailiesBrowserPage"
@@ -135,9 +136,16 @@ class BrowserPage(Adw.NavigationPage):
     overlay: Gtk.Overlay = Gtk.Template.Child()
     progress_bar: Gtk.ProgressBar = Gtk.Template.Child()
 
-    def __init__(self, *, open_external: Callable[[str], None], add_toast: Callable[[Adw.Toast], None]) -> None:
+    def __init__(
+        self,
+        *,
+        open_external: Callable[[str], None],
+        hand_off_pop_up: Callable[[str], None],
+        add_toast: Callable[[Adw.Toast], None],
+    ) -> None:
         super().__init__()
         self._open_external = open_external
+        self._hand_off_pop_up = hand_off_pop_up
         self._add_toast = add_toast
 
         settings = WebKit.Settings(
@@ -277,7 +285,7 @@ class BrowserPage(Adw.NavigationPage):
     def _on_create(self, _view: WebKit.WebView, action: WebKit.NavigationAction) -> None:
         uri = action.get_request().get_uri()
         if uri and uri != "about:blank":
-            self._open_external(uri)
+            self._hand_off_pop_up(uri)
 
     def _on_permission_request(self, _view: WebKit.WebView, request: WebKit.PermissionRequest) -> bool:
         request.deny()
