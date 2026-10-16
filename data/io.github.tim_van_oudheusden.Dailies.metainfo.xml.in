@@ -87,12 +87,16 @@
         <ul>
           <li>Browse more than a hundred daily guessing games in ten categories</li>
           <li>See the games that are popular and trending this week</li>
-          <li>Star games to keep them in Favorites, with undo</li>
-          <li>Search the current section with Ctrl+F</li>
-          <li>Play in the built-in browser, which keeps your game progress, or in your default browser</li>
-          <li>Choose how games open, clear website data and refresh the game list in Preferences</li>
+          <li>Star games to keep them in Favorites, with undo, and put them in your own order</li>
+          <li>Mark the games you have played as done today, by hand or automatically</li>
+          <li>Search the current section with Ctrl+F, which forgives a typo in longer searches</li>
+          <li>Play in the built-in browser, which keeps your game progress, in your default browser, or through a command of your choice</li>
+          <li>Choose how games open and set the built-in browser’s website data, cookie and tracking prevention options in Preferences</li>
+          <li>Export your favorites to a file and import them on another computer</li>
+          <li>Hide games in languages other than your own</li>
           <li>Works offline with a bundled copy of the game list and updates it from GitHub</li>
           <li>Music games play sound inside Dailies</li>
+          <li>Available in English and Dutch</li>
         </ul>
       </description>
     </release>
