@@ -211,14 +211,15 @@ PR-body template.
 Games are added through the **Add a game** issue form, never by hand. `game-submission-check.yml` (stage A) checks
 each submission on every edit and labels it `validated` or `needs-changes`. To accept one, add the `approved` label:
 `game-submission-approve.yml` (stage B) validates it again, runs `scripts/add_game.py` to insert the entry sorted by
-id, checks the whole catalog with `check-jsonschema` and `pytest tests/data`, and opens a pull request
-`data(games): add <name>` from `data/add-<slug>` with `Closes #<issue>`. The label only counts when a person with write
-access to the repository adds it; from anyone else, or from a bot, stage B stops before it opens anything. If the
-submission no longer passes, stage B comments on the issue and opens no pull request; once it passes again, remove and
-re-add `approved`. The workflow opens the pull request with `GITHUB_TOKEN`, which starts no CI, so its required checks
-never appear: review the diff (only `data/v1/games.json`, the new entry and `generated_at`) and merge with the
-ruleset's admin bypass. It needs "Allow GitHub Actions to create and approve pull requests" under Settings > Actions >
-General.
+id, fetches the game's icon with `scripts/icons/fetch_icon.py --id <slug>`, checks the whole catalog with
+`check-jsonschema` and `pytest tests/data`, and opens a pull request `data(games): add <name>` from `data/add-<slug>`
+with `Closes #<issue>`. The label only counts when a person with write access to the repository adds it; from anyone
+else, or from a bot, stage B stops before it opens anything. If the submission no longer passes, stage B comments on
+the issue and opens no pull request; once it passes again, remove and re-add `approved`. The workflow opens the pull
+request with `GITHUB_TOKEN`, which starts no CI, so its required checks never appear: review the diff (the new entry
+with its `icon` and `icon_source`, `generated_at`, and `data/v1/icons/<slug>.png`, or only `icon_source: "none"` when
+the site has no usable icon) and merge with the ruleset's admin bypass. It needs "Allow GitHub Actions to create and
+approve pull requests" under Settings > Actions > General.
 
 ## Releasing
 

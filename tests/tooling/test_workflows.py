@@ -457,6 +457,42 @@ def screenshot_mirror_violations(name: str, workflow: dict) -> list[str]:
     return violations
 
 
+ADD_GAME = "scripts/add_game.py"
+FETCH_ICON = "scripts/icons/fetch_icon.py"
+CREATE_PULL_REQUEST = "peter-evans/create-pull-request@"
+
+
+def icon_fetch_violations(name: str, workflow: dict) -> list[str]:
+    """A job that adds a game with scripts/add_game.py and opens a pull request must fetch the game's icon (#148).
+
+    The fetch goes between the new entry and the catalog check, so `check-jsonschema` sees the `icon` and
+    `icon_source` fields it writes, and the pull request commits its `--out` directory; otherwise a game approved
+    through the Add a game form gets no icon until someone runs the fetcher by hand.
+    """
+    violations = []
+    for job_id, job in jobs_of(workflow).items():
+        steps = job.get("steps") or []
+        runs = [str(step.get("run", "")) for step in steps]
+        adds = [i for i, run in enumerate(runs) if ADD_GAME in run]
+        prs = [i for i, step in enumerate(steps) if str(step.get("uses", "")).startswith(CREATE_PULL_REQUEST)]
+        if not adds or not prs:
+            continue
+        add, pr = adds[0], prs[0]
+        fetches = [i for i, run in enumerate(runs) if FETCH_ICON in run and add < i < pr]
+        if not fetches:
+            violations.append(f"{name}: job {job_id} adds a game but does not fetch its icon")
+            continue
+        fetch = fetches[0]
+        if not any("check-jsonschema" in run for run in runs[fetch + 1 : pr]):
+            violations.append(f"{name}: job {job_id} does not check the catalog after fetching the icon")
+        args = shlex.split(runs[fetch].replace("\\\n", " "))
+        out = args[args.index("--out") + 1].rstrip("/") if "--out" in args[:-1] else None
+        add_paths = re.split(r"[\s,]+", str((steps[pr].get("with") or {}).get("add-paths", "")).strip())
+        if out is None or not any(within(out, path.rstrip("/")) for path in add_paths if path):
+            violations.append(f"{name}: job {job_id} fetches icons into {out} but its pull request does not add them")
+    return violations
+
+
 # --- the repository's files -------------------------------------------------------------------------------------------
 
 FILES = workflow_files()
@@ -553,6 +589,11 @@ def test_pages_publishes_every_data_file() -> None:
 @pytest.mark.parametrize("path", FILES, ids=IDS)
 def test_strict_repo_lint_builds_with_mirrored_screenshots(path: Path) -> None:
     assert screenshot_mirror_violations(path.name, load(path)) == []
+
+
+@pytest.mark.parametrize("path", FILES, ids=IDS)
+def test_a_game_added_for_a_pull_request_gets_its_icon(path: Path) -> None:
+    assert icon_fetch_violations(path.name, load(path)) == []
 
 
 # --- each check catches a broken fixture ------------------------------------------------------------------------------
@@ -951,3 +992,64 @@ def test_fixture_strict_repo_lint_with_mirrored_screenshots_passes() -> None:
 def test_fixture_repo_lint_with_exceptions_needs_no_mirror() -> None:
     lint = "flatpak-builder-lint --exceptions --user-exceptions lint-exceptions.json repo repo"
     assert screenshot_mirror_violations("ci.yml", strict_lint_fixture(None, lint)) == []
+
+
+FETCH_STEP = """
+      - run: |
+          python -I scripts/icons/fetch_icon.py \\
+            --catalog data/v1/games.json \\
+            --out data/v1/icons \\
+            --id "$SLUG\""""
+CHECK_STEP = """
+      - run: check-jsonschema --schemafile data/v1/schema/catalog.schema.json data/v1/games.json"""
+ICON_ADD_PATHS = "|\n            data/v1/games.json\n            data/v1/icons"
+
+
+def submission_fixture(middle: str, add_paths: str = ICON_ADD_PATHS) -> dict:
+    return load_yaml(f"""
+jobs:
+  add:
+    steps:
+      - id: add
+        run: python -I scripts/add_game.py --entry result.json --catalog data/v1/games.json{middle}
+      - uses: {CREATE_PULL_REQUEST}5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          add-paths: {add_paths}
+""")
+
+
+def test_fixture_added_game_without_an_icon_fetch_fails() -> None:
+    assert icon_fetch_violations("approve.yml", submission_fixture(CHECK_STEP)) == [
+        "approve.yml: job add adds a game but does not fetch its icon"
+    ]
+
+
+def test_fixture_icon_fetch_after_the_catalog_check_fails() -> None:
+    assert icon_fetch_violations("approve.yml", submission_fixture(CHECK_STEP + FETCH_STEP)) == [
+        "approve.yml: job add does not check the catalog after fetching the icon"
+    ]
+
+
+def test_fixture_icons_left_out_of_the_pull_request_fail() -> None:
+    workflow = submission_fixture(FETCH_STEP + CHECK_STEP, add_paths="data/v1/games.json")
+    assert icon_fetch_violations("approve.yml", workflow) == [
+        "approve.yml: job add fetches icons into data/v1/icons but its pull request does not add them"
+    ]
+
+
+@pytest.mark.parametrize("add_paths", ["|\n            data/v1/games.json\n            data/v1/icons/", "data/**"])
+def test_fixture_icon_fetched_checked_and_committed_passes(add_paths: str) -> None:
+    assert icon_fetch_violations("approve.yml", submission_fixture(FETCH_STEP + CHECK_STEP, add_paths)) == []
+
+
+def test_fixture_job_that_adds_no_game_needs_no_icon() -> None:
+    workflow = load_yaml(f"""
+jobs:
+  links:
+    steps:
+      - run: python -I scripts/links/apply_status.py
+      - uses: {CREATE_PULL_REQUEST}5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          add-paths: data/v1/games.json
+""")
+    assert icon_fetch_violations("links.yml", workflow) == []

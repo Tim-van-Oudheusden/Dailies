@@ -4,8 +4,9 @@ name: Game submission approve
 # maintainer with write access adds `approved` to a game submission, validate it
 # again with scripts/validate_submission.py (never trust stage A: the issue may have
 # been edited since, and labels can be removed and re-added), insert the entry
-# with scripts/add_game.py, re-check the whole catalog and open a pull request
-# that closes the issue. An invalid submission gets a comment and no PR.
+# with scripts/add_game.py, fetch its icon with scripts/icons/fetch_icon.py,
+# re-check the whole catalog and open a pull request that closes the issue.
+# An invalid submission gets a comment and no PR.
 # Never pushes to main. The PR is opened with GITHUB_TOKEN, so no pull_request
 # workflow runs on it; the maintainer merges with the ruleset's admin bypass on
 # the strength of the checks below (a DATA_BOT_TOKEN comes later, #79).
@@ -121,6 +122,16 @@ jobs:
             --catalog data/v1/games.json \
             --pr-body "$RUNNER_TEMP/pr-body.md" \
             --github-output "$GITHUB_OUTPUT"
+      - name: Fetch the game's icon
+        # Before the catalog check, so it sees the `icon` and `icon_source` fields. Exit status: 0 also when no icon
+        # was found (the entry gets `icon_source: "none"` and the app shows the category glyph), 2 on a usage error.
+        env:
+          SLUG: ${{ steps.add.outputs.slug }}
+        run: |
+          python -I scripts/icons/fetch_icon.py \
+            --catalog data/v1/games.json \
+            --out data/v1/icons \
+            --id "$SLUG"
       - name: Validate catalog
         run: |
           check-jsonschema --schemafile data/v1/schema/catalog.schema.json data/v1/games.json
@@ -131,7 +142,9 @@ jobs:
         with:
           branch: data/add-${{ steps.add.outputs.slug }}
           delete-branch: true
-          add-paths: data/v1/games.json
+          add-paths: |
+            data/v1/games.json
+            data/v1/icons
           commit-message: "data(games): add ${{ steps.add.outputs.name }}"
           title: "data(games): add ${{ steps.add.outputs.name }}"
           body-path: ${{ runner.temp }}/pr-body.md
