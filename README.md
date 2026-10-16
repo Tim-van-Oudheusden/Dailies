@@ -6,7 +6,7 @@
 
 Play your daily guessing games in one place
 
-[Download](https://github.com/Tim-van-Oudheusden/Dailies/releases) (coming soon) ·
+[Download](https://github.com/Tim-van-Oudheusden/Dailies/releases/latest) ·
 [Add a game](https://github.com/Tim-van-Oudheusden/Dailies/issues/new?template=new-game.yml) ·
 [buildwithtim.dev](https://buildwithtim.dev)
 
@@ -25,7 +25,7 @@ Play your daily guessing games in one place
 
 ## Status
 
-Early: version 0.1.0 is being prepared and has not been released yet. Linux only, as a Flatpak; not on Flathub yet.
+Early: version 0.1.0 is the first release. Linux only, as a Flatpak; not on Flathub yet.
 
 ## About
 
@@ -46,10 +46,9 @@ A GNOME app that lists daily guessing games ("-dles") such as Wordle, Connection
 
 Pick one:
 
-- **Download a release** (coming soon: no release has been published yet). Each release on the
-  [Releases](https://github.com/Tim-van-Oudheusden/Dailies/releases) page attaches `Dailies-x86_64.flatpak`,
-  `Dailies-aarch64.flatpak` and `SHA256SUMS`. The bundle needs the GNOME 51 runtime, which Flatpak installs from
-  Flathub, so add the Flathub remote first:
+- **Download a release.** Each release on the [Releases](https://github.com/Tim-van-Oudheusden/Dailies/releases) page
+  attaches `Dailies-x86_64.flatpak`, `Dailies-aarch64.flatpak` and `SHA256SUMS`. The bundle needs the GNOME 51 runtime,
+  which Flatpak installs from Flathub, so add the Flathub remote first:
 
   ```sh
   flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
