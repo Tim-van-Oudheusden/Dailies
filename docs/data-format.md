@@ -318,6 +318,9 @@ Run it for the whole catalog, or for some games with `--id`; `--missing-only` sk
 python -I scripts/icons/fetch_icon.py --catalog data/v1/games.json --out data/v1/icons [--id ID ...]
 ```
 
+Stage B of the submission flow (`game-submission-approve.yml`) runs it with `--id` for the game it adds, so the
+`data(games): add <name>` pull request carries the icon.
+
 A site that asks for its icon to be removed is listed in
 [`scripts/data/icon-takedowns.txt`](../scripts/data/icon-takedowns.txt): the next run deletes the PNG, sets
 `icon_source: none` and never downloads that icon again.

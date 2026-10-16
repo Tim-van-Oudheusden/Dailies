@@ -9,17 +9,17 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-10-16 (sixth session). #131 on `fix/131-tier-classify-quoted-paths`: `scripts/tier-classify.sh -z` reads
-NUL-terminated paths, so a high-risk path git would C-quote (non-ASCII, `"`, `\`, a control character) is rated by its
-rule instead of falling to medium. A path holding a control character prints `%q`-quoted; any other argument exits 2.
+2026-10-16. #148 on `ci/148-stage-b-icon`, stacked on #149 (#77): `game-submission-approve.yml` runs
+`scripts/icons/fetch_icon.py --id "$SLUG"` between `Add entry` and `Validate catalog` and commits `data/v1/icons` with
+`games.json`, so an approved game's `data(games): add …` PR carries its icon.
 
-- **Outcome:** script, shell tests and the local commands in `docs/risk-tiers.md` and `docs/metrics/README.md` take
-  `-z`. `tier-classifier.yml` is unchanged, so CI still rates such paths medium.
-- **Open follow-ups:**
-  - #131 (maintainer): once the script is on `main`, change `tier-classifier.yml`'s classify step to
-    `git diff -z --name-only --no-renames ... | bash "$classifier" -z`. Not before: the job runs the base branch's
-    script, which would read the NUL-separated list as one path. Agent tokens cannot push workflow changes.
+- **Outcome:** workflow, a `tests/tooling/test_workflows.py` invariant (a job that runs `add_game.py` and opens a PR
+  fetches the icon before the catalog check and adds the `--out` directory), CONTRIBUTING, `docs/architecture.md`,
+  `docs/data-format.md` and the `add_game.py` docstring.
+- **Open follow-ups:** merge #149 first: on `main` without `scripts/icons/fetch_icon.py` the new step fails every
+  approval.
 - **Gotchas:**
-  - The host has Python 3.11 and no `uv`: only `tests/scripts/test_tier_classify.py` collects under 3.11; the rest of
-    `pytest` needs 3.12. Local shellcheck 0.9.0 flags SC2015 in `tier-classify.sh` on `main` too; the CI-pinned 0.11.0
-    does not.
+  - The host has Python 3.11, `jaq` as `jq` and no `uv`: `pip install uv` then `uv venv -p 3.12` gets a 3.12 that
+    collects all of `pytest`; the `auto-qa-tuner` and `pr-metrics` tests still fail locally on `jaq`, not on CI.
+  - `add_game.py` needs `source_issue` in the result entry; a hand-made `result.json` for a local stage B run must
+    carry it.

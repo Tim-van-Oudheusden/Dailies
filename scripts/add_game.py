@@ -11,7 +11,7 @@ script with the validator's result.json ({ok, entry, errors, warnings}). It:
    shows only the new entry and `generated_at`;
 4. optionally writes the pull request body (`Closes #N` and the entry) and the step outputs `slug` and `name`.
 
-Icons are not fetched yet (decision #17).
+The workflow fetches the new game's icon afterwards, with scripts/icons/fetch_icon.py --id <slug> (#148).
 
 Usage:
     python -I scripts/add_game.py --entry result.json --catalog data/v1/games.json \

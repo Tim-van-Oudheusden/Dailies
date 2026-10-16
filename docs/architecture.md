@@ -330,8 +330,9 @@ duplicate URL, id or alias, and the candidate entry passes the schema. Stage B (
 when an owner, member or collaborator adds `approved`; anyone else adding the label starts nothing. It validates again
 rather than trusting stage A (the issue may have been edited since); an invalid submission gets a comment and no pull
 request. Otherwise `scripts/add_game.py` inserts the entry sorted by id, bumps `generated_at` and keeps the file's
-formatting, so the diff is the new entry plus that one line; the whole catalog is checked with `check-jsonschema` and
-`pytest tests/data`, and `data/add-<slug>` becomes a pull request `data(games): add <name>` that closes the issue.
+formatting, so the diff is the new entry plus that one line; `scripts/icons/fetch_icon.py --id <slug>` then fetches the
+game's icon (see **Game icons** below); the whole catalog is checked with `check-jsonschema` and `pytest tests/data`,
+and `data/add-<slug>` becomes a pull request `data(games): add <name>` that closes the issue.
 Pull requests opened with `GITHUB_TOKEN` start no CI, so the required checks never appear and the maintainer merges
 with the ruleset's admin bypass, on the strength of stage B's checks. A weekly link check (Sundays, in the nightly
 compliance workflow) opens one issue listing broken entries, and a `data/link-status` pull request with the `status`
