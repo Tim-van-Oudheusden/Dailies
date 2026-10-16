@@ -1,3 +1,5 @@
+import subprocess
+import sys
 import time
 from dataclasses import replace
 from datetime import date
@@ -260,7 +262,7 @@ def three_hundred_games() -> list[Game]:
     return games[:300]
 
 
-def test_ranking_three_hundred_games_takes_under_five_milliseconds_per_keystroke() -> None:
+def slowest_keystroke() -> float:
     # Best of five runs per keystroke, so a busy machine does not fail it: the first run also folds every game's texts,
     # which the app does once and then reuses.
     games = three_hundred_games()
@@ -273,4 +275,20 @@ def test_ranking_three_hundred_games_takes_under_five_milliseconds_per_keystroke
             ranked.sort()
             best = min(best, time.perf_counter() - start)
         slowest = max(slowest, best)
+    return slowest
+
+
+def test_ranking_three_hundred_games_takes_under_five_milliseconds_per_keystroke() -> None:
+    # Timed in a fresh interpreter: under `pytest --cov` this process is traced, which slows every line several times
+    # over and says nothing about how fast the app searches.
+    root = Path(__file__).resolve().parents[2]
+    script = (
+        f"import sys; sys.path[:0] = [{str(root)!r}, {str(root / 'tests' / 'core')!r}]; "
+        "import test_search; print(test_search.slowest_keystroke())"
+    )
+    result = subprocess.run(  # noqa: S603 - fixed interpreter and script, no user input
+        [sys.executable, "-I", "-c", script], capture_output=True, text=True, check=False, timeout=120
+    )
+    assert result.returncode == 0, result.stderr
+    slowest = float(result.stdout)
     assert slowest < 0.005, f"{slowest * 1000:.2f} ms"
