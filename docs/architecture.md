@@ -230,15 +230,19 @@ flowchart TD
   end
 ```
 
-**Game submissions.** Until the automation lands (M2), the maintainer edits `data/v1/games.json` by hand from the
-issues the form creates. Stage A runs on `issues: opened/edited` with a read-only contents token, passes form values to
+**Game submissions.** Issues from the **Add a game** form go through two workflows. Stage A
+(`game-submission-check.yml`) runs on `issues: opened/edited` with a read-only contents token, passes form values to
 the validator only through `env:`, and checks: https only, the host resolves to a public address, the URL answers
 within 10 s and five redirects, the final registrable domain equals the submitted one, no blocklisted title, no
-duplicate URL, id or alias, and the candidate entry passes the schema. Stage B runs when an owner, member or
-collaborator adds `approved`; it validates again rather than trusting stage A, inserts the entry sorted by id and opens
-a pull request. Pull requests opened with `GITHUB_TOKEN` start no CI, so the maintainer merges on the strength of stage
-B. A weekly link check (Sundays, in the nightly compliance workflow) opens one issue listing broken entries; the fix is
-a `status` change, never a deletion.
+duplicate URL, id or alias, and the candidate entry passes the schema. Stage B (`game-submission-approve.yml`) runs
+when an owner, member or collaborator adds `approved`; anyone else adding the label starts nothing. It validates again
+rather than trusting stage A (the issue may have been edited since); an invalid submission gets a comment and no pull
+request. Otherwise `scripts/add_game.py` inserts the entry sorted by id, bumps `generated_at` and keeps the file's
+formatting, so the diff is the new entry plus that one line; the whole catalog is checked with `check-jsonschema` and
+`pytest tests/data`, and `data/add-<slug>` becomes a pull request `data(games): add <name>` that closes the issue.
+Pull requests opened with `GITHUB_TOKEN` start no CI, so the required checks never appear and the maintainer merges
+with the ruleset's admin bypass, on the strength of stage B's checks. A weekly link check (Sundays, in the nightly
+compliance workflow) opens one issue listing broken entries; the fix is a `status` change, never a deletion.
 
 **Popularity.** Numbers are computed by deterministic Python; a language model may only write prose. The only source in
 the MVP is the Tranco rank of each game's registrable domain, smoothed over seven days and log-scaled; every game on a

@@ -42,6 +42,8 @@ JOB_PERMISSIONS: dict[tuple[str, str], dict[str, str]] = {
     },
     # Comment the validation report on the submission issue and set its labels.
     ("game-submission-check.yml", "check"): {"contents": "read", "issues": "write"},
+    # Stage B: push data/add-<slug> and open the PR; comment on the submission issue.
+    ("game-submission-approve.yml", "add"): {"contents": "write", "pull-requests": "write", "issues": "write"},
     # actions/labeler reads .github/labeler.yml and labels the PR.
     ("labeler.yml", "label"): {"contents": "read", "pull-requests": "write"},
     # List Dependabot alerts; open or update the broken-links `data` issue.

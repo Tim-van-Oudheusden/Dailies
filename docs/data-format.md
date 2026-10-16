@@ -270,6 +270,11 @@ accepted when:
 - **Not a duplicate** of an existing URL, `id` or alias.
 - The submitter is not the author, or is and consents to the listing.
 
+A bot checks every submission when it is opened or edited and comments with the result (labels `validated` or
+`needs-changes`). When a maintainer adds `approved`, the checks run once more, and a passing submission becomes a pull
+request `data(games): add <name>` that adds the entry to `games.json` (sorted by `id`, with `source_issue` and an
+`added` history event) and closes the issue when merged. A submission that no longer passes gets a comment instead.
+
 Maintaining the catalog follows four rules:
 
 - **`id`s are immutable and never reused.** A renamed game keeps its `id`, gets a new `name`, the old name goes into
