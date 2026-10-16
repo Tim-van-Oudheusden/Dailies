@@ -81,6 +81,28 @@ template $DailiesGameTile: Overlay {
           "unavailable-badge",
         ]
       }
+
+      // A game marked as done today: a check with its meaning in words. The rest of the card is dimmed (style.css)
+      // while the "done" class is on it; both are set from code.
+      Box done_badge {
+        spacing: 4;
+        visible: false;
+        halign: start;
+
+        Image {
+          icon-name: "object-select-symbolic";
+          accessible-role: presentation;
+        }
+
+        Label done_label {
+          label: _("Done today");
+        }
+
+        styles [
+          "caption-heading",
+          "done-badge",
+        ]
+      }
     };
   };
 

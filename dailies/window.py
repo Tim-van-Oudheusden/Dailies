@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from gi.repository import Adw, Gio, GLib, GObject, Gtk
 
 from dailies import config
-from dailies.core import languages, opening, sections
+from dailies.core import done_today, languages, opening, sections
 from dailies.core.models import Category, Game
 from dailies.core.opening import OpenMode
 from dailies.data.favorites import Favorites
@@ -31,6 +31,10 @@ class Window(Adw.ApplicationWindow):
     `last-section` key of the State settings, which also keep the window size. The grid shows the store's games through
     the section filter and the section sorter, whose order the `sort-mode` setting overrides (`win.sort-mode`); the
     `show-other-languages` setting hides, outside Favorites, the games and categories not in the system's languages.
+
+    Games are marked as done today from a tile's menu (`win.toggle-game-done`), from the built-in browser's menu
+    (`win.game-done`, the game shown there) or, with `auto-done-today` set, once the game has been open in the built-in
+    browser for `done_today.AUTO_MARK_SECONDS`.
     """
 
     __gtype_name__ = "DailiesWindow"
@@ -61,8 +65,12 @@ class Window(Adw.ApplicationWindow):
         self._store = store
         self._state = state
         self._settings: Gio.Settings = application.settings
-        # The one live browser page (and so the one live web view), while it is pushed.
+        self._done_today = application.done_today
+        # The one live browser page (and so the one live web view), while it is pushed, and the game it shows.
         self._browser_page: Adw.NavigationPage | None = None
+        self._browser_game: str | None = None
+        # The automatic "done today" timer of the game in the browser page, while it runs.
+        self._auto_done_source = 0
         # "Custom command unavailable" is said once per session.
         self._custom_notice_shown = False
         self.navigation_view.connect("popped", self._on_popped)
@@ -97,6 +105,10 @@ class Window(Adw.ApplicationWindow):
         self._settings.connect("changed::open-mode", lambda *_args: self._update_first_run_banner())
         state.connect("changed::first-run-banner-dismissed", lambda *_args: self._update_first_run_banner())
         self._update_first_run_banner()
+        self._done_today.connect("changed", lambda *_args: self._on_done_changed())
+        # A GLib timer misses midnight while the computer sleeps, and a clock or time zone change: look again whenever
+        # the user comes back to the window.
+        self.connect("notify::is-active", lambda window, _pspec: window.props.is_active and self._done_today.refresh())
 
         visible = [section for section, item in self._items.items() if item.props.visible]
         self._select(sections.restore(state.get_string("last-section"), visible))
@@ -111,12 +123,12 @@ class Window(Adw.ApplicationWindow):
                 return
             how = opener.resolve(self._settings, custom_failed=True)
         if how is OpenMode.IN_APP:
-            self._open_in_app(game.url)
+            self._open_in_app(game.url, game.id)
         else:
             self.open_external(game.url)
-        self._notify_opened(OpenMode.from_id(self._settings.get_string("open-mode")), how, game.url)
+        self._notify_opened(OpenMode.from_id(self._settings.get_string("open-mode")), how, game.url, game.id)
 
-    def _notify_opened(self, mode: OpenMode, how: OpenMode, url: str) -> None:
+    def _notify_opened(self, mode: OpenMode, how: OpenMode, url: str, game_id: str | None) -> None:
         """Toast where a game set to open with `mode` went (`how`); after an external open, offer "Open Here"."""
         notice = opening.notice(mode, how, custom_notice_shown=self._custom_notice_shown)
         if notice is None:
@@ -125,7 +137,7 @@ class Window(Adw.ApplicationWindow):
             self._custom_notice_shown = True
         open_here = None
         if opening.offers_open_here(how, have_webkit=opener.have_webkit()):
-            open_here = functools.partial(self._open_in_app, url)
+            open_here = functools.partial(self._open_in_app, url, game_id)
         self.toast_overlay.add_toast(opener.opened_toast(notice, how, open_here=open_here))
 
     def open_external(self, url: str) -> None:
@@ -134,9 +146,10 @@ class Window(Adw.ApplicationWindow):
 
     def _hand_off_pop_up(self, url: str) -> None:
         self.open_external(url)
-        self._notify_opened(OpenMode.EXTERNAL, OpenMode.EXTERNAL, url)
+        self._notify_opened(OpenMode.EXTERNAL, OpenMode.EXTERNAL, url, None)
 
-    def _open_in_app(self, url: str) -> None:
+    def _open_in_app(self, url: str, game_id: str | None) -> None:
+        """Show `url` in the built-in browser; `game_id` is the game it is, None for a pop-up handed back in-app."""
         # Imported here: it loads WebKit, which a cold start must not.
         from dailies.ui.browser_page import BrowserPage
 
@@ -156,10 +169,38 @@ class Window(Adw.ApplicationWindow):
             self.navigation_view.push(self._browser_page)
         else:
             self._browser_page.load(url)
+        self._set_browser_game(game_id)
+
+    def _set_browser_game(self, game_id: str | None) -> None:
+        self._browser_game = game_id
+        if self._auto_done_source:
+            GLib.source_remove(self._auto_done_source)
+            self._auto_done_source = 0
+        if game_id is not None and self._settings.get_boolean("auto-done-today"):
+            self._auto_done_source = GLib.timeout_add_seconds(done_today.AUTO_MARK_SECONDS, self._on_auto_done, game_id)
+        self._update_game_done_action()
+
+    def _on_auto_done(self, game_id: str) -> bool:
+        self._auto_done_source = 0
+        self._done_today.mark(game_id)
+        return GLib.SOURCE_REMOVE
+
+    def _on_done_changed(self) -> None:
+        # The sorter reads the games' done state but does not watch it.
+        if sections.SortMode.from_id(self._sorter.props.sort_mode) is sections.SortMode.NOT_DONE:
+            self._sorter.changed(Gtk.SorterChange.DIFFERENT)
+        self._update_game_done_action()
+
+    def _update_game_done_action(self) -> None:
+        action = self.lookup_action("game-done")
+        game_id = self._browser_game
+        action.props.enabled = game_id is not None
+        action.set_state(GLib.Variant.new_boolean(game_id is not None and self._done_today.is_done(game_id)))
 
     def _on_popped(self, _view: Adw.NavigationView, page: Adw.NavigationPage) -> None:
         if page is self._browser_page:
             self._browser_page = None
+            self._set_browser_game(None)
             page.close()
 
     def _on_visible_page(self, view: Adw.NavigationView, _pspec: GObject.ParamSpec) -> None:
@@ -231,6 +272,8 @@ class Window(Adw.ApplicationWindow):
             ("open-game", "s", self._on_open_game),
             ("toggle-game-favorite", "s", self._on_toggle_game_favorite),
             ("toggle-favorite", None, self._on_toggle_favorite),
+            ("toggle-game-done", "s", self._on_toggle_game_done),
+            ("show-game-menu", None, self._on_show_game_menu),
             ("search", None, self._on_search),
         ):
             action = Gio.SimpleAction(
@@ -238,6 +281,11 @@ class Window(Adw.ApplicationWindow):
             )
             action.connect("activate", callback)
             self.add_action(action)
+        # The built-in browser's "Mark as Done Today" check: the state is whether the game shown there is done today.
+        game_done = Gio.SimpleAction.new_stateful("game-done", None, GLib.Variant.new_boolean(False))
+        game_done.props.enabled = False
+        game_done.connect("activate", self._on_game_done)
+        self.add_action(game_done)
 
     def _on_search(self, _action: Gio.SimpleAction, _parameter: None) -> None:
         self.search_bar.props.search_mode_enabled = True
@@ -273,13 +321,32 @@ class Window(Adw.ApplicationWindow):
         self._toggle_favorite(parameter.get_string())
 
     def _on_toggle_favorite(self, _action: Gio.SimpleAction, _parameter: None) -> None:
-        # The focus is on a grid item, whose child is the tile, or on a tile's star.
+        tile = self._focused_tile()
+        if tile is not None:
+            self._toggle_favorite(tile.props.game.props.game.id)
+
+    def _on_show_game_menu(self, _action: Gio.SimpleAction, _parameter: None) -> None:
+        tile = self._focused_tile()
+        if tile is not None:
+            tile.popup_menu()
+
+    def _focused_tile(self) -> GameTile | None:
+        """Return the tile that has the focus, or None.
+
+        The focus is on a grid item, whose child is the tile, or on a tile's star.
+        """
         tile = self.get_focus()
         while tile is not None and not isinstance(tile, GameTile):
             child = tile.get_first_child()
             tile = child if isinstance(child, GameTile) else tile.get_parent()
-        if tile is not None and tile.props.game is not None:
-            self._toggle_favorite(tile.props.game.props.game.id)
+        return tile if tile is not None and tile.props.game is not None else None
+
+    def _on_toggle_game_done(self, _action: Gio.SimpleAction, parameter: GLib.Variant) -> None:
+        self._done_today.toggle(parameter.get_string())
+
+    def _on_game_done(self, _action: Gio.SimpleAction, _parameter: None) -> None:
+        if self._browser_game is not None:
+            self._done_today.toggle(self._browser_game)
 
     def _toggle_favorite(self, game_id: str) -> None:
         if self._favorites.is_favorite(game_id):

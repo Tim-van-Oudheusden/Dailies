@@ -9,7 +9,8 @@ class GameObject(GObject.Object):
     """One game in the list model, with what the store adds to it, as properties that bindings and filters can watch.
 
     `name`, `category-label`, `difficulty-label`, `caption` ("Geography · Easy", all translated) and `available`
-    (the game is active) follow `game`. A rank of 0 means the game is not on that shelf this week.
+    (the game is active) follow `game`. A rank of 0 means the game is not on that shelf this week. `done` says whether
+    the game was marked as done today; the store sets it apart from `update`, as it changes with the day.
     """
 
     __gtype_name__ = "DailiesGameObject"
@@ -23,6 +24,7 @@ class GameObject(GObject.Object):
     favorite = GObject.Property(type=bool, default=False)
     popular_rank = GObject.Property(type=int, default=0)
     trending_rank = GObject.Property(type=int, default=0)
+    done = GObject.Property(type=bool, default=False)
 
     def __init__(self, game: Game) -> None:
         super().__init__()
@@ -46,6 +48,7 @@ class GameObject(GObject.Object):
             favorite=self.props.favorite,
             popular_rank=self.props.popular_rank,
             trending_rank=self.props.trending_rank,
+            done=self.props.done,
         )
 
     def _set(self, values: dict[str, object]) -> None:

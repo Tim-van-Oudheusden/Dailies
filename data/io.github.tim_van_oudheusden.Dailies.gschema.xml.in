@@ -9,6 +9,7 @@
     <value nick="default"    value="0"/>   <!-- shelf rank / favourite order / name -->
     <value nick="name"       value="1"/>
     <value nick="difficulty" value="2"/>
+    <value nick="not-done"   value="3"/>   <!-- the default order, games done today last -->
   </enum>
   <schema id="@APP_ID@" path="@PREFIX_PATH@/">
     <key name="favorites" type="as"><default>[]</default>
@@ -22,6 +23,12 @@
     <key name="sort-mode" enum="@APP_ID@.SortMode"><default>'default'</default></key>
     <key name="show-other-languages" type="b"><default>true</default>
       <summary>Show games whose language differs from the system locale</summary></key>
+    <key name="done-today" type="a{ss}"><default>{}</default>
+      <summary>Games marked as done, by local date</summary>
+      <description>Maps a game id to the local date (YYYY-MM-DD) it was marked as done on. Only today's marks count; the others are dropped at startup and at midnight.</description></key>
+    <key name="auto-done-today" type="b"><default>false</default>
+      <summary>Mark games as done automatically</summary>
+      <description>Mark a game as done once it has been open in the built-in browser for a minute.</description></key>
   </schema>
   <schema id="@APP_ID@.State" path="@PREFIX_PATH@/State/">
     <key name="width" type="i"><default>1100</default></key>

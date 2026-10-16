@@ -52,7 +52,7 @@ from dailies.ui.game_object import GameObject
 
 Gio.resources_register(Gio.Resource.load(os.environ["DAILIES_GRESOURCE"]))
 
-from dailies.ui.tile import GameTile
+from dailies.ui.tile import GameTile, game_menu
 
 
 def worldle(**changes: object) -> Game:
@@ -141,6 +141,49 @@ class GameTileTest(unittest.TestCase):
         assert star.get_parent() is self.tile
         assert star.props.focusable
         assert Gtk.test_accessible_has_property(star, Gtk.AccessibleProperty.LABEL)
+
+    def test_a_game_done_today_shows_the_badge_and_is_dimmed(self) -> None:
+        badge = self.tile.done_badge
+        assert not badge.get_visible()
+        assert not self.tile.open_button.has_css_class("done")
+        self.item.props.done = True
+        assert badge.get_visible()
+        assert self.tile.done_label.props.label == "Done today"
+        assert self.tile.open_button.has_css_class("done")
+        self.item.props.done = False
+        assert not badge.get_visible()
+        assert not self.tile.open_button.has_css_class("done")
+
+    def test_the_game_menu_marks_and_unmarks_the_game_as_done_today(self) -> None:
+        assert menu_items(game_menu(self.item)) == [("Mark as _Done Today", "win.toggle-game-done", "worldle")]
+        self.item.props.done = True
+        assert menu_items(game_menu(self.item)) == [("Mark as _Not Done", "win.toggle-game-done", "worldle")]
+
+    def test_the_game_menu_pops_up_on_the_tile(self) -> None:
+        self.window.present()
+        self.tile.popup_menu()
+        assert self.tile.menu.props.visible
+        assert menu_items(self.tile.menu.props.menu_model) == menu_items(game_menu(self.item))
+        self.tile.menu.popdown()
+
+
+def menu_items(menu: Gio.MenuModel) -> list[tuple[str, str, str]]:
+    """The label, action and string target of every item, sections flattened."""
+    items = []
+    for index in range(menu.get_n_items()):
+        section = menu.get_item_link(index, Gio.MENU_LINK_SECTION)
+        if section is not None:
+            items += menu_items(section)
+            continue
+        attribute = menu.get_item_attribute_value
+        items.append(
+            (
+                attribute(index, Gio.MENU_ATTRIBUTE_LABEL, None).get_string(),
+                attribute(index, Gio.MENU_ATTRIBUTE_ACTION, None).get_string(),
+                attribute(index, Gio.MENU_ATTRIBUTE_TARGET, None).get_string(),
+            )
+        )
+    return items
 
 
 if __name__ == "__main__":

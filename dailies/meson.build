@@ -29,6 +29,7 @@ install_data(
   'core/cache.py',
   'core/catalog.py',
   'core/favorites_file.py',
+  'core/done_today.py',
   'core/languages.py',
   'core/models.py',
   'core/opening.py',
@@ -40,6 +41,7 @@ install_data(
 )
 install_data(
   'data/__init__.py',
+  'data/done_today.py',
   'data/favorites.py',
   'data/fetcher.py',
   'data/store.py',

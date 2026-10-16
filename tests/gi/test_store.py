@@ -17,6 +17,7 @@ from gi.repository import Gio
 
 from dailies.core import catalog, popularity
 from dailies.core.cache import CacheDir
+from dailies.data.done_today import DoneToday
 from dailies.data.favorites import Favorites
 from dailies.data.store import Store
 
@@ -101,6 +102,22 @@ class StoreTest(unittest.TestCase):
         self.store.load_initial()
         assert self.store.get("wordle") is self.item("wordle")
         assert self.store.get("no-such-game") is None
+
+    def test_the_done_today_marks_are_applied_and_followed(self) -> None:
+        settings = Gio.Settings.new(SCHEMA_ID)
+        settings.reset("done-today")
+        done = DoneToday(settings)
+        self.addCleanup(done.close)
+        done.toggle("globle")
+        store = Store(self.cache, BUNDLE, self.favorites, done_today=done)
+        store.load_initial()
+        assert store.get("globle").props.done
+        assert not store.get("wordle").props.done
+
+        done.toggle("wordle")
+        done.toggle("globle")
+        assert store.get("wordle").props.done
+        assert not store.get("globle").props.done
 
     def test_the_popularity_week_and_staleness_are_exposed(self) -> None:
         self.store.load_initial()

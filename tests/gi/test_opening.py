@@ -193,6 +193,15 @@ class PreferencesTest(unittest.TestCase):
         dialog.command_row.emit("apply")
         assert self.settings.get_string("external-browser-command") == "librewolf -P games"
 
+    def test_marking_games_as_done_automatically_is_off_by_default_and_follows_the_switch(self) -> None:
+        self.settings.reset("auto-done-today")
+        dialog = self.dialog(host_access=False)
+
+        assert not dialog.auto_done_row.props.active
+        dialog.auto_done_row.props.active = True
+        assert self.settings.get_boolean("auto-done-today")
+        self.settings.reset("auto-done-today")
+
 
 if __name__ == "__main__":
     unittest.main()

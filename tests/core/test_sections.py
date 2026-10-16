@@ -118,6 +118,7 @@ def test_a_category_holds_its_available_games_only() -> None:
 
 def test_an_unknown_sort_mode_falls_back_to_the_default() -> None:
     assert sections.SortMode.from_id("difficulty") is sections.SortMode.DIFFICULTY
+    assert sections.SortMode.from_id("not-done") is sections.SortMode.NOT_DONE
     assert sections.SortMode.from_id("newest") is sections.SortMode.DEFAULT
 
 
@@ -159,6 +160,35 @@ def test_sorting_by_name_or_difficulty_overrides_every_section_default() -> None
 def test_equal_names_sort_by_id_so_the_order_is_stable() -> None:
     rows: list[Row] = [(named("b", "Same"), None, 0, 0), (named("a", "same"), None, 0, 0)]
     assert sort("words", sections.SortMode.DEFAULT, rows) == ["a", "b"]
+
+
+def test_not_done_first_puts_todays_played_games_last_in_the_section_order() -> None:
+    games = [named("a", "Zebra"), named("b", "apple"), named("c", "Éclair"), named("d", "Dune")]
+    done = {"b", "c"}
+    positions = {"a": 3, "b": 0, "c": 1, "d": 2}
+
+    def order(section: str) -> list[str]:
+        def key(game_: Game) -> tuple:
+            entry = sections.Listing(
+                game=game_, favorite=True, popular_rank=positions[game_.id] + 1, done=game_.id in done
+            )
+            return sections.sort_key(section, sections.SortMode.NOT_DONE, entry, positions[game_.id])
+
+        return [game_.id for game_ in sorted(games, key=key)]
+
+    assert order(sections.FAVORITES) == ["d", "a", "b", "c"]
+    assert order(sections.POPULAR) == ["d", "a", "b", "c"]
+    assert order("words") == ["d", "a", "b", "c"]
+
+
+def test_the_other_orders_ignore_whether_a_game_is_done() -> None:
+    rows = [named("a", "Zebra"), named("b", "apple")]
+
+    def key(game_: Game) -> tuple:
+        entry = sections.Listing(game=game_, done=game_.id == "b")
+        return sections.sort_key("words", sections.SortMode.NAME, entry, None)
+
+    assert [game_.id for game_ in sorted(rows, key=key)] == ["b", "a"]
 
 
 def test_a_section_with_games_shows_the_grid() -> None:

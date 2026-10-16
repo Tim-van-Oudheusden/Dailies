@@ -59,3 +59,16 @@
   border-radius: 999px;
   background-color: color-mix(in srgb, currentColor 12%, transparent);
 }
+
+/* A game done today: its check badge stays legible, the rest of the card is dimmed like libadwaita's .dimmed. The
+ * badge takes the accent colour, not green, so it is never mistaken for the Easy pill. */
+.done-badge {
+  padding: 1px 8px;
+  border-radius: 999px;
+  color: var(--accent-color);
+  background-color: color-mix(in srgb, var(--accent-bg-color) 15%, transparent);
+}
+
+.game-tile.done > box > :not(.done-badge) {
+  opacity: 0.55;
+}

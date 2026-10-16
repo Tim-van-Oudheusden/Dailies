@@ -9,6 +9,7 @@ from dailies.core import cache, catalog, popularity
 from dailies.core.cache import CacheDir, Outcome
 from dailies.core.catalog import Catalog
 from dailies.core.popularity import Popularity, Shelf
+from dailies.data.done_today import DoneToday
 from dailies.data.favorites import Favorites
 from dailies.data.fetcher import Fetcher
 from dailies.ui.game_object import GameObject
@@ -22,12 +23,13 @@ _PARSERS: dict[str, Callable[[bytes], Catalog | Popularity]] = {
 
 
 class Store(GObject.Object):
-    """Every catalog game as a `GameObject` in `model`, with this week's ranks and the favourite state applied.
+    """Every catalog game as a `GameObject` in `model`, with this week's ranks, the favourite and the done-today state.
 
     The model holds broken and retired games too, so favourites still resolve; the section filter hides them. The
     properties tell the UI how old the data is: `popularity-week` and `popularity-stale` for the This Week shelves,
     `last-success` (when the server last confirmed the catalog, None before the first time) and `stale-banner`
-    (whether to say that the game list is old). `catalog` and `popularity` notify on every reload.
+    (whether to say that the game list is old). `catalog` and `popularity` notify on every reload. Without
+    `done_today`, no game is ever done.
     """
 
     __gtype_name__ = "DailiesStore"
@@ -45,6 +47,8 @@ class Store(GObject.Object):
         bundle_dir: Path,
         favorites: Favorites,
         fetcher: Fetcher | None = None,
+        *,
+        done_today: DoneToday | None = None,
     ) -> None:
         super().__init__()
         self.model = Gio.ListStore(item_type=GameObject)
@@ -52,9 +56,12 @@ class Store(GObject.Object):
         self._bundle = bundle_dir
         self._favorites = favorites
         self._fetcher = fetcher
+        self._done_today = done_today
         self._objects: dict[str, GameObject] = {}
         self._network = Gio.NetworkMonitor.get_default()
         favorites.connect("changed", self._on_favorite_changed)
+        if done_today is not None:
+            done_today.connect("changed", self._on_done_changed)
         self._network.connect("network-changed", lambda *_args: self._update_freshness())
 
     def load_initial(self) -> None:
@@ -75,6 +82,8 @@ class Store(GObject.Object):
             current = self.model.get_item(position)
             if item is None:
                 item = self._objects[game.id] = GameObject(game)
+                # Existing objects follow `changed`; a new one starts from the current marks.
+                item.props.done = self._done_today is not None and self._done_today.is_done(game.id)
                 self.model.insert(position, item)
             elif current is not item:
                 self.model.remove(self.model.find(item)[1])
@@ -153,3 +162,7 @@ class Store(GObject.Object):
     def _on_favorite_changed(self, favorites: Favorites, game_id: str) -> None:
         if item := self._objects.get(game_id):
             item.props.favorite = favorites.is_favorite(game_id)
+
+    def _on_done_changed(self, done_today: DoneToday, game_id: str) -> None:
+        if item := self._objects.get(game_id):
+            item.props.done = done_today.is_done(game_id)

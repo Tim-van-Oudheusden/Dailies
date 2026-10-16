@@ -58,6 +58,7 @@ Gio.resources_register(Gio.Resource.load(os.environ["DAILIES_GRESOURCE"]))
 
 from dailies.core.cache import CacheDir
 from dailies.core.web import display_host
+from dailies.data.done_today import DoneToday
 from dailies.data.favorites import Favorites
 from dailies.data.store import Store
 from dailies.window import Window
@@ -88,9 +89,11 @@ class BrowserPageTest(unittest.TestCase):
         self.app.settings = Gio.Settings.new(SCHEMA_ID)
         self.app.settings.set_string("open-mode", "in-app")
         self.app.favorites = Favorites(self.app.settings)
+        self.app.done_today = DoneToday(self.app.settings)
+        self.addCleanup(self.app.done_today.close)
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
-        store = Store(CacheDir(Path(directory.name) / "v1"), BUNDLE, self.app.favorites)
+        store = Store(CacheDir(Path(directory.name) / "v1"), BUNDLE, self.app.favorites, done_today=self.app.done_today)
         store.load_initial()
         # Hosts that never resolve: the test needs no network, and no site retitles the page.
         game = store.model.get_item(0).props.game

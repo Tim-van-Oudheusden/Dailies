@@ -46,6 +46,12 @@ template $DailiesPreferencesDialog: Adw.PreferencesDialog {
     Adw.PreferencesGroup browser_group {
       title: _("Built-in browser");
 
+      // Off by default; dailies/core/done_today.py sets the minute (AUTO_MARK_SECONDS).
+      Adw.SwitchRow auto_done_row {
+        title: _("Mark games as done automatically");
+        subtitle: _("After a game has been open here for a minute");
+      }
+
       Adw.SwitchRow clear_on_exit_row {
         title: _("Clear website data on exit");
       }

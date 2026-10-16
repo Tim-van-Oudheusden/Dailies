@@ -119,6 +119,14 @@ class PipelineTest(unittest.TestCase):
         self.sorter.props.sort_mode = "default"
         assert self.shown() == ["wordle", "worldle", "pokedle"]
 
+    def test_not_done_first_moves_the_games_done_today_last(self) -> None:
+        self.show("popular")
+        self.sorter.props.sort_mode = "not-done"
+        assert self.shown() == ["wordle", "worldle", "pokedle"]
+        self.item("wordle").props.done = True
+        self.sorter.changed(Gtk.SorterChange.DIFFERENT)
+        assert self.shown() == ["worldle", "pokedle", "wordle"]
+
     def test_search_folds_accents_and_narrows_the_current_section(self) -> None:
         self.show("popular")
         self.search.props.text = "pokedle"

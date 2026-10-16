@@ -51,7 +51,7 @@ APP_ID = os.environ["DAILIES_SCHEMA_ID"]
 # Every accelerator of the application, per section of the Shortcuts dialog (#48).
 EXPECTED_SECTIONS = {
     "General": {"<Control>question", "F10", "<Control>comma", "<Control>q"},
-    "Library": {"<Control>f", "<Control>d", "<Control>r"},
+    "Library": {"<Control>f", "<Control>d", "<Shift>F10", "<Control>r"},
     "Built-in Browser": {"<Alt>Left", "<Alt>Right", "<Control>r", "<Control>l", "<Control><Shift>o"},
 }
 

@@ -187,7 +187,7 @@ class SectionSorter(Gtk.Sorter):
         """Return that the order is total: no two games compare equal."""
         return Gtk.SorterOrder.TOTAL
 
-    def _key(self, item: GameObject) -> tuple[int, str, str]:
+    def _key(self, item: GameObject) -> tuple[bool, int, str, str]:
         mode = sections.SortMode.from_id(self.props.sort_mode)
         listing = item.listing()
         return sections.sort_key(self.props.section, mode, listing, self._positions.get(listing.game.id))
