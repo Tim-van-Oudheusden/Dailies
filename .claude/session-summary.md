@@ -9,19 +9,17 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-10-16 (fifth session). #103 on `ci/103-wikipedia-signal`: `wikipedia` titles for the 11 more games with an
-English article about the game, `popularity.yml` collects with `--wikipedia`, HN stays off, docs record why.
+2026-10-16 (sixth session). #131 on `fix/131-tier-classify-quoted-paths`: `scripts/tier-classify.sh -z` reads
+NUL-terminated paths, so a high-risk path git would C-quote (non-ASCII, `"`, `\`, a control character) is rated by its
+rule instead of falling to medium. A path holding a control character prints `%q`-quoted; any other argument exits 2.
 
-- **Outcome:** the first v3 week is `method_version: 3` with Tranco and Wikipedia. Dry-run shelf diff (live data of
-  2026-10-16): Wordle, Connections and Quordle leave Popular for Mini Crossword, Pips and Blossom, because an article
-  scores below Tranco and every game on a shared domain ties on Tranco.
+- **Outcome:** script, shell tests and the local commands in `docs/risk-tiers.md` and `docs/metrics/README.md` take
+  `-z`. `tier-classifier.yml` is unchanged, so CI still rates such paths medium.
 - **Open follow-ups:**
-  - #136 (decision): Wikipedia demoting games with an article; the maintainer may want it settled before merging #103.
-  - #137 (owner): `CLOUDFLARE_RADAR_TOKEN`, Radar's 404 rate, then `--radar`.
+  - #131 (maintainer): once the script is on `main`, change `tier-classifier.yml`'s classify step to
+    `git diff -z --name-only --no-renames ... | bash "$classifier" -z`. Not before: the job runs the base branch's
+    script, which would read the NUL-separated list as one path. Agent tokens cannot push workflow changes.
 - **Gotchas:**
-  - Check Wikipedia titles with `action=query&redirects=1&prop=pageprops` (`disambiguation`): `Globle (game)` is a
-    redirect into `Wordle`; `Murdle` redirects to its author; `Framed (video game)` and `Numble` are other games.
-  - HN Algolia matches title prefixes even with `typoTolerance=false` ("Statele" hits "Stateless", "Queens" hits
-    "Queensland").
-  - The host has Python 3.11 and `jaq` as `jq`: pytest needs 3.12 (`uv python install 3.12`), and 13 shell-script tests
-    fail under `jaq` on `main` too.
+  - The host has Python 3.11 and no `uv`: only `tests/scripts/test_tier_classify.py` collects under 3.11; the rest of
+    `pytest` needs 3.12. Local shellcheck 0.9.0 flags SC2015 in `tier-classify.sh` on `main` too; the CI-pinned 0.11.0
+    does not.

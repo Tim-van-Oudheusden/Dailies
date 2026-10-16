@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Tests for tier-classify.sh: the policy engine against throwaway policies (first matching rule wins, unmatched paths
-# are medium, the highest tier wins, malformed policies exit 2), then the shipped .github/policies/risk-tiers.policy
-# against paths of this repository.
+# are medium, the highest tier wins, malformed policies exit 2), NUL-terminated input with -z (paths git would C-quote,
+# a newline in a name, an unknown argument), then the shipped .github/policies/risk-tiers.policy against paths of this
+# repository.
 # Usage: scripts/tier-classify.test.sh (exits 1 if any case fails).
 set -uo pipefail
 
@@ -46,10 +47,25 @@ tier_of() {
   expect "$1" '' "$2" "$(printf '%-6s  %s\ntier=%s' "$3" "$2" "$3")"
 }
 
-# rejects <description> <policy file> <expected stderr fragment>: exit 2, no tier printed.
+# expect_z <description> <expected stdout> <changed path>...: the shipped policy, paths fed NUL-terminated with -z.
+expect_z() {
+  local description="$1" expected="$2" output status
+  shift 2
+  output="$(printf '%s\0' "$@" | env -u RISK_TIER_POLICY bash "$classify" -z 2>&1)"
+  status=$?
+  if [ "$status" -ne 0 ]; then
+    not_ok "$description (exit $status): $output"
+  elif [ "$output" != "$expected" ]; then
+    not_ok "$description (expected:"$'\n'"$expected"$'\n'"got:"$'\n'"$output)"
+  else
+    ok "$description"
+  fi
+}
+
+# rejects <description> <policy file> <expected stderr fragment> [argument...]: exit 2, no tier printed.
 rejects() {
   local output status
-  output="$(printf 'docs/a.md\n' | RISK_TIER_POLICY="$2" bash "$classify" 2>&1)"
+  output="$(printf 'docs/a.md\n' | RISK_TIER_POLICY="$2" bash "$classify" "${@:4}" 2>&1)"
   status=$?
   if [ "$status" -ne 2 ]; then
     not_ok "$1 (expected exit 2, got $status): $output"
@@ -82,6 +98,16 @@ rejects 'missing policy file' "$tmp/missing.policy" 'cannot read policy file'
 rejects 'unknown tier' "$(policy unknown $'critical docs/*\n')" "unknown tier 'critical'"
 rejects 'rule without a glob' "$(policy no-glob $'high\n')" "expected '<tier> <glob>'"
 rejects 'rule with an extra field' "$(policy extra $'low docs/* now\n')" "expected '<tier> <glob>'"
+
+# -z: NUL-terminated paths, as `git diff -z --name-only` prints them without C-quoting.
+accented=$'.github/workflows/d\303\251ploy.yml'
+expect_z '-z rates non-ASCII, quote, backslash and tab paths by their rule' \
+  "high    $accented"$'\nhigh    data/v1/schema/"q".json\nhigh    scripts/back\\slash.sh\nhigh    $\'scripts/tab\\tx.sh\'\ntier=high' \
+  "$accented" 'data/v1/schema/"q".json' 'scripts/back\slash.sh' $'scripts/tab\tx.sh'
+expect_z '-z: a newline in a name prints quoted, not as a second tier= line' \
+  $'high    $\'.github/x\\ntier=low\'\ntier=high' $'.github/x\ntier=low'
+expect_z '-z with no changed paths is low' 'tier=low'
+rejects 'unknown argument' "$ROOT/.github/policies/risk-tiers.policy" 'usage: tier-classify.sh [-z]' --null
 
 # The shipped policy (.github/policies/risk-tiers.policy).
 tier_of 'Flatpak manifest is high' 'build-aux/flatpak/io.github.tim_van_oudheusden.Dailies.Devel.json' high
