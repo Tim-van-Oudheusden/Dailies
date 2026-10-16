@@ -338,15 +338,15 @@ compliance workflow) opens one issue listing broken entries, and a `data/link-st
 change once a game failed the same check two weeks in a row (or passed again two weeks in a row, or was hijacked to a
 gambling page), never a deletion; the maintainer merges it.
 
-**Popularity.** Numbers are computed by deterministic Python; a language model may only write prose. The only source in
-the MVP is the Tranco rank of each game's registrable domain, smoothed over seven days and log-scaled; every game on a
+**Popularity.** Numbers are computed by deterministic Python; a language model may only write prose. The main source
+is the Tranco rank of each game's registrable domain, smoothed over seven days and log-scaled; every game on a
 domain gets its full score, and a shelf holds at most two games of one domain, picked in the order of
 `data/v1/domain_weights.json`. `popular` holds the top `max(5, min(12, 10 % of active games))`; `trending` holds rising
 games outside the top five, topped up with the newest games (`reason: "new"`) so the shelf is never empty. If Tranco
 fails for more than 20 % of domains the job fails and the old file stays. Wikipedia pageviews, Hacker News story
-counts and Cloudflare Radar buckets are optional collector flags, off by default ([#78][issue-78]); see
-[`data-format.md`](data-format.md#how-method_version-3-is-computed). The current `popularity.json` is hand-written
-(`method_version: 0`).
+counts and Cloudflare Radar buckets are optional collector flags, off by default ([#78][issue-78]); the weekly workflow
+turns on Wikipedia for the games with an article ([#103][issue-103], `method_version: 3`), see
+[`data-format.md`](data-format.md#how-method_version-3-is-computed).
 
 **Publishing.** `pages.yml` publishes `data/v1/` (schemas included) and `docs/popularity/` to GitHub Pages at
 `https://tim-van-oudheusden.github.io/Dailies/v1/` on every push to `main` that touches them. The app tries that URL
@@ -441,6 +441,11 @@ byte-identical to `method_version: 2`. Why: Wikipedia covers only a handful of g
 neither may outvote Tranco or penalise a game for having no article; Radar needs a token and is CC BY-NC, so it must
 be skippable, and a missing token or a source failing for more than 20 % of its items drops it with `ok: false` in
 `sources` instead of failing the week.
+
+**Decision:** the weekly workflow passes `--wikipedia` and leaves `--hn` and `--radar` off ([#103][issue-103]). Why: HN
+title search matched 62 stories for the catalog in four weeks, two of them about the game, and searching the game's URL
+instead found one; a signal that is zero for nearly every game only scales the scores down. Radar waits for an
+owner-made `CLOUDFLARE_RADAR_TOKEN`. Wikipedia titles are set only where an English article is about the game itself.
 
 ## Measurements
 
@@ -551,3 +556,4 @@ approximate cold start that left shared libraries in memory; re-measure on a lap
 [issue-75]: https://github.com/Tim-van-Oudheusden/Dailies/issues/75
 [issue-76]: https://github.com/Tim-van-Oudheusden/Dailies/issues/76
 [issue-88]: https://github.com/Tim-van-Oudheusden/Dailies/issues/88
+[issue-103]: https://github.com/Tim-van-Oudheusden/Dailies/issues/103

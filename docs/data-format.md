@@ -241,7 +241,8 @@ python -I scripts/popularity/compute.py --catalog data/v1/games.json --raw raw/ 
 ### How `method_version: 3` is computed
 
 The optional sources of #78 are off by default; each is a `collect.py` flag that writes one more raw file,
-and `compute.py` uses whichever files are in `--raw`:
+and `compute.py` uses whichever files are in `--raw`. The weekly workflow passes `--wikipedia` only (#103), so the
+published file is `method_version: 3` with Tranco and Wikipedia:
 
 ```sh
 python -I scripts/popularity/collect.py --catalog data/v1/games.json --out raw/ --wikipedia --hn --radar
@@ -265,9 +266,20 @@ is left out, with `ok: false` and an `error` in `sources`, when its collector re
 more than 20 % of its items failed; the week is still computed. Its `scores` field is then `null` for every game and
 its credit line is not added to `attribution`. History from `method_version: 2` is dropped for the trend.
 
-Notes on the signals: Wikipedia pageviews are lower than Tranco's score for almost every game (Wordle's 80,000 a week
-score 0.82), so a game with an article usually loses a little against one without; HN title search is noisy for
-common words (the game "Connections" matches unrelated stories). Both are why the weights stay small.
+Notes on the signals: Wikipedia pageviews are lower than Tranco's score for almost every game (Wordle's 93,500 a week
+score 0.83), so a game with an article usually loses a little against one without. On a shared domain, where every
+game has the same Tranco score, that little decides which two games the shelf takes: in the first v3 run (Tranco and
+Wikipedia of 2026-10-16) The Mini Crossword and Pips, which have no article, took the two `nytimes.com` slots in
+Popular from Wordle and Connections, ahead of the order in `domain_weights.json`. The games with a `wikipedia` title
+are the ones with an English article about the game itself; a redirect (`Globle (game)` points into `Wordle`), a
+disambiguation page or an article about something else (`Framed (video game)` from 2014, the 1968 board game
+`Numble`, `GeoGuessr` as a whole rather than its daily challenge) does not count.
+
+HN stays off: over the 28 days before 2026-10-16 its title search matched 62 stories for the whole catalog, and two of
+them were about the game ("Connections" alone matched 21 stories on network connections, "Strands" 9 on an AWS agent
+framework, "Wordle" 8 on Wordle clones). Restricting the search to stories linking the game's URL left one story for
+116 games, so the signal would only scale every score down by the same factor.
+
 `summary.json` lists each optional source's `ok`, `failed`, `count`, `used`, `error` and its `failed_games` (Wikipedia,
 HN) or `failed_domains` (Radar).
 

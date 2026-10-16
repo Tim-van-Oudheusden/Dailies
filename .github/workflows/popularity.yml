@@ -1,10 +1,11 @@
 name: Weekly popularity
 
-# Every Monday: collect the Tranco ranks of every active game's domain, compute the Popular and Trending shelves
-# deterministically, validate them against the schema, let Claude write the weekly report (issue #66) and open a pull
-# request. Fails closed: when Tranco failed for too many domains, compute.py exits non-zero, nothing is published and
-# data/v1/popularity.json stays as it is. The model writes prose only: a guard fails the job if it changed anything but
-# docs/popularity/<week>.md, and a failed report never blocks the numbers. A maintainer merges the PR; main is protected.
+# Every Monday: collect the Tranco ranks of every active game's domain and the Wikipedia pageviews of the games with an
+# article (method_version 3), compute the Popular and Trending shelves deterministically, validate them against the
+# schema, let Claude write the weekly report (issue #66) and open a pull request. Fails closed: when Tranco failed for
+# too many domains, compute.py exits non-zero, nothing is published and data/v1/popularity.json stays as it is. The
+# model writes prose only: a guard fails the job if it changed anything but docs/popularity/<week>.md, and a failed
+# report never blocks the numbers. A maintainer merges the PR; main is protected.
 # Scheduled workflows in public repositories are disabled after 60 days without activity; re-enable this one from
 # the Actions tab (docs/runbooks/re-enable-cron.md).
 
@@ -45,9 +46,13 @@ jobs:
       # requests for the collector, jsonschema for compute.py, check-jsonschema for the validation step.
       - name: Install script dependencies
         run: python -m pip install --require-hashes -r scripts/requirements.txt
-      # Exits 0 whenever raw/tranco.json was written; deciding whether the week is usable is compute.py's job.
-      - name: Collect Tranco ranks
-        run: python -I scripts/popularity/collect.py --catalog data/v1/games.json --out "$RUNNER_TEMP/raw/"
+      # Exits 0 whenever the raw files were written; deciding whether the week is usable is compute.py's job. HN (--hn)
+      # stays off: its title search matched about 2 relevant stories of 64 across the catalog (#103). Radar (--radar)
+      # waits for a CLOUDFLARE_RADAR_TOKEN secret.
+      - name: Collect Tranco ranks and Wikipedia pageviews
+        run: >-
+          python -I scripts/popularity/collect.py --catalog data/v1/games.json --out "$RUNNER_TEMP/raw/"
+          --wikipedia
       # Reads last week's file for the history; exits 1 and writes nothing when Tranco failed for > 20 % of domains.
       - name: Compute shelves
         run: >-
