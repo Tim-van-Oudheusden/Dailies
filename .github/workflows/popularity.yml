@@ -1,7 +1,7 @@
 name: Weekly popularity
 
 # Every Monday: collect the Tranco ranks of every active game's domain and the Wikipedia pageviews of the games with an
-# article (method_version 3), compute the Popular and Trending shelves deterministically, validate them against the
+# article (method_version 4), compute the Popular and Trending shelves deterministically, validate them against the
 # schema, let Claude write the weekly report (issue #66) and open a pull request. Fails closed: when Tranco failed for
 # too many domains, compute.py exits non-zero, nothing is published and data/v1/popularity.json stays as it is. The
 # model writes prose only: a guard fails the job if it changed anything but docs/popularity/<week>.md, and a failed
