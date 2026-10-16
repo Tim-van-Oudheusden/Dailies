@@ -28,6 +28,7 @@ install_data(
   'core/_fields.py',
   'core/cache.py',
   'core/catalog.py',
+  'core/favorites_file.py',
   'core/languages.py',
   'core/models.py',
   'core/opening.py',
@@ -47,6 +48,7 @@ install_data(
 install_data(
   'ui/__init__.py',
   'ui/browser_page.py',
+  'ui/favorites_transfer.py',
   'ui/filters.py',
   'ui/game_object.py',
   'ui/library.py',

@@ -20,6 +20,7 @@ from dailies.data.favorites import Favorites
 from dailies.data.fetcher import Fetcher
 from dailies.data.store import Store
 from dailies.ui import opener
+from dailies.ui.favorites_transfer import Transfer
 
 _REFRESH_ACCELS = ["<Control>r"]
 
@@ -126,6 +127,8 @@ class Application(Adw.Application):
             ("about", self._show_about, []),
             ("preferences", self._on_preferences, ["<Control>comma"]),
             ("refresh", self._on_refresh, _REFRESH_ACCELS),
+            ("export-favorites", lambda: self._favorites_transfer().ask_export(), []),
+            ("import-favorites", lambda: self._favorites_transfer().ask_import(), []),
         ):
             action = Gio.SimpleAction(name=name)
             action.connect("activate", lambda _action, _param, activate=activate: activate())
@@ -134,6 +137,10 @@ class Application(Adw.Application):
         # The window adds these actions (dailies/window.py).
         self.set_accels_for_action("win.toggle-favorite", ["<Control>d"])
         self.set_accels_for_action("win.search", ["<Control>f"])
+
+    def _favorites_transfer(self) -> Transfer:
+        window = self.props.active_window
+        return Transfer(window, self.favorites, window.toast_overlay.add_toast)
 
     def _show_about(self) -> None:
         # Name, icon, developer, version, URLs, licence and release notes come from the bundled metainfo.
@@ -170,6 +177,6 @@ def main() -> int:
     )
     locale.bindtextdomain("dailies", config.LOCALEDIR)
     locale.textdomain("dailies")
-    gettext.install("dailies", config.LOCALEDIR)
+    gettext.install("dailies", config.LOCALEDIR, names=["ngettext"])
     Gio.resources_register(Gio.Resource.load(str(Path(config.PKGDATADIR) / "dailies.gresource")))
     return Application().run(sys.argv)

@@ -87,8 +87,9 @@ machine, and the coverage floors apply to `dailies/core` and `scripts/` only.
 | `core/search.py` | no | Case- and accent-folded substring match over name, description, tags and category label; whether a new query narrows or widens the matches |
 | `core/sections.py` | no | The sidebar's section ids (Favorites, Popular, Trending, then the category ids), which categories have active games, the section to restore, the "as of" date of stale shelves; what each section holds, the sort keys (shelf rank, favourite order, name, or the `sort-mode` override), the empty-state page, the tiles' colour classes |
 | `core/cache.py` | no | The cache directory (`<name>.json`, `.etag`, `.fetched`, atomic writes) and the decisions of one refresh: skip while younger than the maximum age, `If-None-Match`, fall-through order of the data URLs, `Retry-After` backoff, validate before writing; the stale-banner rule |
+| `core/favorites_file.py` | no | The favourites export file (see [Exporting favourites](#exporting-favourites)): `dump`, `parse` (raises `FavoritesFileError` on anything but a valid version-1 file) and `combine` for Merge and Replace |
 | `data/fetcher.py` | Soup, Gio, GLib | Thin asynchronous libsoup 3 shell over `core/cache.py`: one `Soup.Session` with `User-Agent: Dailies/<version> (+https://github.com/Tim-van-Oudheusden/Dailies)` sends the requests a refresh asks for, one at a time, and never retries in a loop |
-| `data/favorites.py` | Gio | Wraps the `favorites` string-array key: `is_favorite`, `toggle`, order (newest last); emits `changed(id)` |
+| `data/favorites.py` | Gio, GLib | Wraps the `favorites` string-array key: `is_favorite`, `toggle`, order (newest last), `set_order`, `import_ids`; emits `changed(id)`. `export` and `read_export` write and read the export file with Gio's asynchronous file I/O |
 | `data/store.py` | Gio | Owns the `Gio.ListStore` of `GameObject`; applies catalog, popularity and favourites; `reload()` diffs by id so the grid keeps its scroll position |
 | `ui/game_object.py` | GObject | `GameObject` with `game`, `name`, `category-label`, `difficulty-label`, `caption`, `available`, `favorite`, `popular-rank` and `trending-rank` properties for Blueprint bindings and filters |
 | `ui/filters.py` | Gtk | `SectionFilter` (Favorites, Popular, Trending or a category) and `SearchFilter`, combined in a `Gtk.EveryFilter`; `SectionSorter` orders shelves by rank, Favorites by favourite order, categories by name |
@@ -98,6 +99,7 @@ machine, and the coverage floors apply to `dailies/core` and `scripts/` only.
 | `ui/browser_page.py` | WebKit | The in-app browser page; only imported when `HAVE_WEBKIT` |
 | `ui/opener.py` | Gtk, Gio | Turns the `open-mode` setting into an action (see [Opening games](#opening-games)) |
 | `ui/preferences.py` | Adw | `Adw.PreferencesDialog`: open mode, website data, catalog options |
+| `ui/favorites_transfer.py` | Gtk, Adw | Export Favorites… and Import Favorites… (`app.export-favorites`, `app.import-favorites`): `Gtk.FileDialog`, the Merge/Replace `Adw.AlertDialog` and the result toasts |
 | `application.py` | Adw | `Adw.Application`, its actions and accelerators, the `.devel` style in the Devel build, the About dialog read from the metainfo |
 | `config.py.in` | none | `APP_ID`, `VERSION`, `PROFILE`, `PKGDATADIR`, `DATA_URLS`, `LOCALEDIR`, filled in by Meson |
 
@@ -141,6 +143,28 @@ GSettings schema `io.github.tim_van_oudheusden.Dailies` (the Devel build gets it
 
 A `State` child schema keeps `width`, `height`, `is-maximized`, `last-section` and `first-run-banner-dismissed`. New
 keys are additive and need no migration.
+
+### Exporting favourites
+
+The primary menu's **Export Favorites…** writes the favourites, in display order, to a file the user picks:
+
+```json
+{
+  "schema_version": 1,
+  "favorites": [
+    "worldle",
+    "connections"
+  ]
+}
+```
+
+UTF-8, 2-space indented. Both file choosers are `Gtk.FileDialog`, which goes through the FileChooser portal inside
+the Flatpak, so no `--filesystem` permission is needed. **Import Favorites…** checks the whole file first: malformed
+JSON, another `schema_version`, a `favorites` that is not a list, an id that is not a non-empty string, or an id listed
+twice shows "This file is not a Dailies favorites export" and changes nothing. With favourites already set, an
+`Adw.AlertDialog` offers **Merge** (the default: keep the current order and append the file's ids not among them) or
+**Replace** (take the file's list); then a toast says "Imported N favorites". Ids the catalog does not know are kept
+and resolve once the catalog has them.
 
 ### Window
 

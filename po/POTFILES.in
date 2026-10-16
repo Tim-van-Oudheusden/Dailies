@@ -1,5 +1,6 @@
 dailies/application.py
 dailies/ui/browser_page.py
+dailies/ui/favorites_transfer.py
 dailies/ui/library.py
 dailies/ui/opener.py
 dailies/ui/preferences.py
