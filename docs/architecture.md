@@ -345,8 +345,9 @@ domain gets its full score, and a shelf holds at most two games of one domain, p
 games outside the top five, topped up with the newest games (`reason: "new"`) so the shelf is never empty. If Tranco
 fails for more than 20 % of domains the job fails and the old file stays. Wikipedia pageviews, Hacker News story
 counts and Cloudflare Radar buckets are optional collector flags, off by default ([#78][issue-78]); the weekly workflow
-turns on Wikipedia for the games with an article ([#103][issue-103], `method_version: 3`), see
-[`data-format.md`](data-format.md#how-method_version-3-is-computed).
+turns on Wikipedia for the games with an article ([#103][issue-103]); since [#136][issue-136] (`method_version: 4`)
+an article can raise a game's score but never lower it, see
+[`data-format.md`](data-format.md#how-method_version-4-is-computed).
 
 **Publishing.** `pages.yml` publishes `data/v1/` (schemas included) and `docs/popularity/` to GitHub Pages at
 `https://tim-van-oudheusden.github.io/Dailies/v1/` on every push to `main` that touches them. The app tries that URL
@@ -446,6 +447,14 @@ be skippable, and a missing token or a source failing for more than 20 % of its 
 title search matched 62 stories for the catalog in four weeks, two of them about the game, and searching the game's URL
 instead found one; a signal that is zero for nearly every game only scales the scores down. Radar waits for an
 owner-made `CLOUDFLARE_RADAR_TOKEN`. Wikipedia titles are set only where an English article is about the game itself.
+
+**Decision:** Wikipedia is a bonus: `popularity` is the larger of the weighted mean without the Wikipedia score and
+the one with it, and the file is `method_version: 4` ([#136][issue-136]). Why: pageviews score below Tranco for nearly
+every game, so under the plain mean of `method_version: 3` an article cost a game score. On a shared domain, where
+every game has the same Tranco score, that cost overrode `domain_weights.json`: Wordle and Connections lost their
+`nytimes.com` slots in Popular to The Mini Crossword and Pips, which have no article. Rejected: using Wikipedia only to
+order a shared domain's games (it would then never lift a game above its domain), and keeping the plain mean. HN and
+Radar keep the plain mean: HN is off, and Radar ranks the domain, as Tranco does.
 
 ## Measurements
 
@@ -557,3 +566,4 @@ approximate cold start that left shared libraries in memory; re-measure on a lap
 [issue-76]: https://github.com/Tim-van-Oudheusden/Dailies/issues/76
 [issue-88]: https://github.com/Tim-van-Oudheusden/Dailies/issues/88
 [issue-103]: https://github.com/Tim-van-Oudheusden/Dailies/issues/103
+[issue-136]: https://github.com/Tim-van-Oudheusden/Dailies/issues/136

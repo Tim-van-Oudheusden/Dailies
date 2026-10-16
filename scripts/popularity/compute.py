@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compute the weekly Popular and Trending shelves from the collected popularity signals (method_version 2 or 3).
+"""Compute the weekly Popular and Trending shelves from the collected popularity signals (method_version 2 or 4).
 
 Every number is deterministic: the same catalog, raw signals, previous file, weights file and --now give a
 byte-identical popularity.json and summary.json. The method (docs/proposals/mvp-first.md section 8, decision #88):
@@ -8,10 +8,12 @@ byte-identical popularity.json and summary.json. The method (docs/proposals/mvp-
 - With only raw/tranco.json (method_version 2), popularity = tranco_score. Every game gets its registrable domain's
   full score.
 - With any of raw/wikipedia.json, raw/hn.json or raw/radar.json (written by collect.py --wikipedia, --hn, --radar;
-  method_version 3), popularity is the weighted mean of the scores a game has (docs/research/data-pipeline.md 4.2):
+  method_version 4), popularity is the weighted mean of the scores a game has (docs/research/data-pipeline.md 4.2):
   tranco 0.80, wiki_score = clamp(log10(views_7d + 1) / 6, 0, 1) 0.15, hn_score = clamp(log10(stories_28d + 1) / 2,
   0, 1) 0.05, radar_score = tranco_score of the Radar rank or bucket 0.20. A missing score (no `wikipedia` article,
-  a failed fetch, a source that is off or unusable) drops out and the remaining weights are renormalised.
+  a failed fetch, a source that is off or unusable) drops out and the remaining weights are renormalised. Wikipedia
+  is a bonus (#136): popularity = max(mean without wiki_score, mean with it), so an article never costs a game score.
+  (method_version 3 was the plain weighted mean.)
 - An optional source is unusable when its collector reported an error (e.g. no Radar token) or more than 20 % of its
   items failed; its health says so in `sources` and the week still computes.
 - A domain whose Tranco fetch failed keeps the game's popularity of last week (reason "carried_forward"), or 0
@@ -46,7 +48,7 @@ from typing import Any
 import jsonschema
 
 METHOD_VERSION = 2
-COMPOSITE_METHOD_VERSION = 3
+COMPOSITE_METHOD_VERSION = 4
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA = ROOT / "data" / "v1" / "schema" / "popularity.schema.json"
 VALIDITY = timedelta(days=10)
@@ -104,6 +106,19 @@ def wiki_score(views: int) -> float:
 def hn_score(stories: int) -> float:
     """0.0 without stories, 1.0 at 99 stories in 28 days and above, log-linear between."""
     return min(1.0, max(0.0, math.log10(stories + 1) / 2))
+
+
+def weighted_mean(parts: list[tuple[str, float]]) -> float:
+    """The mean of (source, score) pairs weighted by WEIGHTS; a single score is returned as is."""
+    if len(parts) == 1:
+        return parts[0][1]
+    return sum(WEIGHTS[name] * score for name, score in parts) / sum(WEIGHTS[name] for name, _ in parts)
+
+
+def composite(parts: list[tuple[str, float]]) -> float:
+    """The weighted mean of a game's scores, where a Wikipedia score only counts when it raises the mean (#136)."""
+    others = [part for part in parts if part[0] != "wikipedia"]
+    return max(weighted_mean(others), weighted_mean(parts))
 
 
 def mean_rank(ranks: list[dict[str, Any]]) -> float | None:
@@ -296,23 +311,19 @@ def _scores(
         game_id, domain = game["id"], game["domain"]
         prior = priors.get(game_id, [])
         fields: dict[str, int | None] = {}
-        parts: list[tuple[float, float]] = []
+        parts: list[tuple[str, float]] = []
         for source in signals:
             value, score = source.value(game)
             fields[FIELDS[source.name]] = value
             if score is not None:
-                parts.append((WEIGHTS[source.name], score))
+                parts.append((source.name, score))
         if domain in failed:
             rank = None
             popularity = prior[0] if prior else 0.0
             reasons[game_id] = "carried_forward" if prior else "score"
         else:
             rank = mean_rank(tranco["domains"][domain]["ranks"])
-            combined = tranco_score(rank)
-            if parts:
-                parts.append((WEIGHTS["tranco"], combined))
-                combined = sum(weight * score for weight, score in parts) / sum(weight for weight, _ in parts)
-            popularity = round(combined, DIGITS)
+            popularity = round(composite([*parts, ("tranco", tranco_score(rank))]), DIGITS)
             reasons[game_id] = "score"
         recent = prior[:TREND_WEEKS]
         trend = round(popularity - sum(recent) / len(recent), DIGITS) if len(recent) >= MIN_TREND_WEEKS else None
@@ -385,7 +396,7 @@ def compute(
     Args:
         catalog: The parsed games.json.
         raw: The collector's raw files by source: "tranco" always; any of "wikipedia", "hn" and "radar" makes the
-            score composite (method_version 3).
+            score composite (method_version 4).
         previous: Last week's popularity.json, or None.
         overrides: The checked domain_weights.json, from load_weights.
         now: The generation time (UTC).

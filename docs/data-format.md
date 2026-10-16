@@ -238,11 +238,11 @@ python -I scripts/popularity/compute.py --catalog data/v1/games.json --raw raw/ 
 - If Tranco failed for more than 20 % of the domains, `compute.py` exits 1 and writes nothing. It also writes
   `summary.json` (shelves with names, top movers, source health), the input for the weekly report.
 
-### How `method_version: 3` is computed
+### How `method_version: 4` is computed
 
 The optional sources of #78 are off by default; each is a `collect.py` flag that writes one more raw file,
 and `compute.py` uses whichever files are in `--raw`. The weekly workflow passes `--wikipedia` only (#103), so the
-published file is `method_version: 3` with Tranco and Wikipedia:
+published file is `method_version: 4` with Tranco and Wikipedia:
 
 ```sh
 python -I scripts/popularity/collect.py --catalog data/v1/games.json --out raw/ --wikipedia --hn --radar
@@ -255,22 +255,30 @@ python -I scripts/popularity/collect.py --catalog data/v1/games.json --out raw/ 
 | `--radar` | `radar.json` | Cloudflare Radar `GET /radar/ranking/domain/{domain}?rankingType=POPULAR&format=JSON` per domain with the API token in `CLOUDFLARE_RADAR_TOKEN` | the Tranco formula on the Radar rank, else its bucket |
 
 With none of these files the output is exactly `method_version: 2`, byte for byte. With any of them the file is
-`method_version: 3` and a game's `popularity` is the weighted mean of the scores it has:
+`method_version: 4` and a game's `popularity` is the weighted mean of the scores it has, where Wikipedia only counts
+when it raises that mean ([#136](https://github.com/Tim-van-Oudheusden/Dailies/issues/136)):
 
-$$popularity = \frac{\sum_s w_s \cdot score_s}{\sum_s w_s}, \quad w_{tranco} = 0.80,\ w_{wikipedia} = 0.15,\ w_{hn} = 0.05,\ w_{radar} = 0.20$$
+$$mean(S) = \frac{\sum_{s \in S} w_s \cdot score_s}{\sum_{s \in S} w_s}, \quad w_{tranco} = 0.80,\ w_{wikipedia} = 0.15,\ w_{hn} = 0.05,\ w_{radar} = 0.20$$
+
+$$popularity = \max\left(mean(S \setminus \lbrace wikipedia \rbrace),\ mean(S)\right)$$
+
+with $S$ the sources the game has a score for. A Wikipedia score is a bonus: it lifts a game whose article is read more
+than its domain's rank suggests, and an article read less than that costs nothing.
 
 The first three weights are the proposal of `docs/research/data-pipeline.md` §4.2; #78 left Radar's open, and 0.20
 gives it a quarter of Tranco's say. A missing score drops out of both sums, so the other weights are renormalised:
 a game without a `wikipedia` article is not penalised for it, and neither is a game whose fetch failed. A whole source
 is left out, with `ok: false` and an `error` in `sources`, when its collector reported an error (no Radar token) or
 more than 20 % of its items failed; the week is still computed. Its `scores` field is then `null` for every game and
-its credit line is not added to `attribution`. History from `method_version: 2` is dropped for the trend.
+its credit line is not added to `attribution`. History from `method_version: 2` and `3` is dropped for the trend.
 
 Notes on the signals: Wikipedia pageviews are lower than Tranco's score for almost every game (Wordle's 93,500 a week
-score 0.83), so a game with an article usually loses a little against one without. On a shared domain, where every
-game has the same Tranco score, that little decides which two games the shelf takes: in the first v3 run (Tranco and
-Wikipedia of 2026-10-16) The Mini Crossword and Pips, which have no article, took the two `nytimes.com` slots in
-Popular from Wordle and Connections, ahead of the order in `domain_weights.json`. The games with a `wikipedia` title
+score 0.83). `method_version: 3` took the plain weighted mean, so a game with an article usually lost a little against
+one without. On a shared domain, where every game has the same Tranco score, that little decided which two games the
+shelf took: in a dry run with Tranco and Wikipedia of 2026-10-16, The Mini Crossword and Pips, which have no article,
+took the two `nytimes.com` slots in Popular from Wordle and Connections, ahead of the order in `domain_weights.json`.
+`method_version: 4` makes Wikipedia a bonus, so the order of a shared domain is the one in `domain_weights.json` again
+unless an article lifts a game above its domain's score. The games with a `wikipedia` title
 are the ones with an English article about the game itself; a redirect (`Globle (game)` points into `Wordle`), a
 disambiguation page or an article about something else (`Framed (video game)` from 2014, the 1968 board game
 `Numble`, `GeoGuessr` as a whole rather than its daily challenge) does not count.
