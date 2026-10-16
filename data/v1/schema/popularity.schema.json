@@ -48,7 +48,7 @@
     "attribution": { "type": "array", "items": { "type": "string" } },
     "report": {
       "type": "string",
-      "description": "Relative URL of the human-readable report, e.g. ../docs/popularity/2026-W42.md"
+      "description": "Relative URL of the human-readable report, resolved against popularity.json on Pages, e.g. ../popularity/2026-W42.md"
     }
   },
   "$defs": {
