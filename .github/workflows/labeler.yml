@@ -1,0 +1,21 @@
+name: Labeler
+
+# Applies path-based labels from .github/labeler.yml to pull requests.
+# pull_request_target runs against the base branch's config so fork PRs can be
+# labelled too; the job never checks out PR code.
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  label:
+    name: Label by changed paths
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13 # v7.0.0

@@ -4,8 +4,23 @@ Inside a Flatpak a specific host browser is only reachable with host access the 
 built-in browser needs WebKitGTK. `ui/opener.py` probes both and acts on the mode `resolve` returns.
 """
 
+from collections.abc import Sequence
 from enum import Enum
 from typing import Self
+
+# The error flatpak-session-helper answers a HostCommand call with no arguments with. Only the helper itself can send
+# it, so the sandbox's D-Bus proxy let the call through: the user granted `--talk-name=org.freedesktop.Flatpak`.
+# Without that the proxy answers `ServiceUnknown` (observed with flatpak 1.18.4; `AccessDenied` is its other refusal).
+_HELPER_REJECTED_ARGUMENTS = "org.freedesktop.DBus.Error.InvalidArgs"
+
+
+class Notice(Enum):
+    """What the window tells the user after a game opened, besides the game itself."""
+
+    # The custom command was chosen but cannot run (no host access, no command, or it failed to start).
+    CUSTOM_UNAVAILABLE = "custom-unavailable"
+    # The game, or a pop-up it opened, went to the default browser: "Opened in your browser".
+    OPENED_EXTERNALLY = "opened-externally"
 
 
 class OpenMode(Enum):
@@ -54,3 +69,40 @@ def shown_choice(mode: OpenMode, *, have_webkit: bool, host_access: bool) -> Ope
     if mode in choices(have_webkit=have_webkit, host_access=host_access):
         return mode
     return resolve(mode, have_webkit=have_webkit, host_access=False, command="")
+
+
+def host_access_granted(error_name: str | None) -> bool:
+    """Whether the custom command can reach the host, given the D-Bus error name the host-access probe got.
+
+    The probe calls HostCommand with no arguments, which can never succeed: only the helper's own refusal of the
+    arguments proves the call reached it. Anything else (no error name, a proxy refusal, a timeout) means no access.
+    """
+    return error_name == _HELPER_REJECTED_ARGUMENTS
+
+
+def custom_command_argv(command: Sequence[str], url: str, *, in_flatpak: bool) -> list[str]:
+    """The argv that runs the user's split `command` with `url` as one last argument, never through a shell.
+
+    Inside a Flatpak it runs on the host through `flatpak-spawn --host`; `--` ends flatpak-spawn's own options.
+    """
+    argv = [*command, url]
+    return ["flatpak-spawn", "--host", "--", *argv] if in_flatpak else argv
+
+
+def notice(mode: OpenMode, resolved: OpenMode, *, custom_notice_shown: bool) -> Notice | None:
+    """What to tell the user after a game set to open with `mode` opened as `resolved`.
+
+    A custom command that could not run is mentioned once per session (`custom_notice_shown`); after that, or for any
+    other external open, the user is told the game went to their browser. A pop-up handed to the browser is
+    `notice(EXTERNAL, EXTERNAL, ...)`.
+    """
+    if mode is OpenMode.CUSTOM and resolved is not OpenMode.CUSTOM and not custom_notice_shown:
+        return Notice.CUSTOM_UNAVAILABLE
+    if resolved is OpenMode.EXTERNAL:
+        return Notice.OPENED_EXTERNALLY
+    return None
+
+
+def offers_open_here(resolved: OpenMode, *, have_webkit: bool) -> bool:
+    """Whether the toast after opening as `resolved` offers "Open Here": an external open, with a built-in browser."""
+    return resolved is OpenMode.EXTERNAL and have_webkit

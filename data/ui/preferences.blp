@@ -16,6 +16,31 @@ template $DailiesPreferencesDialog: Adw.PreferencesDialog {
       Adw.ComboRow open_mode_row {
         title: _("Open games");
       }
+
+      // Only shown while "Custom command" is chosen; that choice is only offered with host access.
+      Adw.EntryRow command_row {
+        title: _("Command");
+        show-apply-button: true;
+        visible: false;
+        apply => $on_command_applied();
+
+        styles [
+          "monospace",
+        ]
+      }
+
+      // Only shown inside Flatpak, where the custom command needs host access the user grants.
+      Label custom_help_label {
+        label: _("Custom command runs a command of your choice, such as a particular browser, outside the sandbox. It needs host access, a sandbox escape you grant yourself with flatpak override. <a href='https://github.com/Tim-van-Oudheusden/Dailies#custom-browser-command'>How to grant it and the risks</a>");
+        use-markup: true;
+        wrap: true;
+        xalign: 0;
+        margin-top: 12;
+
+        styles [
+          "dimmed",
+        ]
+      }
     }
 
     Adw.PreferencesGroup browser_group {
@@ -56,6 +81,11 @@ template $DailiesPreferencesDialog: Adw.PreferencesDialog {
         styles [
           "property",
         ]
+      }
+
+      Adw.SwitchRow show_other_languages_row {
+        title: _("Show games in other languages");
+        subtitle: _("Games in languages other than your system language");
       }
     }
   }

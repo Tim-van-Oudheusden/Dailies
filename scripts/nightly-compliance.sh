@@ -2,7 +2,7 @@
 # Print a Markdown nightly compliance report for the repository to stdout.
 #
 # Usage:
-#   scripts/nightly-compliance.sh > nightly-compliance.md
+#   scripts/nightly-compliance.sh [--force-links] > nightly-compliance.md
 #
 # Checks that can go stale without a code change, so they run on a schedule
 # (.github/workflows/nightly-compliance.yml) rather than only on push:
@@ -20,9 +20,16 @@
 #      runtime-version in the Flatpak manifests. Needs the flathub remote.
 #   4. ACMM codebase level: scripts/acmm-self-check.py finds the files Hive's
 #      ACMM evaluation looks for, up to level ACMM_MIN_LEVEL (default 5).
+#   5. Catalog links, Sundays (UTC) only, or any day with --force-links or
+#      DAILIES_FORCE_LINKS=1: scripts/check_links.py checks every active
+#      entry of data/v1/games.json with the submission validator's rules. In
+#      GitHub Actions (GITHUB_ACTIONS=true) a failure also opens, or updates,
+#      the one `data: N broken links (week W)` issue (needs GH_TOKEN with
+#      issues: write). CHECK_LINKS replaces the script; the tests use it.
 # Diagnostics go to stderr and to a Failures section in the report, so stdout
 # stays a clean report. Every check runs even when an earlier one fails; the
-# script exits non-zero if any failed. Needs jq and python3.
+# script exits non-zero if any failed, and 2 on a usage error. Needs jq and
+# python3.
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -44,6 +51,17 @@ runtime_ref="${RUNTIME_REF:-org.gnome.Platform//51}"
 acmm_min_level="${ACMM_MIN_LEVEL:-5}"
 failed=0
 details=""
+force_links="${DAILIES_FORCE_LINKS:-0}"
+
+for arg in "$@"; do
+  case "$arg" in
+    --force-links) force_links=1 ;;
+    *)
+      echo "usage: nightly-compliance.sh [--force-links]" >&2
+      exit 2
+      ;;
+  esac
+done
 
 row() {
   if [ "$2" -eq 0 ]; then
@@ -155,13 +173,27 @@ if [ "$acmm_check" -ne 0 ]; then
 fi
 row "ACMM codebase level (L${acmm_min_level}+)" "$acmm_check"
 
-# 5. Catalog link check, Sundays only: added by #60 (scripts/check_links.py over every active catalog entry).
-# if [ "$(date -u +%u)" -eq 7 ]; then
-#   links_out="$(python3 scripts/check_links.py 2>&1)"
-#   links_check=$?
-#   ...
-#   row "Catalog links (weekly)" "$links_check"
-# fi
+# 5. Catalog links, weekly: every active catalog entry, with the submission validator's rules.
+if [ "$force_links" = 1 ] || [ "$(date -u +%u)" = 7 ]; then
+  links_md="$(mktemp)"
+  links_args=(--catalog data/v1/games.json --out "$links_md")
+  if [ "${GITHUB_ACTIONS:-}" = true ]; then
+    links_args+=(--open-issue)
+  fi
+  # -I: ignore PYTHON* variables and the user site; the script finds scripts/lib by its own path.
+  links_out="$(python3 -I "${CHECK_LINKS:-scripts/check_links.py}" "${links_args[@]}" 2>&1)"
+  links_check=$?
+  if [ "$links_check" -ne 0 ]; then
+    echo "$links_out" >&2
+    if [ -s "$links_md" ]; then
+      details+="$(cat "$links_md")"$'\n\n'
+    else
+      detail_block "scripts/check_links.py failed" "$links_out"
+    fi
+  fi
+  rm -f "$links_md"
+  row "Catalog links (weekly)" "$links_check"
+fi
 
 if [ -n "$details" ]; then
   echo

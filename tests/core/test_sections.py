@@ -46,6 +46,28 @@ def test_only_categories_with_an_active_game_are_visible() -> None:
     assert sections.visible_categories(catalog) == {Category.WORDS, Category.MUSIC}
 
 
+def test_categories_whose_games_are_all_in_other_languages_are_hidden_while_those_are_not_shown() -> None:
+    catalog = Catalog(
+        GENERATED,
+        (
+            replace(game("woordle", Category.WORDS), language="nl"),
+            game("heardle", Category.MUSIC),
+            replace(game("worldle", Category.GEOGRAPHY), language="fr"),
+            game("globle", Category.GEOGRAPHY),
+        ),
+    )
+    assert sections.visible_categories(catalog, system_languages={"en"}, show_other=False) == {
+        Category.MUSIC,
+        Category.GEOGRAPHY,
+    }
+    assert sections.visible_categories(catalog, system_languages={"nl"}, show_other=False) == {Category.WORDS}
+    assert sections.visible_categories(catalog, system_languages={"nl"}, show_other=True) == {
+        Category.WORDS,
+        Category.MUSIC,
+        Category.GEOGRAPHY,
+    }
+
+
 def test_restore_keeps_a_visible_saved_section() -> None:
     assert sections.restore("music", {"favorites", "popular", "music"}) == "music"
 

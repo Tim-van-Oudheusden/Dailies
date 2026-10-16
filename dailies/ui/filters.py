@@ -1,8 +1,10 @@
 """The grid's filters and sorter: thin `Gtk.Filter` and `Gtk.Sorter` shells over `dailies.core`."""
 
+from collections.abc import Collection
+
 from gi.repository import GObject, Gtk
 
-from dailies.core import search, sections
+from dailies.core import languages, search, sections
 from dailies.data.favorites import Favorites
 from dailies.ui.game_object import GameObject
 
@@ -63,6 +65,46 @@ class SearchFilter(Gtk.Filter):
     def do_get_strictness(self) -> Gtk.FilterMatch:
         """Return that every game matches an empty query, some games any other."""
         return Gtk.FilterMatch.ALL if not self._text.strip() else Gtk.FilterMatch.SOME
+
+
+class LanguageFilter(Gtk.Filter):
+    """Keeps the games in one of `system_languages` unless `show-other-languages` is set (see `matches_language`).
+
+    Favorites are exempt: a favourite shows there whatever its language. It re-filters when `section` or
+    `show-other-languages` changes.
+    """
+
+    __gtype_name__ = "DailiesLanguageFilter"
+
+    section = GObject.Property(type=str, default=sections.FAVORITES)
+
+    def __init__(self, system_languages: Collection[str], **kwargs: object) -> None:
+        self._system_languages = system_languages
+        self._show_other = True
+        super().__init__(**kwargs)
+        self.connect("notify::section", lambda *_args: self.changed(Gtk.FilterChange.DIFFERENT))
+
+    @GObject.Property(type=bool, default=True)
+    def show_other_languages(self) -> bool:
+        """Whether games in languages other than the system's are kept: the `show-other-languages` setting."""
+        return self._show_other
+
+    @show_other_languages.setter
+    def show_other_languages(self, value: bool) -> None:
+        if value != self._show_other:
+            self._show_other = value
+            self.changed(Gtk.FilterChange.LESS_STRICT if value else Gtk.FilterChange.MORE_STRICT)
+
+    def do_match(self, item: GameObject) -> bool:
+        """Return whether `item` is shown in the section."""
+        if self.props.section == sections.FAVORITES:
+            return True
+        return languages.matches_language(item.props.game, self._system_languages, self._show_other)
+
+    def do_get_strictness(self) -> Gtk.FilterMatch:
+        """Return that every game matches on Favorites or while other languages are shown, some games otherwise."""
+        exempt = self._show_other or self.props.section == sections.FAVORITES
+        return Gtk.FilterMatch.ALL if exempt else Gtk.FilterMatch.SOME
 
 
 class SectionSorter(Gtk.Sorter):

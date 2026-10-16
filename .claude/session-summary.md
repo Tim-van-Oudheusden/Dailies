@@ -9,23 +9,26 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-10-16. Issues #87, #69, #61, #51, #49, #42, #43, #44, #45, #46, #47, #48 on branch `feat/42-m1-launcher` (one
-commit each, one PR). All ten decisions (#8–#17) are closed; only #16 departs from its proposed default (audio is
-requested now, not on demand).
+2026-10-16 (second session). Thirteen issues in three PRs, one commit per issue: #91 (`ci/29-m0-governance`: #29,
+#32), the M1 PR (`data/50-m1-release-prep`: #50, #52) and the M2/M3 PR (`feat/56-m2-m3-batch`: #56, #58, #90, #62,
+#64, #63, #70, #67, #60). Built by twelve parallel agents in per-issue worktrees, then cherry-picked per milestone.
 
-- **Outcome:** the M1 launcher is usable end to end: grid, favourites with undo, search, opener, built-in WebKit page,
-  Preferences, About/Shortcuts, the e2e smoke test; plus the Tranco popularity scripts, `release.yml`, the pulseaudio
-  socket and the bracket-city tag.
+- **Outcome:** PR governance (rubric, tier classifier, labeler) and `claude.yml`; full metainfo with OARS, the 0.1.0
+  release and four screenshots; cold start / WebKit memory measured (no Rust port); Pages publishing, submission
+  check, weekly popularity PR (method_version 2), link checker, external-data-checker; language filter, custom
+  command open mode, toast polish.
 - **Open follow-ups:**
-  - #18 is owner-only (admin settings, secrets, labels); it blocks #29, #32, #56, #58, #62, #66.
-  - #55: the release flow is now two PRs (bump, then pin `commit` to the bump's merge commit); `release.yml` verify
-    fails until the release manifest pins a commit whose tree matches the tag.
-  - #50 still owns screenshots, OARS and the full 0.1.0 notes.
-  - Not verified by an agent: NYT login/streak persistence, a real portal launch, audio in Bandle.
+  - #55 must set the `<release>` date to the tag date and drop the `appstream-missing-screenshots` lint exception
+    once the v0.1.0 screenshot URLs resolve.
+  - Owner review: `data/v1/domain_weights.json` order (#90), OARS values (#50), Absurdle as screenshot 3.
+  - New: #92 (immaculate-footy moved), #93 (keyword timeout), #94 (checker image digest), #95 (duplicate page tag).
+  - Live-only checks after merge: rubric/labeler on a new PR, `claude.yml` label run, Pages ETag/304, the first
+    scheduled popularity PR, the submission form round trip.
 - **Gotchas:**
-  - The host has GTK 4.22 / Adw 1.9, so build and test inside `org.gnome.Sdk//51` (`scripts/dev.sh build-devel`).
-  - The SDK has no Xvfb: headless GTK tests use a private `gtk4-broadwayd` (see `tests/e2e/test_smoke.py`).
-  - Parallel agents in git worktrees: file tools resolve relative paths against the main checkout, so give them
-    absolute worktree paths, and build with `flatpak-builder` without `--install`.
-  - Application accelerators beat page shortcut controllers, so the browser page borrows Ctrl+R by unsetting
-    `app.refresh`'s accelerator while it is shown.
+  - Build and test GTK code inside `org.gnome.Sdk//51`; headless GTK uses a private `gtk4-broadwayd`, and WebKit
+    renders headless there too (used for the screenshots).
+  - Parallel agents: give absolute worktree paths; do integration in its own worktree, not the main checkout.
+  - MinimalUI's PR-title types lack `data` and `release`; this repo's automated PR titles need both.
+  - No passwordless sudo: cold-start measurements evict the page cache with `posix_fadvise(DONTNEED)`.
+  - `flatpak override --user --talk-name=org.freedesktop.Flatpak` makes the host-access probe report `InvalidArgs`
+    (granted); without it the call fails with `ServiceUnknown`.

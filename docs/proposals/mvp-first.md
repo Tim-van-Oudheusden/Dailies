@@ -618,7 +618,9 @@ Design principle from `data-pipeline.md §5.2` **[V]**: **numbers are determinis
   0, 1)` on the mean of the last 7 daily ranks; `popularity = tranco_score` while other sources are off; games sharing
   a registrable domain (all `nytimes.com` games) split that domain's contribution equally unless
   `data/v1/domain_weights.json` overrides it (`data-pipeline.md §4.2`; decided: equal split + optional override file).
-  `trend = popularity − mean(previous 4 weeks)`, null until two prior weeks exist.
+  `trend = popularity − mean(previous 4 weeks)`, null until two prior weeks exist. *Superseded by #88
+  (`method_version: 2`): every game gets its domain's full score, each shelf holds at most 2 games per domain, and
+  `domain_weights.json` orders a domain's games instead of splitting its score.*
 - **Shelves**: `popular` = top `N = max(5, min(12, 10 % of active))`; `trending` = positive `trend > 0.02` not in the
   top 5 popular, backfilled with the newest `added` games flagged `reason: "new"` so the shelf is never empty
   (`data-pipeline.md §7.1`). Fail closed: if Tranco failed for > 20 % of domains, exit non-zero and leave the old file.

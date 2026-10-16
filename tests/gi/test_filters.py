@@ -1,19 +1,20 @@
-"""The library's list pipeline (section filter, search filter, sorter) over GameObjects; run by Meson."""
+"""The library's list pipeline (section, search and language filters, sorter) over GameObjects; run by Meson."""
 
 import gettext
 import os
 import unittest
+from dataclasses import replace
 from datetime import date
 
 import gi
 
 gi.require_version("Gtk", "4.0")
 
-from gi.repository import Gio, Gtk
+from gi.repository import Gio, GObject, Gtk
 
 from dailies.core.models import Category, Difficulty, Game, Status
 from dailies.data.favorites import Favorites
-from dailies.ui.filters import SearchFilter, SectionFilter, SectionSorter
+from dailies.ui.filters import LanguageFilter, SearchFilter, SectionFilter, SectionSorter
 from dailies.ui.game_object import GameObject
 
 gettext.install("dailies")
@@ -132,6 +133,49 @@ class PipelineTest(unittest.TestCase):
         self.show("trending")
         self.search.props.text = "video"
         assert self.shown() == ["pokedle"]
+
+
+class LanguageFilterTest(unittest.TestCase):
+    def pipeline(self, system_languages: set[str]) -> None:
+        self.section = SectionFilter()
+        self.language = LanguageFilter(system_languages, show_other_languages=False)
+        self.section.bind_property("section", self.language, "section", GObject.BindingFlags.SYNC_CREATE)
+        every = Gtk.EveryFilter()
+        every.append(self.section)
+        every.append(self.language)
+        games = Gio.ListStore(item_type=GameObject)
+        for item, favorite in (
+            (game("wordle", "Wordle"), False),
+            (replace(game("woordle", "Woordle"), language="nl"), True),
+            (replace(game("absurdle", "absurdle"), language=""), True),
+        ):
+            obj = GameObject(item)
+            obj.update(game=item, favorite=favorite, popular_rank=0, trending_rank=0)
+            games.append(obj)
+        self.view = Gtk.FilterListModel(model=games, filter=every)
+
+    def shown(self) -> list[str]:
+        return sorted(item.props.game.id for item in self.view)
+
+    def test_an_english_system_hides_a_dutch_game_except_in_favorites(self) -> None:
+        self.pipeline({"en"})
+        self.section.props.section = "words"
+        assert self.shown() == ["absurdle", "wordle"]
+        self.section.props.section = "favorites"
+        assert self.shown() == ["absurdle", "woordle"]
+
+    def test_a_dutch_system_hides_english_games(self) -> None:
+        self.pipeline({"nl"})
+        self.section.props.section = "words"
+        assert self.shown() == ["woordle"]
+
+    def test_toggling_the_setting_refilters_at_once(self) -> None:
+        self.pipeline({"en"})
+        self.section.props.section = "words"
+        self.language.props.show_other_languages = True
+        assert self.shown() == ["absurdle", "woordle", "wordle"]
+        self.language.props.show_other_languages = False
+        assert self.shown() == ["absurdle", "wordle"]
 
 
 class GameObjectTest(unittest.TestCase):

@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
-"""Compute the weekly Popular and Trending shelves from the collected Tranco ranks (method_version 1).
+"""Compute the weekly Popular and Trending shelves from the collected Tranco ranks (method_version 2).
 
-Every number is deterministic: the same catalog, raw ranks, previous file, override file and --now give a
-byte-identical popularity.json and summary.json. The method (docs/proposals/mvp-first.md section 8):
+Every number is deterministic: the same catalog, raw ranks, previous file, weights file and --now give a
+byte-identical popularity.json and summary.json. The method (docs/proposals/mvp-first.md section 8, decision #88):
 
 - tranco_score = clamp(1 - (log10(rank) - 2) / 4.5, 0, 1) on the mean of the last 7 daily ranks; no rank scores 0.
-- popularity = tranco_score while the other sources are off. Games sharing a registrable domain split its score
-  equally, unless data/v1/domain_weights.json ({"nytimes.com": {"wordle": 0.4, ...}}) gives their weights.
+- popularity = tranco_score while the other sources are off. Every game gets its registrable domain's full score.
 - A domain whose fetch failed keeps the game's popularity of last week (reason "carried_forward"), or 0 without one.
 - trend = popularity - mean of the previous 4 weeks' popularity; null until two prior weeks exist. The history comes
   from the previous popularity.json (up to 8 weeks per game) when its method_version matches.
-- N = max(5, min(12, 10 % of active games)). Popular: top N by popularity, ties by id. Trending: trend > 0.02 outside
-  the top 5 popular, by trend, top N; with fewer than 3, the newest added games fill it to 3 with reason "new".
+- N = max(5, min(12, 10 % of active games)). Popular: top N by popularity. Trending: trend > 0.02 outside the top 5
+  popular, by trend, top N; with fewer than 3, the newest added games fill it to 3 with reason "new".
+- At most 2 games of one registrable domain go on each shelf; the next games take the freed slots. Ties, and so the
+  choice within a domain, follow data/v1/domain_weights.json ({"nytimes.com": {"wordle": 0.35, ...}}): listed games
+  first, the highest weight first, then unlisted ones; then id. The weights only order the games; they split nothing.
 - Fail closed: when Tranco failed for more than 20 % of the domains, nothing is written and the exit status is 1.
 
 Usage:
@@ -26,13 +28,14 @@ import json
 import math
 import sys
 import tempfile
+from collections import Counter
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 import jsonschema
 
-METHOD_VERSION = 1
+METHOD_VERSION = 2
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA = ROOT / "data" / "v1" / "schema" / "popularity.schema.json"
 VALIDITY = timedelta(days=10)
@@ -43,6 +46,7 @@ HISTORY_WEEKS = 8
 TREND_THRESHOLD = 0.02
 TRENDING_EXCLUDES_TOP = 5
 TRENDING_MINIMUM = 3
+DOMAIN_CAP = 2
 MAX_FAILED_SHARE = 0.2
 TOP_MOVERS = 5
 DIGITS = 4
@@ -97,7 +101,7 @@ def active_games(catalog: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def load_weights(path: Path, catalog: dict[str, Any]) -> dict[str, dict[str, float]]:
-    """Read and check the shared-domain override file; no file means no overrides.
+    """Read and check the shared-domain order file; no file means no order beyond id.
 
     Raises:
         WeightsError: A domain's weights are not numbers between 0 and 1 summing to 1, or name a game that does not
@@ -130,20 +134,25 @@ def load_weights(path: Path, catalog: dict[str, Any]) -> dict[str, dict[str, flo
     return weights
 
 
-def shares(games: list[dict[str, Any]], overrides: dict[str, dict[str, float]]) -> dict[str, float | None]:
-    """Each game's share of its domain's score: None for a domain of its own, 1/n or the override when shared."""
-    by_domain: dict[str, list[str]] = {}
-    for game in games:
-        by_domain.setdefault(game["domain"], []).append(game["id"])
-    result: dict[str, float | None] = {}
-    for domain, ids in by_domain.items():
-        override = overrides.get(domain)
-        for game_id in ids:
-            if override is not None:
-                result[game_id] = float(override.get(game_id, 0.0))
-            else:
-                result[game_id] = 1 / len(ids) if len(ids) > 1 else None
-    return result
+def weight_order(overrides: dict[str, dict[str, float]]) -> dict[str, tuple[int, float]]:
+    """A sort key per listed game: listed games come before unlisted ones (key (1, 0)), the heaviest weight first."""
+    return {game_id: (0, -weight) for shares in overrides.values() for game_id, weight in shares.items()}
+
+
+def capped(ordered: list[str], domains: dict[str, str], size: int, taken: list[str] | None = None) -> list[str]:
+    """The first `size` games of `ordered`, skipping a game once DOMAIN_CAP games of its domain are on the shelf.
+
+    `taken` lists games already on the shelf; they count towards the cap but are not returned.
+    """
+    counts = Counter(domains[game_id] for game_id in taken or [])
+    shelf: list[str] = []
+    for game_id in ordered:
+        if len(shelf) == size:
+            break
+        if counts[domains[game_id]] < DOMAIN_CAP:
+            counts[domains[game_id]] += 1
+            shelf.append(game_id)
+    return shelf
 
 
 def prior_weeks(previous: dict[str, Any] | None, week: str) -> dict[str, list[float]]:
@@ -202,7 +211,6 @@ def compute(
 
     week = iso_week(now)
     priors = prior_weeks(previous, week)
-    weights = shares(games, overrides)
     scores: dict[str, dict[str, Any]] = {}
     reasons: dict[str, str] = {}
     for game in games:
@@ -214,8 +222,7 @@ def compute(
             reasons[game_id] = "carried_forward" if prior else "score"
         else:
             rank = mean_rank(raw["domains"][domain]["ranks"])
-            weight = weights[game_id]
-            popularity = round(tranco_score(rank) * (1.0 if weight is None else weight), DIGITS)
+            popularity = round(tranco_score(rank), DIGITS)
             reasons[game_id] = "score"
         recent = prior[:TREND_WEEKS]
         trend = round(popularity - sum(recent) / len(recent), DIGITS) if len(recent) >= MIN_TREND_WEEKS else None
@@ -225,33 +232,40 @@ def compute(
             "tranco_rank": None if rank is None else round(rank),
             "history": prior,
         }
-        if weights[game_id] is not None:
-            scores[game_id]["shared_domain_weight"] = round(weights[game_id], DIGITS)
 
     size = shelf_size(len(games))
-    by_popularity = sorted(scores, key=lambda game_id: (-scores[game_id]["popularity"], game_id))
+    domain_of = {game["id"]: game["domain"] for game in games}
+    order = weight_order(overrides)
+
+    def tie_break(game_id: str) -> tuple[int, float, str]:
+        return (*order.get(game_id, (1, 0.0)), game_id)
+
+    by_popularity = sorted(scores, key=lambda game_id: (-scores[game_id]["popularity"], *tie_break(game_id)))
+    shelf = capped(by_popularity, domain_of, size)
     popular = [
         {"id": game_id, "rank": index, "score": scores[game_id]["popularity"], "reason": reasons[game_id]}
-        for index, game_id in enumerate(by_popularity[:size], start=1)
+        for index, game_id in enumerate(shelf, start=1)
     ]
 
-    top = set(by_popularity[:TRENDING_EXCLUDES_TOP])
+    top = set(shelf[:TRENDING_EXCLUDES_TOP])
     rising = [
         game_id
         for game_id in scores
         if game_id not in top and scores[game_id]["trend"] is not None and scores[game_id]["trend"] > TREND_THRESHOLD
     ]
-    rising.sort(key=lambda game_id: (-scores[game_id]["trend"], game_id))
-    picks = [(game_id, scores[game_id]["trend"], "score") for game_id in rising[:size]]
+    rising.sort(key=lambda game_id: (-scores[game_id]["trend"], *tie_break(game_id)))
+    risers = capped(rising, domain_of, size)
+    picks = [(game_id, scores[game_id]["trend"], "score") for game_id in risers]
     if len(picks) < TRENDING_MINIMUM:
         added = {game["id"]: game["added"] for game in games}
-        # A stable sort of the popularity order: newest added first, ties by popularity, then id.
+        # A stable sort of the popularity order: newest added first, ties in popularity order.
         newest = sorted(
             (game_id for game_id in by_popularity if game_id not in top and game_id not in rising),
             key=lambda game_id: added[game_id],
             reverse=True,
         )
-        picks += [(game_id, 0.0, "new") for game_id in newest[: TRENDING_MINIMUM - len(picks)]]
+        fill = capped(newest, domain_of, TRENDING_MINIMUM - len(picks), taken=risers)
+        picks += [(game_id, 0.0, "new") for game_id in fill]
     trending = [
         {"id": game_id, "rank": index, "score": score, "delta": scores[game_id]["trend"], "reason": reason}
         for index, (game_id, score, reason) in enumerate(picks, start=1)

@@ -6,7 +6,7 @@ How Dailies' tests and quality checks run, and where each one can run.
 
 | Layer | What | Where it runs | Gate |
 | --- | --- | --- | --- |
-| Unit (pure Python) | `tests/core/`: catalog parsing, including tolerance of an unknown category or status; popularity parsing and staleness; search folding and whether a new query narrows or widens the matches; the cache decisions (`test_cache.py`: maximum age, `If-None-Match`, URL fall-through order, `Retry-After`, validation before any write, atomic cache files, the stale-banner rule); the sidebar sections (`test_sections.py`: categories without an active game hidden, the restored section, the "as of" date of stale shelves, what each section holds (Favorites keep unavailable games, categories only active ones), the default and overriding sort orders, which empty-state page shows). `tests/scripts/`: the submission validator (with fixtures for dead and hijacked domains), the popularity computation on synthetic ranking data, the shared-domain split, the fail-closed threshold, the link checker; the CI scripts (coverage gate, quality report, floor tuner, PR metrics, review-suggestion applier, nightly compliance) run against fixtures and stub tools | `ubuntu-latest`, plain pytest, seconds | `Build, lint, test`; coverage floors on `dailies/core` and `scripts` |
+| Unit (pure Python) | `tests/core/`: catalog parsing, including tolerance of an unknown category or status; popularity parsing and staleness; search folding and whether a new query narrows or widens the matches; the cache decisions (`test_cache.py`: maximum age, `If-None-Match`, URL fall-through order, `Retry-After`, validation before any write, atomic cache files, the stale-banner rule); the sidebar sections (`test_sections.py`: categories without an active game hidden, the restored section, the "as of" date of stale shelves, what each section holds (Favorites keep unavailable games, categories only active ones), the default and overriding sort orders, which empty-state page shows). `tests/scripts/`: the submission validator (with fixtures for dead and hijacked domains), the popularity computation on synthetic ranking data, the full domain score and the two-per-domain shelf cap, the committed `domain_weights.json`, the fail-closed threshold, the link checker; the CI scripts (coverage gate, quality report, floor tuner, PR metrics, review-suggestion applier, nightly compliance) run against fixtures and stub tools; the shell suites `scripts/pr-review-check.test.sh` (PR title and issue-link rubric) and `scripts/tier-classify.test.sh` (risk-tier engine and the shipped policy, whose rules `docs/risk-tiers.md` must list) | `ubuntu-latest`, plain pytest, seconds | `Build, lint, test`; coverage floors on `dailies/core` and `scripts` |
 | Data | `tests/data/test_catalog_file.py`: schema, sorted unique ids, unique normalised URLs, every `domain` matches its `url`, enum membership, every id in `popularity.json` exists in the catalog | same | `Build, lint, test` |
 | Tooling | `tests/tooling/test_workflows.py` (PyYAML): top-level and per-job permissions, `timeout-minutes` on every job, actions pinned to 40-hex SHAs with version comments, no `${{ github.event.* }}` in `run:`, `pull_request_target` only in `labeler.yml` and without a checkout, labeler and risk-tier policy parity, every `data/v1/*.json` published by `pages.yml` | same | `Build, lint, test` |
 | Build validation | Meson tests: `desktop-file-validate`, `appstreamcli validate --no-net --explain`, `glib-compile-schemas --strict --dry-run`, and the Blueprint compile of every `.blp` (a syntax error fails the build) | inside `flatpak-builder --run-tests` | `Flatpak (x86_64)` |
@@ -131,10 +131,22 @@ check even when an earlier one fails, and exits non-zero if any failed:
 | CI tool advisories | `pip-audit` finds a known vulnerability in `scripts/requirements.txt` that is not on the ignore list |
 | GNOME runtime | `flatpak remote-info flathub org.gnome.Platform//51` reports the runtime as end-of-life |
 | ACMM self-check | `scripts/acmm-self-check.py` finds that a file a Hive ACMM criterion looks for has gone missing |
-| Game links (Sundays) | `scripts/check_links.py` finds an active catalog entry that fails, or whose final domain differs from its `domain`; the run also opens one `data` issue listing them |
+| Catalog links (weekly) | Sundays (UTC) only, or with `--force-links` / `DAILIES_FORCE_LINKS=1` (the manual run's `force_links` input): `scripts/check_links.py` finds an active catalog entry that is `redirected-cross-domain`, `blocked-title`, `http-<code>`, `timeout` or `unreachable`. A `bot-walled` entry (a Cloudflare challenge, or a 403 on an entry tagged `bot-walled`) is a warning, not a failure |
 
 The alerts come from `gh api repos/$GITHUB_REPOSITORY/dependabot/alerts?state=open`, read with the job's `GITHUB_TOKEN`
 through the `vulnerability-alerts: read` permission, so no secret is needed.
+
+### Broken game links
+
+`scripts/check_links.py --catalog data/v1/games.json --out links.md` checks every `status: active` entry with the
+submission validator's rules, shared in `scripts/lib/urlcheck.py`: a public https URL, a 2xx answer, a final registrable
+domain equal to the entry's `domain`, and no gambling keyword in the page title. It sends one request at a time,
+grouped by host, at most two a second, with the validator's User-Agent. The report lists each failing or bot-walled
+game with its reason and a suggested `status`; the script exits 0 when nothing failed, 1 when an entry did and 2 on an
+error. In the workflow (`--open-issue`) a failure also opens one issue `data: N broken links (week W)` labelled `data`,
+or updates the open one (found by the report marker or that title), using the job's `issues: write` permission. The
+maintainer then sets `status: broken` (or `retired` when the game has ended) with a `history` event in a pull request,
+and never deletes the entry.
 
 ### Accepting an advisory
 
@@ -145,8 +157,9 @@ GitHub also removes it from the open alerts, but leaves no reviewed record in th
 ### Running it locally
 
 ```sh
-scripts/nightly-compliance.sh > nightly-compliance.md
+scripts/nightly-compliance.sh [--force-links] > nightly-compliance.md
 ```
 
 This reads the alerts with your `gh` login (needs `jq`). Set `ALERTS_JSON=<file>` to read an alerts JSON array from a
-file instead; the tests in `tests/scripts/` use it.
+file instead, and `CHECK_LINKS=<script>` to replace the link checker; the tests in `tests/scripts/` use them. Outside
+GitHub Actions the link check only writes its report and never touches issues.

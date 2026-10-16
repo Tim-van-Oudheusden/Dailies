@@ -763,7 +763,7 @@ jobs:
           echo "ok=$(python -I -c 'import json,sys;print(str(json.load(open(sys.argv[1]))["ok"]).lower())' "$RUNNER_TEMP/result.json")" >> "$GITHUB_OUTPUT"
       - name: Find previous comment
         id: fc
-        uses: peter-evans/find-comment@v4   # pin by SHA before use
+        uses: peter-evans/find-comment@b30e6a3c0ed37e7c023ccd3f1db5c6c0b0c23aad # v4.0.0
         with:
           issue-number: ${{ github.event.issue.number }}
           comment-author: github-actions[bot]
@@ -789,7 +789,7 @@ jobs:
           fi
 ```
 
-(`peter-evans/find-comment` exists in the same family of actions; its current version and SHA were not looked up in this session [unverified], so resolve before pinning.)
+(`peter-evans/find-comment` resolved 2026-10-16 for #58: latest release `v4.0.0`, commit `b30e6a3c0ed37e7c023ccd3f1db5c6c0b0c23aad`, runs on `node24`. The shipped `.github/workflows/game-submission-check.yml` supersedes this skeleton.)
 
 ### A3. `.github/workflows/game-submission-approve.yml` (skeleton)
 
@@ -1008,7 +1008,7 @@ jobs:
             automated
 ```
 
-Versions to resolve before use: `actions/download-artifact` and `peter-evans/find-comment` SHAs (not looked up). `actions/upload-artifact@cf430e03... # v7.0.2` is copied from the owner's website repo.
+Versions to resolve before use: `actions/download-artifact` SHA (not looked up). `peter-evans/find-comment` is resolved: `b30e6a3c0ed37e7c023ccd3f1db5c6c0b0c23aad # v4.0.0` (see A2). `actions/upload-artifact@cf430e03... # v7.0.2` is copied from the owner's website repo.
 
 ### A5. Alternative narrative step without claude-code-action (Python SDK outline)
 

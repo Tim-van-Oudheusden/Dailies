@@ -2,7 +2,8 @@ name: Nightly compliance
 
 # Checks that can go stale without a code change: new Dependabot alerts, new
 # advisories against the CI scripts' pinned Python packages, the GNOME runtime
-# reaching end-of-life on Flathub, and the ACMM file layout Hive evaluates.
+# reaching end-of-life on Flathub, the ACMM file layout Hive evaluates and, on
+# Sundays (or when a manual run sets force_links), every active catalog link.
 # scripts/nightly-compliance.sh lists the checks; results land in the run's job
 # summary and as the nightly-compliance artifact.
 
@@ -10,6 +11,11 @@ on:
   schedule:
     - cron: '23 3 * * *'
   workflow_dispatch:
+    inputs:
+      force_links:
+        description: Check the catalog links even if it is not Sunday
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -19,9 +25,11 @@ jobs:
     name: Nightly compliance
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # vulnerability-alerts: read lets the GITHUB_TOKEN list Dependabot alerts.
+    # vulnerability-alerts: read lets the GITHUB_TOKEN list Dependabot alerts;
+    # issues: write lets the link check open or update its `data` issue.
     permissions:
       contents: read
+      issues: write
       vulnerability-alerts: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -45,6 +53,7 @@ jobs:
       - name: Run compliance checks
         env:
           GH_TOKEN: ${{ github.token }}
+          DAILIES_FORCE_LINKS: ${{ inputs.force_links && '1' || '0' }}
         run: scripts/nightly-compliance.sh > nightly-compliance.md
       - name: Publish job summary
         if: always()

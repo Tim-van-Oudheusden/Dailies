@@ -5,5 +5,8 @@ PROFILE = "@PROFILE@"
 PKGDATADIR = "@PKGDATADIR@"
 LOCALEDIR = "@LOCALEDIR@"
 HAVE_WEBKIT = @HAVE_WEBKIT@
-# Tried in order; GitHub Pages is prepended once it serves data/v1 (#56).
-DATA_URLS = ["https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/main/data/v1/"]
+# Tried in order: GitHub Pages (pages.yml), then raw.githubusercontent.com as the fallback.
+DATA_URLS = [
+    "https://tim-van-oudheusden.github.io/Dailies/v1/",
+    "https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/main/data/v1/",
+]

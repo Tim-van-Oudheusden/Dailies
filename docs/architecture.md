@@ -147,8 +147,15 @@ keys are additive and need no migration.
 `Adw.ApplicationWindow` → `Adw.ToastOverlay` → `Adw.NavigationView` with a `library` page (the split view) and a
 `browser` page pushed when a game opens in-app. The sidebar is an `Adw.Sidebar`; below 500 sp the split view collapses.
 The content is an `Adw.ToolbarView` with sort and search buttons, a `Gtk.SearchBar` (Ctrl+F) and a stack of the grid
-and `Adw.StatusPage` empty states. Unfavouriting shows an undo toast. Every user-facing string goes through gettext;
-the widgets are current libadwaita API only.
+and `Adw.StatusPage` empty states. Every user-facing string goes through gettext; the widgets are current libadwaita
+API only.
+
+Toasts follow one policy: sentence case without a trailing period, the default 5 s timeout, and **Undo** for every
+reversible action (removing a favourite puts it back where it was). Irreversible actions say so without a button
+("Website data cleared"). A game or a script pop-up that opens in the default browser shows "Opened in your browser",
+with **Open Here** to load it in the built-in browser when WebKit is available (`core/opening.py: notice`,
+`offers_open_here`). Leaving the library for the browser page dismisses all toasts (`dismiss_all`), so an undo for the
+library does not linger over a game.
 
 ## Opening games
 
@@ -160,7 +167,7 @@ escape to the user.
 ```text
 mode = settings["open-mode"]
 if mode == custom and host access granted and command != "":
-    flatpak-spawn --host <command> <url>     # only after the user ran `flatpak override --talk-name=...`
+    flatpak-spawn --host -- <argv…> <url>    # only after the user ran `flatpak override --talk-name=...`
 elif mode in (in-app, custom) and HAVE_WEBKIT:
     push BrowserPage(url)                    # built-in browser
 else:
@@ -168,10 +175,22 @@ else:
     on error: Gio.AppInfo.launch_default_for_uri_async(url)
 ```
 
-- Host access is probed once per session; outside Flatpak (no `/.flatpak-info`) the custom command runs directly
-  through `Gio.Subprocess`. **Custom command** is hidden in Preferences until access is detected, and **Built-in
-  browser** is hidden when WebKit is missing. [`CONTRIBUTING.md`](../CONTRIBUTING.md#custom-browser-command) has the
-  `flatpak override` lines.
+- Host access is probed once per session, the first time the custom mode or Preferences needs it (`ui/opener.py`):
+  a call to `org.freedesktop.Flatpak.Development.HostCommand` on the session bus with no arguments, which can never
+  run anything. Observed with Flatpak 1.18.4: without the override the sandbox's D-Bus proxy answers
+  `org.freedesktop.DBus.Error.ServiceUnknown`; with it `flatpak-session-helper` answers
+  `org.freedesktop.DBus.Error.InvalidArgs` (`Type of message, “()”, does not match expected type
+  “(ayaaya{uh}a{ss}u)”`). Only `InvalidArgs` counts as granted (`core/opening.py: host_access_granted`); every other
+  outcome, `AccessDenied` included, means not granted.
+- Outside Flatpak (no `/.flatpak-info`) the custom command is always available and runs directly through
+  `Gio.Subprocess`. The command is split with `GLib.shell_parse_argv` and the URL appended as one more argv element
+  (`core/opening.py: custom_command_argv`); no shell runs, so `;`, `$()`, backticks and spaces in a URL stay literal.
+  A command that does not parse or start falls back like an unavailable one, and the toast "Custom command
+  unavailable — opened in …" says so once per session.
+- **Custom command** is hidden in Preferences until access is detected, and **Built-in browser** is hidden when WebKit
+  is missing; while **Custom command** is chosen a monospace **Command** entry row (applied with its apply button)
+  shows. [`CONTRIBUTING.md`](../CONTRIBUTING.md#custom-browser-command) and the
+  [README](../README.md#custom-browser-command) have the `flatpak override` lines.
 - While games open in-app, the library shows a first-run `Adw.Banner` ("Games open inside Dailies…") with a
   **Preferences** button; pressing it, or opening a game in-app, dismisses it for good (`first-run-banner-dismissed`).
 - WebKit is imported the first time a game opens or Preferences needs to know, never at startup.
@@ -222,15 +241,16 @@ B. A weekly link check (Sundays, in the nightly compliance workflow) opens one i
 a `status` change, never a deletion.
 
 **Popularity.** Numbers are computed by deterministic Python; a language model may only write prose. The only source in
-the MVP is the Tranco rank of each game's registrable domain, smoothed over seven days and log-scaled; games sharing a
-domain split its score. `popular` holds the top `max(5, min(12, 10 % of active games))`; `trending` holds rising games
-outside the top five, topped up with the newest games (`reason: "new"`) so the shelf is never empty. If Tranco fails for
-more than 20 % of domains the job fails and the old file stays. The current `popularity.json` is hand-written
+the MVP is the Tranco rank of each game's registrable domain, smoothed over seven days and log-scaled; every game on a
+domain gets its full score, and a shelf holds at most two games of one domain, picked in the order of
+`data/v1/domain_weights.json`. `popular` holds the top `max(5, min(12, 10 % of active games))`; `trending` holds rising
+games outside the top five, topped up with the newest games (`reason: "new"`) so the shelf is never empty. If Tranco
+fails for more than 20 % of domains the job fails and the old file stays. The current `popularity.json` is hand-written
 (`method_version: 0`).
 
-**Publishing.** `pages.yml` will publish `data/v1/` to GitHub Pages at
-`https://tim-van-oudheusden.github.io/Dailies/v1/`; `raw.githubusercontent.com` is the fallback URL and, until
-`pages.yml` exists, the only one.
+**Publishing.** `pages.yml` publishes `data/v1/` (schemas included) and, once it exists, `docs/popularity/` to GitHub
+Pages at `https://tim-van-oudheusden.github.io/Dailies/v1/` on every push to `main` that touches them. The app tries
+that URL first and falls back to `raw.githubusercontent.com` on a server error, a 429 or a network failure.
 
 **Releases.** See [Releasing in `CONTRIBUTING.md`](../CONTRIBUTING.md#releasing). The tag, `version:` in `meson.build`
 and the newest metainfo `<release>` must agree, which the `verify` job checks before anything is built. Bundles do not
@@ -288,6 +308,17 @@ genre's green and yellow. Why: the launcher gains nothing from Wordle's trade dr
 **Decision:** the catalog is a curated seed, and fan-made games based on someone else's IP are included with the
 `fan-made` tag ([#10][issue-10]). Why: a curated list keeps quality and link health manageable for one maintainer, and
 the tag makes a "hide fan-made games" filter trivial if takedowns become a problem.
+
+**Decision (superseded by [#88][issue-88]):** games sharing a registrable domain split its Tranco score equally, unless
+`data/v1/domain_weights.json` overrides the shares ([#13][issue-13]). Why it was dropped: `nytimes.com` is split nine
+ways, so no New York Times game reached Popular, and even a 35 % share left Wordle below eleventh place
+(`method_version: 1`).
+
+**Decision:** every game gets its domain's full score, and Popular and Trending each hold at most two games of one
+registrable domain ([#88][issue-88], `method_version: 2`). `domain_weights.json` keeps its format and checks but now
+orders a domain's games (highest weight first, unlisted games last) instead of splitting the score. Why: Tranco ranks
+domains, not pages; without a split the best domains' games show up, and the cap keeps one publisher from filling a
+shelf. Rejected: no split without a cap (LinkedIn plus all nine NYT games), and 1/√n damping (still no NYT game).
 
 ## Measurements
 
@@ -389,7 +420,9 @@ approximate cold start that left shared libraries in memory; re-measure on a lap
 [issue-9]: https://github.com/Tim-van-Oudheusden/Dailies/issues/9
 [issue-10]: https://github.com/Tim-van-Oudheusden/Dailies/issues/10
 [issue-12]: https://github.com/Tim-van-Oudheusden/Dailies/issues/12
+[issue-13]: https://github.com/Tim-van-Oudheusden/Dailies/issues/13
 [issue-16]: https://github.com/Tim-van-Oudheusden/Dailies/issues/16
 [issue-45]: https://github.com/Tim-van-Oudheusden/Dailies/issues/45
 [issue-46]: https://github.com/Tim-van-Oudheusden/Dailies/issues/46
 [issue-52]: https://github.com/Tim-van-Oudheusden/Dailies/issues/52
+[issue-88]: https://github.com/Tim-van-Oudheusden/Dailies/issues/88
