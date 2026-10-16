@@ -22,11 +22,6 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  # One approval run per issue at a time; never cancel one that may be pushing.
-  group: ${{ github.workflow }}-${{ github.event.issue.number }}
-  cancel-in-progress: false
-
 jobs:
   add:
     name: Open catalog PR
@@ -34,6 +29,12 @@ jobs:
       github.event.label.name == 'approved'
       && contains(github.event.issue.labels.*.name, 'game-submission')
       && github.event.sender.type == 'User'
+    # On the job, not the workflow: a workflow-level group is taken before this `if`, so a burst of other labels
+    # would replace a pending `approved` run. One approval run per issue at a time; never cancel one that may be
+    # pushing.
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.event.issue.number }}
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

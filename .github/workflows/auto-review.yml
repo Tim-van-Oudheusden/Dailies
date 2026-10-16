@@ -24,10 +24,6 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: auto-review-${{ github.event.issue.number }}
-  cancel-in-progress: false
-
 jobs:
   apply:
     name: Apply review suggestions
@@ -35,6 +31,11 @@ jobs:
       github.event.issue.pull_request &&
       startsWith(github.event.comment.body, '/apply-suggestions') &&
       contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association)
+    # On the job, not the workflow: a workflow-level group is taken before this `if`, so a burst of other comments
+    # would replace a pending /apply-suggestions run.
+    concurrency:
+      group: auto-review-${{ github.event.issue.number }}
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
