@@ -33,6 +33,15 @@ print("check_links: moviedle: redirected-cross-domain", file=sys.stderr)
 sys.exit(int(os.environ.get("FAKE_LINKS_RC", "0")))
 """
 
+# Stands in for scripts/check_checker_digest.py: prints FAKE_DIGEST_OUTPUT, exits FAKE_DIGEST_RC.
+CHECKER_DIGEST_STUB = """
+import os
+import sys
+
+print(os.environ.get("FAKE_DIGEST_OUTPUT", "flathub/flatpak-external-data-checker pin is up to date: sha256:aa"))
+sys.exit(int(os.environ.get("FAKE_DIGEST_RC", "0")))
+"""
+
 HIGH_ALERT = {
     "state": "open",
     "html_url": "https://github.com/o/r/security/dependabot/1",
@@ -50,6 +59,8 @@ def run(tmp_path: Path, alerts: list[dict], *args: str, **env: str) -> subproces
         stub.chmod(0o755)
     check_links = tmp_path / "check_links.py"
     check_links.write_text(CHECK_LINKS_STUB, encoding="utf-8")
+    checker_digest = tmp_path / "check_checker_digest.py"
+    checker_digest.write_text(CHECKER_DIGEST_STUB, encoding="utf-8")
     alerts_file = tmp_path / "alerts.json"
     alerts_file.write_text(json.dumps(alerts), encoding="utf-8")
     environment = {
@@ -61,6 +72,7 @@ def run(tmp_path: Path, alerts: list[dict], *args: str, **env: str) -> subproces
         "AUDIT_IGNORE": "",
         "ACMM_MIN_LEVEL": "0",
         "CHECK_LINKS": str(check_links),
+        "CHECKER_DIGEST": str(checker_digest),
         "LINKS_ARGS": str(tmp_path / "links-args.txt"),
         **env,
     }
@@ -82,6 +94,7 @@ def test_all_checks_pass(tmp_path: Path) -> None:
     assert "| Script dependencies (pip-audit) | ✅ pass |" in result.stdout
     assert "| GNOME runtime supported (org.gnome.Platform//51) | ✅ pass |" in result.stdout
     assert "| ACMM codebase level (L0+) | ✅ pass |" in result.stdout
+    assert "| External data checker image is :latest | ✅ pass |" in result.stdout
     assert "## Failures" not in result.stdout
 
 
@@ -128,6 +141,21 @@ def test_an_unreachable_remote_fails(tmp_path: Path) -> None:
     result = run(tmp_path, [], FAKE_FLATPAK_RC="1", FAKE_FLATPAK_OUTPUT='error: Remote "flathub" not found')
     assert result.returncode == 1
     assert "| GNOME runtime supported (org.gnome.Platform//51) | ❌ fail |" in result.stdout
+
+
+def test_a_drifted_checker_image_digest_fails_with_both_digests(tmp_path: Path) -> None:
+    drift = "flathub/flatpak-external-data-checker:latest moved on.\npinned: sha256:aa\nlatest: sha256:bb"
+    result = run(tmp_path, [], FAKE_DIGEST_RC="1", FAKE_DIGEST_OUTPUT=drift)
+    assert result.returncode == 1
+    assert "| External data checker image is :latest | ❌ fail |" in result.stdout
+    assert "latest: sha256:bb" in result.stdout
+
+
+def test_an_unreachable_registry_fails_the_checker_image_row(tmp_path: Path) -> None:
+    result = run(tmp_path, [], FAKE_DIGEST_RC="2", FAKE_DIGEST_OUTPUT="could not read ghcr.io: timed out")
+    assert result.returncode == 1
+    assert "| External data checker image is :latest | ❌ fail |" in result.stdout
+    assert "could not read ghcr.io: timed out" in result.stdout
 
 
 def test_an_acmm_level_below_the_minimum_fails_with_the_gaps(tmp_path: Path) -> None:

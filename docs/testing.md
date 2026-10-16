@@ -131,6 +131,7 @@ check even when an earlier one fails, and exits non-zero if any failed:
 | CI tool advisories | `pip-audit` finds a known vulnerability in `scripts/requirements.txt` that is not on the ignore list |
 | GNOME runtime | `flatpak remote-info flathub org.gnome.Platform//51` reports the runtime as end-of-life |
 | ACMM self-check | `scripts/acmm-self-check.py` finds that a file a Hive ACMM criterion looks for has gone missing |
+| External data checker image | `scripts/check_checker_digest.py` finds that the `flatpak-external-data-checker` digest pinned in `.github/workflows/external-data-checker.yml` is no longer the image's `:latest` on ghcr.io, or cannot read ghcr.io. To bump the pin, see CONTRIBUTING.md, "Dependencies" |
 | Catalog links (weekly) | Sundays (UTC) only, or with `--force-links` / `DAILIES_FORCE_LINKS=1` (the manual run's `force_links` input): `scripts/check_links.py` finds an active catalog entry that is `redirected-cross-domain`, `blocked-title`, `http-<code>`, `timeout` or `unreachable`. A `bot-walled` entry (a Cloudflare challenge, or a 403 or timeout on an entry tagged `bot-walled`) is a warning, not a failure |
 
 The alerts come from `gh api repos/$GITHUB_REPOSITORY/dependabot/alerts?state=open`, read with the job's `GITHUB_TOKEN`
@@ -161,5 +162,6 @@ scripts/nightly-compliance.sh [--force-links] > nightly-compliance.md
 ```
 
 This reads the alerts with your `gh` login (needs `jq`). Set `ALERTS_JSON=<file>` to read an alerts JSON array from a
-file instead, and `CHECK_LINKS=<script>` to replace the link checker; the tests in `tests/scripts/` use them. Outside
-GitHub Actions the link check only writes its report and never touches issues.
+file instead, `CHECK_LINKS=<script>` to replace the link checker and `CHECKER_DIGEST=<script>` to replace the image
+digest check; the tests in `tests/scripts/` use them. Outside GitHub Actions the link check only writes its report and
+never touches issues.

@@ -20,7 +20,13 @@
 #      runtime-version in the Flatpak manifests. Needs the flathub remote.
 #   4. ACMM codebase level: scripts/acmm-self-check.py finds the files Hive's
 #      ACMM evaluation looks for, up to level ACMM_MIN_LEVEL (default 5).
-#   5. Catalog links, Sundays (UTC) only, or any day with --force-links or
+#   5. External data checker image: scripts/check_checker_digest.py compares
+#      the flatpak-external-data-checker digest pinned in
+#      .github/workflows/external-data-checker.yml with the image's current
+#      :latest on ghcr.io (anonymous). Dependabot does not update docker://
+#      references, so drift fails this row; so does an unreachable ghcr.io.
+#      CHECKER_DIGEST replaces the script; the tests use it.
+#   6. Catalog links, Sundays (UTC) only, or any day with --force-links or
 #      DAILIES_FORCE_LINKS=1: scripts/check_links.py checks every active
 #      entry of data/v1/games.json with the submission validator's rules. In
 #      GitHub Actions (GITHUB_ACTIONS=true) a failure also opens, or updates,
@@ -173,7 +179,16 @@ if [ "$acmm_check" -ne 0 ]; then
 fi
 row "ACMM codebase level (L${acmm_min_level}+)" "$acmm_check"
 
-# 5. Catalog links, weekly: every active catalog entry, with the submission validator's rules.
+# 5. The flatpak-external-data-checker image digest against the image's current :latest.
+digest_out="$(python3 -I "${CHECKER_DIGEST:-scripts/check_checker_digest.py}" 2>&1)"
+digest_check=$?
+if [ "$digest_check" -ne 0 ]; then
+  echo "$digest_out" >&2
+  detail_block "flatpak-external-data-checker image digest" "$digest_out"
+fi
+row "External data checker image is :latest" "$digest_check"
+
+# 6. Catalog links, weekly: every active catalog entry, with the submission validator's rules.
 if [ "$force_links" = 1 ] || [ "$(date -u +%u)" = 7 ]; then
   links_md="$(mktemp)"
   links_args=(--catalog data/v1/games.json --out "$links_md")

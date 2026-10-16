@@ -343,6 +343,14 @@ the access is detected.
   WebKitGTK) and the standard library. A new runtime dependency means a new Flatpak module and needs explicit approval.
 - Tools that only CI and `scripts/` use live in `scripts/requirements.txt`, pinned with hashes.
 - GitHub Actions are pinned to a commit SHA with a `# vX.Y.Z` comment; Dependabot proposes updates.
+- The one Docker image a workflow runs, `ghcr.io/flathub/flatpak-external-data-checker` in
+  `.github/workflows/external-data-checker.yml`, is pinned by digest. Dependabot does not update `docker://`
+  references, so the nightly compliance row "External data checker image is :latest" (`scripts/check_checker_digest.py`)
+  fails once Flathub publishes a newer `:latest`; its report shows the pinned and the latest digest. To bump it, open a
+  `ci:` pull request that replaces the `sha256:…` after `@` with the reported latest digest and updates the date in the
+  comment above it. `python3 -I scripts/check_checker_digest.py` checks the result locally (exit 0 when the pin is the
+  current `:latest`). Skim the checker's changes since the old digest first, as the image runs with `contents: write`
+  and `pull-requests: write`.
 
 ## Agent safety layers
 

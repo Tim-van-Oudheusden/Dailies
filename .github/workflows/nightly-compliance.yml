@@ -2,8 +2,9 @@ name: Nightly compliance
 
 # Checks that can go stale without a code change: new Dependabot alerts, new
 # advisories against the CI scripts' pinned Python packages, the GNOME runtime
-# reaching end-of-life on Flathub, the ACMM file layout Hive evaluates and, on
-# Sundays (or when a manual run sets force_links), every active catalog link.
+# reaching end-of-life on Flathub, the ACMM file layout Hive evaluates, a newer
+# flatpak-external-data-checker image than the pinned digest and, on Sundays (or
+# when a manual run sets force_links), every active catalog link.
 # scripts/nightly-compliance.sh lists the checks; results land in the run's job
 # summary and as the nightly-compliance artifact.
 

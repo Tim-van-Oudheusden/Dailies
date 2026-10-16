@@ -87,8 +87,9 @@ gh pr list -R Tim-van-Oudheusden/Dailies --state closed --limit 1000 --search "c
 ## Nightly compliance
 
 Checks that can go stale without a code change, run every night so drift shows up before the next PR trips over it:
-Dependabot alerts, advisories in the CI tools, the GNOME runtime's end of life, the ACMM self-check, and on Sundays the
-liveness of every game link. The checks and when each fails are listed in
+Dependabot alerts, advisories in the CI tools, the GNOME runtime's end of life, the ACMM self-check, a newer
+`flatpak-external-data-checker` image than the pinned one, and on Sundays the liveness of every game link. The checks
+and when each fails are listed in
 [`docs/testing.md`](../testing.md#nightly-compliance).
 
 ```sh

@@ -37,7 +37,9 @@ jobs:
           ref: main
           persist-credentials: false
       # Pinned by digest: ghcr.io/flathub/flatpak-external-data-checker:latest as of 2026-10-16.
-      # Dependabot does not update docker:// references, so refresh this digest by hand.
+      # Dependabot does not update docker:// references; the nightly compliance row
+      # "External data checker image is :latest" reports a newer :latest, and
+      # CONTRIBUTING.md, "Dependencies", describes the bump.
       - uses: docker://ghcr.io/flathub/flatpak-external-data-checker@sha256:58cbad601261c2ebaae2e18b6f639c09aa5809ef941dcff7284f68928ebb790d
         env:
           GIT_AUTHOR_NAME: Flatpak External Data Checker
