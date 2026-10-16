@@ -47,6 +47,7 @@ from gi.repository import Adw, Gdk, Gtk
 GRESOURCE = os.environ["DAILIES_GRESOURCE"]
 PREFIX = os.environ["DAILIES_PREFIX"]
 APP_ID = os.environ["DAILIES_SCHEMA_ID"]
+VERSION = os.environ["DAILIES_VERSION"]  # meson.build's project() version, which the app passes as config.VERSION.
 
 # Every accelerator of the application, per section of the Shortcuts dialog (#48).
 EXPECTED_SECTIONS = {
@@ -98,10 +99,10 @@ class ShortcutsDialogTest(unittest.TestCase):
 
 class AboutDialogTest(unittest.TestCase):
     def test_the_bundled_metainfo_gives_version_licence_and_release_notes(self) -> None:
-        about = Adw.AboutDialog.new_from_appdata(f"{PREFIX}/{APP_ID}.metainfo.xml", "0.1.0")
+        about = Adw.AboutDialog.new_from_appdata(f"{PREFIX}/{APP_ID}.metainfo.xml", VERSION)
 
         assert about.get_application_name() == "Dailies"
-        assert about.get_version() == "0.1.0"
+        assert about.get_version() == VERSION
         assert about.get_license_type() == Gtk.License.GPL_3_0
         assert about.get_release_notes()
 

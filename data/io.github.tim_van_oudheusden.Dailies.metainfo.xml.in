@@ -81,6 +81,16 @@
   </screenshots>
 
   <releases>
+    <release version="0.2.0" date="2026-10-16">
+      <description translate="no">
+        <p>The game list now grows between releases.</p>
+        <ul>
+          <li>Two new games, Phoodle and Angle, the first added through the “Add a game” form on GitHub</li>
+          <li>Suggest a game with that form: once a maintainer approves it, Dailies picks it up from the game list on GitHub Pages the next time it refreshes, without a new release</li>
+          <li>The Popular and Trending shelves are recomputed every Monday and reach Dailies the same way</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.0" date="2026-10-16">
       <description translate="no">
         <p>The first release of Dailies.</p>

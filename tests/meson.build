@@ -55,6 +55,7 @@ if glib_compile_schemas.found()
   dialogs_test_env = gi_test_env
   dialogs_test_env.set('DAILIES_GRESOURCE', resources[0].full_path())
   dialogs_test_env.set('DAILIES_PREFIX', prefix_path)
+  dialogs_test_env.set('DAILIES_VERSION', meson.project_version())
   test(
     'dialogs',
     py,
