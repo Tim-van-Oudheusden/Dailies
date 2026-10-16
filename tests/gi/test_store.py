@@ -84,12 +84,29 @@ class StoreTest(unittest.TestCase):
         assert self.cache.read("games") == (BUNDLE / "games.json").read_bytes()
 
     def test_popularity_ranks_and_favorites_are_applied(self) -> None:
+        # Shelves of its own, generated after the bundle so the bundle does not replace them: the published file
+        # changes every week (#118).
+        shelves = edited(
+            "popularity",
+            lambda document: document.update(
+                generated_at="2099-01-01T00:00:00Z",
+                valid_until="2099-01-11T00:00:00Z",
+                popular=[
+                    {"id": "wordle", "rank": 1, "reason": "score", "score": 1.0},
+                    {"id": "globle", "rank": 2, "reason": "score", "score": 0.5},
+                ],
+                trending=[{"id": "nyt-pips", "rank": 1, "reason": "new", "score": 0.0, "delta": None}],
+            ),
+        )
+        self.cache.store("popularity", shelves, None, datetime.now(UTC))
         self.favorites.toggle("globle")
         self.store.load_initial()
 
         assert self.item("wordle").props.popular_rank == 1
+        assert self.item("globle").props.popular_rank == 2
         assert self.item("wordle").props.trending_rank == 0
         assert self.item("nyt-pips").props.trending_rank == 1
+        assert self.item("nyt-pips").props.popular_rank == 0
         assert self.item("globle").props.favorite
         assert not self.item("wordle").props.favorite
 
