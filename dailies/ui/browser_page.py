@@ -5,9 +5,10 @@ Imported only when `opener.have_webkit()` is true; importing this module loads W
 By default all games share one `WebKit.NetworkSession` per app run, so sibling games share a login. With
 `session-isolation` set to per-game, or a game's own `isolated-session` key set, a game gets a session of its own in
 `web/games/<id>` (`dailies.core.web.session_dir`). Every session stores its cookies in its own SQLite file so that
-logins and streaks survive a restart, and follows the `cookie-policy` and `itp-enabled` settings. Pages are shown as
-the sites ship them: no injected scripts or styles, no content blocking, and the user agent changes only when the user
-sets `user-agent`. Pop-ups and downloads go to the external browser and permission requests are denied.
+logins and streaks survive a restart, and follows the `cookie-policy` and `itp-enabled` settings; an open page follows
+`hardware-acceleration`, `user-agent` and `developer-extras`. Pages are shown as the sites ship them: no injected
+scripts or styles, no content blocking, and the user agent changes only when the user sets `user-agent`. Pop-ups and
+downloads go to the external browser and permission requests are denied.
 """
 
 import logging
@@ -43,6 +44,8 @@ _SHORTCUTS = (
 
 #: The settings every live session follows as they change.
 _SESSION_KEYS = ("cookie-policy", "itp-enabled")
+#: The settings every open page follows as they change.
+_PAGE_KEYS = ("hardware-acceleration", "user-agent", "developer-extras")
 
 #: The network sessions of this app run, by session directory, made the first time a page or a clear needs them.
 _sessions: dict[PurePosixPath, WebKit.NetworkSession] = {}
@@ -115,15 +118,24 @@ def web_settings(settings: Gio.Settings) -> WebKit.Settings:
         enable_webrtc=False,
         enable_back_forward_navigation_gestures=True,
         enable_smooth_scrolling=True,
-        enable_developer_extras=settings.get_boolean("developer-extras"),
     )
-    if policy := web.hardware_acceleration_policy(settings.get_string("hardware-acceleration")):
-        web_view_settings.set_hardware_acceleration_policy(getattr(WebKit.HardwareAccelerationPolicy, policy))
+    _apply_page_settings(settings, web_view_settings)
+    return web_view_settings
+
+
+def _apply_page_settings(settings: Gio.Settings, web_view_settings: WebKit.Settings) -> None:
+    """Set the user's `_PAGE_KEYS` on a page's WebKit settings, putting back WebKit's own value for a default."""
+    web_view_settings.set_enable_developer_extras(settings.get_boolean("developer-extras"))
+    policy = web.hardware_acceleration_policy(settings.get_string("hardware-acceleration"))
+    web_view_settings.set_hardware_acceleration_policy(
+        getattr(WebKit.HardwareAccelerationPolicy, policy)
+        if policy
+        else WebKit.Settings().get_hardware_acceleration_policy()
+    )
     if user_agent := web.custom_user_agent(settings.get_string("user-agent")):
         web_view_settings.set_user_agent(user_agent)
     else:
         web_view_settings.set_user_agent_with_application_details("Dailies", config.VERSION)
-    return web_view_settings
 
 
 def _on_download_started(_session: WebKit.NetworkSession, download: WebKit.Download) -> None:
@@ -205,7 +217,8 @@ def clear_site_data(session: WebKit.NetworkSession, host: str, callback: Callabl
 class BrowserPage(Adw.NavigationPage):
     """A game's website, with history buttons, the real host in the header and "Open in Browser" in the menu.
 
-    The page uses the network session of `game_id` (`session`), and the browser settings as they are when it is made.
+    The page uses the network session of `game_id` (`session`) and follows the browser settings in `_PAGE_KEYS`; a
+    new user agent reloads the page, since a loaded page keeps the one it was loaded with.
     `open_external` opens a link in the default browser; `hand_off_pop_up` does the same for a script's pop-up, and
     tells the user so. Call `close()` when the page is popped: it closes the web view, which ends its web process.
     """
@@ -260,6 +273,10 @@ class BrowserPage(Adw.NavigationPage):
         view.add_controller(history_buttons)
         self.overlay.set_child(view)
         self._web_view: WebKit.WebView | None = view
+        self._settings = settings
+        self._settings_handlers = [
+            settings.connect(f"changed::{key}", self._on_page_setting_changed) for key in _PAGE_KEYS
+        ]
 
         # The handlers look the view up, never capture it: after `close()` nothing may keep it alive.
         self._actions = Gio.SimpleActionGroup()
@@ -300,12 +317,25 @@ class BrowserPage(Adw.NavigationPage):
 
     def close(self) -> None:
         """Close the web view, so that its web process ends; the page shows nothing afterwards."""
+        # The settings must not keep a closed page alive, nor reload it.
+        for handler in self._settings_handlers:
+            self._settings.disconnect(handler)
+        self._settings_handlers.clear()
         if self._web_view is not None:
             self._web_view.try_close()
 
     def _on_action(self, _action: Gio.SimpleAction, _param: None, activate: Callable[[WebKit.WebView], None]) -> None:
         if self._web_view is not None:
             activate(self._web_view)
+
+    def _on_page_setting_changed(self, settings: Gio.Settings, _key: str) -> None:
+        if self._web_view is None:
+            return
+        web_view_settings = self._web_view.get_settings()
+        user_agent = web_view_settings.get_user_agent()
+        _apply_page_settings(settings, web_view_settings)
+        if web_view_settings.get_user_agent() != user_agent and self._web_view.get_uri():
+            self._web_view.reload()
 
     def _on_shown(self, _page: Adw.NavigationPage) -> None:
         if self._web_view is not None:
