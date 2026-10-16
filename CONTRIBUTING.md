@@ -297,6 +297,10 @@ The automated tests do not drive WebKit content or a real desktop session, so ch
 - [ ] Dark style: the window, tiles and empty states read correctly
 - [ ] Narrow the window to 360 px: the sidebar collapses and the grid stays usable
 - [ ] With a screen reader (Orca), a tile reads as the game's name, then its category and difficulty
+- [ ] Grant the host access ([Custom browser command](#custom-browser-command)), restart, pick **Custom command** with a
+  browser command, and check that a game opens in that browser; revoke the access afterwards
+- [ ] Turn off **Show games in other languages**: games in another language than the system's (Cémantix, in French)
+  leave the grid and return when it is turned back on
 
 ## Custom browser command
 
