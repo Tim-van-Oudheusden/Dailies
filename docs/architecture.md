@@ -251,7 +251,9 @@ the MVP is the Tranco rank of each game's registrable domain, smoothed over seve
 domain gets its full score, and a shelf holds at most two games of one domain, picked in the order of
 `data/v1/domain_weights.json`. `popular` holds the top `max(5, min(12, 10 % of active games))`; `trending` holds rising
 games outside the top five, topped up with the newest games (`reason: "new"`) so the shelf is never empty. If Tranco
-fails for more than 20 % of domains the job fails and the old file stays. The current `popularity.json` is hand-written
+fails for more than 20 % of domains the job fails and the old file stays. Wikipedia pageviews, Hacker News story
+counts and Cloudflare Radar buckets are optional collector flags, off by default ([#78][issue-78]); see
+[`data-format.md`](data-format.md#how-method_version-3-is-computed). The current `popularity.json` is hand-written
 (`method_version: 0`).
 
 **Publishing.** `pages.yml` publishes `data/v1/` (schemas included) and `docs/popularity/` to GitHub Pages at
@@ -333,6 +335,14 @@ orders a domain's games (highest weight first, unlisted games last) instead of s
 domains, not pages; without a split the best domains' games show up, and the cap keeps one publisher from filling a
 shelf. Rejected: no split without a cap (LinkedIn plus all nine NYT games), and 1/√n damping (still no NYT game).
 
+**Decision:** Wikipedia, Hacker News and Cloudflare Radar are optional signals behind `collect.py` flags, off by default
+([#78][issue-78]). With them, `popularity` is the weighted mean of the scores a game has (Tranco 0.80, Wikipedia 0.15,
+HN 0.05, Radar 0.20), renormalised over the ones present, and the file is `method_version: 3`; without them it stays
+byte-identical to `method_version: 2`. Why: Wikipedia covers only a handful of games and HN title search is noisy, so
+neither may outvote Tranco or penalise a game for having no article; Radar needs a token and is CC BY-NC, so it must
+be skippable, and a missing token or a source failing for more than 20 % of its items drops it with `ok: false` in
+`sources` instead of failing the week.
+
 ## Measurements
 
 To be filled in by [#52][issue-52] once the app builds as a Flatpak. Nothing here is measured yet. The proposal names
@@ -347,4 +357,5 @@ results here.
 [issue-13]: https://github.com/Tim-van-Oudheusden/Dailies/issues/13
 [issue-16]: https://github.com/Tim-van-Oudheusden/Dailies/issues/16
 [issue-52]: https://github.com/Tim-van-Oudheusden/Dailies/issues/52
+[issue-78]: https://github.com/Tim-van-Oudheusden/Dailies/issues/78
 [issue-88]: https://github.com/Tim-van-Oudheusden/Dailies/issues/88

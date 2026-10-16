@@ -50,7 +50,7 @@ def ranks(*values: int) -> list[dict[str, Any]]:
 
 
 def raw(domains: dict[str, list[dict[str, Any]] | None]) -> dict[str, Any]:
-    """Collector output; None marks a domain whose fetch failed."""
+    """Collector output by source, only Tranco; None marks a domain whose fetch failed."""
     entries = {
         domain: {"ok": False, "fetched_at": FETCHED, "status": 503, "ranks": [], "error": "HTTP 503"}
         if value is None
@@ -58,12 +58,13 @@ def raw(domains: dict[str, list[dict[str, Any]] | None]) -> dict[str, Any]:
         for domain, value in domains.items()
     }
     failed = sum(1 for value in domains.values() if value is None)
-    return {
+    tranco = {
         "source": "tranco",
         "fetched_at": FETCHED,
         "health": {"ok": len(domains) - failed, "failed": failed, "count": len(domains)},
         "domains": entries,
     }
+    return {"tranco": tranco}
 
 
 def simple(count: int) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -487,7 +488,8 @@ def test_same_input_gives_byte_identical_output() -> None:
     cat, data = simple(30)
     first = [compute.render(document) for document in compute.compute(cat, data, None, {}, NOW)]
     shuffled = catalog(*reversed(cat["games"]))
-    shuffled_raw = {**data, "domains": dict(reversed(list(data["domains"].items())))}
+    tranco = data["tranco"]
+    shuffled_raw = {"tranco": {**tranco, "domains": dict(reversed(list(tranco["domains"].items())))}}
     second = [compute.render(document) for document in compute.compute(shuffled, shuffled_raw, None, {}, NOW)]
     assert first == second
     assert first[0].endswith("}\n")
@@ -504,7 +506,7 @@ def write_json(path: Path, value: object) -> Path:
 def cli_args(tmp_path: Path, failed: int) -> list[str]:
     cat, data = hundred_domains(failed)
     (tmp_path / "raw").mkdir()
-    write_json(tmp_path / "raw" / "tranco.json", data)
+    write_json(tmp_path / "raw" / "tranco.json", data["tranco"])
     return [
         "--catalog",
         str(write_json(tmp_path / "games.json", cat)),
@@ -559,3 +561,202 @@ def test_main_rejects_a_bad_timestamp(tmp_path: Path) -> None:
     args[-1] = "2026-10-19T04:21:09"
     with pytest.raises(SystemExit):
         compute.main(args)
+
+
+# --- method_version 2 fixture ---------------------------------------------------------------------------------------
+
+FIXTURE = ROOT / "tests" / "scripts" / "fixtures" / "popularity"
+
+
+def test_without_optional_sources_output_is_byte_identical_to_method_version_2(tmp_path: Path) -> None:
+    # expected-*.json were written by the method_version 2 compute.py before the optional sources existed.
+    args = ["--catalog", str(FIXTURE / "games.json"), "--raw", str(FIXTURE / "raw")]
+    args += ["--previous", str(FIXTURE / "previous.json"), "--weights", str(tmp_path / "none.json")]
+    args += ["--out", str(tmp_path / "popularity.json"), "--summary", str(tmp_path / "summary.json")]
+    assert compute.main([*args, "--now", "2026-10-19T04:21:09Z"]) == 0
+    for name in ("popularity", "summary"):
+        expected = (FIXTURE / f"expected-{name}.json").read_bytes()
+        assert (tmp_path / f"{name}.json").read_bytes() == expected
+
+
+# --- composite score (method_version 3) ------------------------------------------------------------------------------
+
+
+def wikipedia(views: dict[str, int | None], error: str | None = None) -> dict[str, Any]:
+    """Collector output for Wikipedia; None marks an article whose fetch failed."""
+    articles = {
+        game_id: {"ok": False, "fetched_at": FETCHED, "status": 404, "article": game_id, "error": "HTTP 404"}
+        if value is None
+        else {"ok": True, "fetched_at": FETCHED, "status": 200, "article": game_id, "views_7d": value}
+        for game_id, value in views.items()
+    }
+    document: dict[str, Any] = {"source": "wikipedia", "fetched_at": FETCHED, "articles": articles}
+    return {**document, "error": error} if error else document
+
+
+def hn(stories: dict[str, int | None]) -> dict[str, Any]:
+    games = {
+        game_id: {"ok": False, "fetched_at": FETCHED, "status": 503, "error": "HTTP 503"}
+        if value is None
+        else {"ok": True, "fetched_at": FETCHED, "status": 200, "stories_28d": value}
+        for game_id, value in stories.items()
+    }
+    return {"source": "hn", "fetched_at": FETCHED, "games": games}
+
+
+def radar(buckets: dict[str, int | None] | None = None, error: str | None = None) -> dict[str, Any]:
+    domains = {
+        domain: {"ok": False, "fetched_at": FETCHED, "status": 500, "error": "HTTP 500"}
+        if value is None
+        else {"ok": True, "fetched_at": FETCHED, "status": 200, "bucket": value, "rank": None}
+        for domain, value in (buckets or {}).items()
+    }
+    document: dict[str, Any] = {"source": "radar", "fetched_at": FETCHED, "domains": domains}
+    return {**document, "error": error} if error else document
+
+
+def wiki_game(game_id: str, article: str) -> dict[str, Any]:
+    return {**game(game_id), "wikipedia": article}
+
+
+def test_wikipedia_and_hn_scores_follow_the_formulas() -> None:
+    assert compute.wiki_score(10**6 - 1) == pytest.approx(1.0)
+    assert compute.wiki_score(999) == pytest.approx(0.5)
+    assert compute.wiki_score(0) == 0.0
+    assert compute.wiki_score(10**9) == 1.0
+    assert compute.hn_score(9) == pytest.approx(0.5)
+    assert compute.hn_score(0) == 0.0
+    assert compute.hn_score(10**4) == 1.0
+
+
+def test_composite_weighs_tranco_wikipedia_and_hn() -> None:
+    # tranco 1.0, wikipedia 0.5, hn 0.5: 0.8 * 1 + 0.15 * 0.5 + 0.05 * 0.5 = 0.9.
+    cat = catalog(wiki_game("solo", "Solo"))
+    extras = {"wikipedia": wikipedia({"solo": 999}), "hn": hn({"solo": 9})}
+    popularity, _ = compute.compute(cat, {**raw({"solo.com": ranks(100)}), **extras}, None, {}, NOW)
+    assert popularity["method_version"] == 3
+    assert popularity["scores"]["solo"] == {
+        "popularity": 0.9,
+        "trend": None,
+        "tranco_rank": 100,
+        "wiki_views_7d": 999,
+        "hn_stories_28d": 9,
+        "history": [],
+    }
+
+
+def test_game_without_a_wikipedia_article_is_renormalised_over_the_other_sources() -> None:
+    # No article: (0.8 * 1 + 0.05 * 0.5) / (0.8 + 0.05), not a 0.15 penalty.
+    cat = catalog(game("solo"))
+    extras = {"wikipedia": wikipedia({}), "hn": hn({"solo": 9})}
+    popularity, _ = compute.compute(cat, {**raw({"solo.com": ranks(100)}), **extras}, None, {}, NOW)
+    assert popularity["scores"]["solo"]["popularity"] == round(0.825 / 0.85, 4)
+    assert popularity["scores"]["solo"]["wiki_views_7d"] is None
+
+
+def test_failed_article_is_renormalised_and_listed_in_the_summary() -> None:
+    games = [wiki_game(f"game-{index}", f"Game {index}") for index in range(6)]
+    data = raw({entry["domain"]: ranks(100) for entry in games})
+    views = {f"game-{index}": None if index == 0 else 999 for index in range(6)}
+    popularity, summary = compute.compute(catalog(*games), {**data, "wikipedia": wikipedia(views)}, None, {}, NOW)
+    assert popularity["scores"]["game-0"]["popularity"] == 1.0
+    assert popularity["scores"]["game-1"]["popularity"] == round((0.8 + 0.15 * 0.5) / 0.95, 4)
+    assert popularity["sources"]["wikipedia"] == {"ok": True, "fetched_at": FETCHED}
+    assert summary["sources"]["wikipedia"]["failed"] == 1
+    assert summary["sources"]["wikipedia"]["failed_games"] == ["game-0"]
+
+
+def test_radar_bucket_scores_like_a_tranco_rank() -> None:
+    # tranco rank 100 -> 1.0, radar bucket 10^4.25 -> 0.5: (0.8 * 1 + 0.2 * 0.5) / 1.0 = 0.9.
+    cat = catalog(game("solo"))
+    extras = {"radar": radar({"solo.com": 10000})}
+    popularity, _ = compute.compute(cat, {**raw({"solo.com": ranks(100)}), **extras}, None, {}, NOW)
+    expected = round((0.8 + 0.2 * compute.tranco_score(10000)) / 1.0, 4)
+    assert popularity["scores"]["solo"]["popularity"] == expected
+    assert popularity["scores"]["solo"]["radar_bucket"] == 10000
+    assert popularity["sources"]["radar"] == {
+        "ok": True,
+        "fetched_at": FETCHED,
+        "domains_requested": 1,
+        "domains_resolved": 1,
+    }
+    assert any("CC BY-NC 4.0" in line and "non-commercial" in line for line in popularity["attribution"])
+
+
+def test_radar_without_a_token_is_reported_and_left_out() -> None:
+    cat = catalog(game("solo"))
+    extras = {"radar": radar(error="CLOUDFLARE_RADAR_TOKEN is not set")}
+    popularity, summary = compute.compute(cat, {**raw({"solo.com": ranks(1000)}), **extras}, None, {}, NOW)
+    assert popularity["method_version"] == 3
+    assert popularity["scores"]["solo"]["popularity"] == round(compute.tranco_score(1000), 4)
+    assert popularity["scores"]["solo"]["radar_bucket"] is None
+    assert popularity["sources"]["radar"] == {
+        "ok": False,
+        "fetched_at": FETCHED,
+        "error": "CLOUDFLARE_RADAR_TOKEN is not set",
+    }
+    assert not any("Radar" in line for line in popularity["attribution"])
+    assert summary["sources"]["radar"]["used"] is False
+    jsonschema.Draft202012Validator(SCHEMA).validate(popularity)
+
+
+def test_optional_source_failing_for_more_than_twenty_percent_is_left_out() -> None:
+    games = [game(f"game-{index}") for index in range(5)]
+    data = raw({entry["domain"]: ranks(100) for entry in games})
+    stories = {f"game-{index}": None if index < 2 else 99 for index in range(5)}
+    popularity, summary = compute.compute(catalog(*games), {**data, "hn": hn(stories)}, None, {}, NOW)
+    assert {score["popularity"] for score in popularity["scores"].values()} == {1.0}
+    assert {score["hn_stories_28d"] for score in popularity["scores"].values()} == {None}
+    assert popularity["sources"]["hn"]["ok"] is False
+    assert "2 of 5" in popularity["sources"]["hn"]["error"]
+    assert summary["sources"]["hn"] == {
+        "ok": 3,
+        "failed": 2,
+        "count": 5,
+        "fetched_at": FETCHED,
+        "used": False,
+        "error": popularity["sources"]["hn"]["error"],
+        "failed_games": ["game-0", "game-1"],
+    }
+
+
+def test_composite_ignores_method_version_2_history() -> None:
+    last = previous("2026-W42", {"game-00": (0.5, [0.5])}, method_version=2)
+    cat, data = simple(1)
+    popularity, _ = compute.compute(cat, {**data, "hn": hn({"game-00": 0})}, last, {}, NOW)
+    assert popularity["scores"]["game-00"]["history"] == []
+    assert popularity["scores"]["game-00"]["trend"] is None
+
+
+def test_composite_keeps_method_version_3_history() -> None:
+    last = previous("2026-W42", {"game-00": (0.5, [0.5])}, method_version=3)
+    cat, data = simple(1)
+    popularity, _ = compute.compute(cat, {**data, "hn": hn({"game-00": 0})}, last, {}, NOW)
+    assert popularity["scores"]["game-00"]["history"] == [0.5, 0.5]
+    assert popularity["scores"]["game-00"]["trend"] == round(0.8 / 0.85 - 0.5, 4)
+
+
+def test_composite_output_validates_against_the_schema() -> None:
+    solos = [f"solo-{index}" for index in range(4)]
+    games = [wiki_game("wordle", "Wordle"), game("tiny"), *(game(game_id) for game_id in solos)]
+    data = raw({"wordle.com": ranks(156), "tiny.com": [], **{f"{game_id}.com": ranks(40000) for game_id in solos}})
+    extras = {
+        "wikipedia": wikipedia({"wordle": 96000}),
+        "hn": hn({"wordle": 12, "tiny": 1, **dict.fromkeys(solos, 0)}),
+        "radar": radar({"wordle.com": 200, "tiny.com": None, **{f"{game_id}.com": 50000 for game_id in solos}}),
+    }
+    popularity, summary = compute.compute(catalog(*games), {**data, **extras}, None, {}, NOW)
+    jsonschema.Draft202012Validator(SCHEMA).validate(popularity)
+    assert set(popularity["sources"]) == {"tranco", "wikipedia", "hn", "radar"}
+    assert summary["method_version"] == 3
+    assert summary["sources"]["radar"]["failed_domains"] == ["tiny.com"]
+    assert len(popularity["attribution"]) == 4
+
+
+def test_main_reads_the_optional_raw_files(tmp_path: Path) -> None:
+    args = cli_args(tmp_path, 0)
+    write_json(tmp_path / "raw" / "hn.json", hn({f"game-{index:03d}": 0 for index in range(100)}))
+    assert compute.main(args) == 0
+    popularity = json.loads((tmp_path / "popularity.json").read_text(encoding="utf-8"))
+    assert popularity["method_version"] == 3
+    assert popularity["sources"]["hn"] == {"ok": True, "fetched_at": FETCHED}

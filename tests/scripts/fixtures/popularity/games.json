@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-10-15T00:00:00Z",
+  "games": [
+    {
+      "id": "wordle",
+      "name": "Wordle",
+      "url": "https://nytimes.com/wordle",
+      "domain": "nytimes.com",
+      "added": "2026-10-01",
+      "status": "active",
+      "wikipedia": "Wordle"
+    },
+    {
+      "id": "nyt-connections",
+      "name": "Connections",
+      "url": "https://nytimes.com/nyt-connections",
+      "domain": "nytimes.com",
+      "added": "2026-10-01",
+      "status": "active"
+    },
+    {
+      "id": "nyt-strands",
+      "name": "Strands",
+      "url": "https://nytimes.com/nyt-strands",
+      "domain": "nytimes.com",
+      "added": "2026-10-12",
+      "status": "active"
+    },
+    {
+      "id": "worldle",
+      "name": "Worldle",
+      "url": "https://teuteuf.fr/worldle",
+      "domain": "teuteuf.fr",
+      "added": "2026-10-01",
+      "status": "active",
+      "wikipedia": "Worldle"
+    },
+    {
+      "id": "globle",
+      "name": "Globle",
+      "url": "https://globle-game.com/globle",
+      "domain": "globle-game.com",
+      "added": "2026-10-01",
+      "status": "active",
+      "wikipedia": "Globle_(game)"
+    },
+    {
+      "id": "nerdle",
+      "name": "Nerdle",
+      "url": "https://nerdlegame.com/nerdle",
+      "domain": "nerdlegame.com",
+      "added": "2026-10-01",
+      "status": "active",
+      "wikipedia": "Nerdle"
+    },
+    {
+      "id": "semantle",
+      "name": "Semantle",
+      "url": "https://semantle.com/semantle",
+      "domain": "semantle.com",
+      "added": "2026-10-01",
+      "status": "active",
+      "wikipedia": "Semantle"
+    },
+    {
+      "id": "heardle",
+      "name": "Heardle",
+      "url": "https://heardle.app/heardle",
+      "domain": "heardle.app",
+      "added": "2026-10-01",
+      "status": "active"
+    },
+    {
+      "id": "framed",
+      "name": "Framed",
+      "url": "https://framed.wtf/framed",
+      "domain": "framed.wtf",
+      "added": "2026-10-10",
+      "status": "active"
+    },
+    {
+      "id": "scrandle",
+      "name": "Scrandle",
+      "url": "https://scrandle.com/scrandle",
+      "domain": "scrandle.com",
+      "added": "2026-10-14",
+      "status": "active"
+    },
+    {
+      "id": "tiny",
+      "name": "Tiny",
+      "url": "https://tiny.example/tiny",
+      "domain": "tiny.example",
+      "added": "2026-10-01",
+      "status": "active"
+    },
+    {
+      "id": "retired",
+      "name": "Retired",
+      "url": "https://retired.example/retired",
+      "domain": "retired.example",
+      "added": "2026-10-01",
+      "status": "retired"
+    }
+  ]
+}

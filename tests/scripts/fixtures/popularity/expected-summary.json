@@ -1,0 +1,102 @@
+{
+  "generated_at": "2026-10-19T04:21:09Z",
+  "method_version": 2,
+  "popular": [
+    {
+      "id": "nyt-connections",
+      "name": "Connections",
+      "score": 0.9574
+    },
+    {
+      "id": "nyt-strands",
+      "name": "Strands",
+      "score": 0.9574
+    },
+    {
+      "id": "worldle",
+      "name": "Worldle",
+      "score": 0.4199
+    },
+    {
+      "id": "globle",
+      "name": "Globle",
+      "score": 0.3873
+    },
+    {
+      "id": "heardle",
+      "name": "Heardle",
+      "score": 0.35
+    }
+  ],
+  "sources": {
+    "tranco": {
+      "count": 9,
+      "failed": 1,
+      "failed_domains": [
+        "heardle.app"
+      ],
+      "fetched_at": "2026-10-19T04:18:00Z",
+      "ok": 8,
+      "unranked_domains": [
+        "tiny.example"
+      ]
+    }
+  },
+  "top_movers": {
+    "down": [
+      {
+        "id": "globle",
+        "name": "Globle",
+        "popularity": 0.3873,
+        "trend": -0.1094
+      },
+      {
+        "id": "heardle",
+        "name": "Heardle",
+        "popularity": 0.35,
+        "trend": -0.005
+      }
+    ],
+    "up": [
+      {
+        "id": "wordle",
+        "name": "Wordle",
+        "popularity": 0.9574,
+        "trend": 0.0574
+      },
+      {
+        "id": "framed",
+        "name": "Framed",
+        "popularity": 0.3435,
+        "trend": 0.0435
+      },
+      {
+        "id": "worldle",
+        "name": "Worldle",
+        "popularity": 0.4199,
+        "trend": 0.0366
+      }
+    ]
+  },
+  "trending": [
+    {
+      "delta": 0.0574,
+      "id": "wordle",
+      "name": "Wordle",
+      "reason": "score"
+    },
+    {
+      "delta": 0.0435,
+      "id": "framed",
+      "name": "Framed",
+      "reason": "score"
+    },
+    {
+      "delta": null,
+      "id": "scrandle",
+      "name": "Scrandle",
+      "reason": "new"
+    }
+  ],
+  "week": "2026-W43"
+}
