@@ -36,6 +36,19 @@ if glib_compile_schemas.found()
         suite: 'gi',
       )
     endforeach
+
+    # The built-in browser's sessions and WebKit settings, against a real WebKit network process.
+    if webkit.found()
+      test(
+        'browser',
+        py,
+        args: [files('gi' / 'test_browser.py')],
+        env: tile_test_env,
+        depends: [compiled_schemas, resources],
+        suite: 'gi',
+        timeout: 60,
+      )
+    endif
   endif
 
   # The bundled Shortcuts and About dialogs; the test opens its own Broadway display.

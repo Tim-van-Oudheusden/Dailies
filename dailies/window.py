@@ -117,17 +117,18 @@ class Window(Adw.ApplicationWindow):
         self.sidebar.connect("notify::selected-item", lambda sidebar, _pspec: self._show(sidebar.props.selected_item))
 
     def open_game(self, game: Game) -> None:
-        """Open `game` the way the `open-mode` setting says: the custom command, the built-in or the default browser."""
-        how = opener.resolve(self._settings)
+        """Open `game` as its `open-mode-override` or `open-mode` says: custom command, built-in or default browser."""
+        game_settings = opener.game_settings(game.id)
+        how = opener.resolve(self._settings, game_settings)
         if how is OpenMode.CUSTOM:
             if opener.launch_custom(self._settings.get_string("external-browser-command"), game.url):
                 return
-            how = opener.resolve(self._settings, custom_failed=True)
+            how = opener.resolve(self._settings, game_settings, custom_failed=True)
         if how is OpenMode.IN_APP:
             self._open_in_app(game.url, game.id)
         else:
             self.open_external(game.url)
-        self._notify_opened(OpenMode.from_id(self._settings.get_string("open-mode")), how, game.url, game.id)
+        self._notify_opened(opener.open_mode(self._settings, game_settings), how, game.url, game.id)
 
     def _notify_opened(self, mode: OpenMode, how: OpenMode, url: str, game_id: str | None) -> None:
         """Toast where a game set to open with `mode` went (`how`); after an external open, offer "Open Here"."""
@@ -150,26 +151,42 @@ class Window(Adw.ApplicationWindow):
         self._notify_opened(OpenMode.EXTERNAL, OpenMode.EXTERNAL, url, None)
 
     def _open_in_app(self, url: str, game_id: str | None) -> None:
-        """Show `url` in the built-in browser; `game_id` is the game it is, None for a pop-up handed back in-app."""
+        """Show `url` in the built-in browser; `game_id` is the game it is, None for a pop-up handed back in-app.
+
+        A pop-up loads in the shown page's session, so it stays signed in like the game that opened it.
+        """
         # Imported here: it loads WebKit, which a cold start must not.
-        from dailies.ui.browser_page import BrowserPage
+        from dailies.ui import browser_page
 
         self._state.set_boolean("first-run-banner-dismissed", True)
-        if self._browser_page is None:
-            self._browser_page = BrowserPage(
+        page = self._browser_page
+        # A pop-up (no game) stays in the shown page's session; a game uses its own (`browser_page.session_dir_for`).
+        if page is not None and (
+            game_id is None or page.session == browser_page.session_dir_for(self._settings, game_id)
+        ):
+            page.load(url)
+        else:
+            # A web view's network session is fixed when it is made: another game's session needs a page of its own.
+            self._browser_page = browser_page.BrowserPage(
+                settings=self._settings,
+                game_id=game_id,
                 open_external=self.open_external,
                 hand_off_pop_up=self._hand_off_pop_up,
                 add_toast=self.toast_overlay.add_toast,
             )
-            # Loaded before it is pushed, so the page already has a title when it is shown.
+            # Loaded before it is shown, so the page already has a title.
             self._browser_page.load(url)
-            # A page popped a moment ago is still a child, sliding out, and holds the "browser" tag until then: cut
-            # its animation short and drop it, or the new page would not be pushed at all.
-            if (popping := self.navigation_view.find_page("browser")) is not None:
-                self.navigation_view.remove(popping)
-            self.navigation_view.push(self._browser_page)
-        else:
-            self._browser_page.load(url)
+            if page is not None:
+                # The shown page gives way at once: popping it first would leave two pages tagged "browser" while it
+                # slides out.
+                self.navigation_view.replace([self.navigation_view.find_page("library"), self._browser_page])
+                page.close()
+            else:
+                # A page popped a moment ago is still a child, sliding out, and holds the "browser" tag until then:
+                # cut its animation short and drop it, or the new page would not be pushed at all.
+                if (popping := self.navigation_view.find_page("browser")) is not None:
+                    self.navigation_view.remove(popping)
+                self.navigation_view.push(self._browser_page)
         self._set_browser_game(game_id)
 
     def _set_browser_game(self, game_id: str | None) -> None:

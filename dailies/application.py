@@ -124,7 +124,7 @@ class Application(Adw.Application):
         if self.settings.get_boolean("clear-web-data-on-exit") and opener.have_webkit():
             from dailies.ui import browser_page
 
-            browser_page.clear_all_blocking()
+            browser_page.clear_all_blocking(self.settings)
         Adw.Application.do_shutdown(self)
 
     def _add_actions(self) -> None:

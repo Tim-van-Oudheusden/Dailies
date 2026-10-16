@@ -58,7 +58,8 @@ keep the hardening intact:
 - permission requests (camera, microphone, location, notifications) are denied; WebRTC is off
 - top-level navigation to `data:` URLs is off; pages cannot open windows on their own
 - downloads are cancelled and handed to the external browser, so the sandbox needs no download folder
-- no user scripts or style sheets are injected, no ad blocking, no user-agent spoofing
+- no user scripts or style sheets are injected, no ad blocking, no user-agent spoofing: the `user-agent` setting is
+  empty by default and only for compatibility fixes the user makes
 - the custom-command mode stays inert unless the user has granted host access themselves, and the URL is passed as one
   argument, never through a shell
 

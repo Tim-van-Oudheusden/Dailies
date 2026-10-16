@@ -39,6 +39,14 @@ class OpenMode(Enum):
             return cls.IN_APP
 
 
+def game_mode(mode: OpenMode, override: str) -> OpenMode:
+    """The mode a game opens with: its `open-mode-override` nick, or the global `mode` when that is empty or unknown."""
+    try:
+        return OpenMode(override)
+    except ValueError:
+        return mode
+
+
 def resolve(mode: OpenMode, *, have_webkit: bool, host_access: bool, command: str) -> OpenMode:
     """Return how a game opens when the setting says `mode`.
 

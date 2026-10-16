@@ -140,6 +140,37 @@ class OpenedToastTest(unittest.TestCase):
         assert in_app.props.timeout == external.props.timeout == 5
 
 
+class GameSettingsTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.settings = Gio.Settings.new(os.environ["DAILIES_SCHEMA_ID"])
+        self.settings.set_string("open-mode", "in-app")
+        self.addCleanup(self.settings.reset, "open-mode")
+        patcher = mock.patch.object(opener, "have_webkit", return_value=True)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_a_game_has_its_own_relocatable_settings_under_games(self) -> None:
+        game = opener.game_settings("wordle")
+
+        assert game.props.schema_id == f"{os.environ['DAILIES_SCHEMA_ID']}.Game"
+        assert game.props.path == f"{self.settings.props.path}games/wordle/"
+        assert game.get_string("open-mode-override") == ""
+        assert not game.get_boolean("isolated-session")
+
+    def test_an_id_that_is_not_a_catalog_id_has_no_settings(self) -> None:
+        assert opener.game_settings("../State") is None
+
+    def test_a_game_override_beats_the_global_open_mode(self) -> None:
+        game = opener.game_settings("connections")
+        game.set_string("open-mode-override", "external")
+        self.addCleanup(game.reset, "open-mode-override")
+
+        assert opener.open_mode(self.settings, game) is OpenMode.EXTERNAL
+        assert opener.resolve(self.settings, game) is OpenMode.EXTERNAL
+        assert opener.resolve(self.settings, opener.game_settings("wordle")) is OpenMode.IN_APP
+        assert opener.resolve(self.settings, None) is OpenMode.IN_APP
+
+
 class PreferencesTest(unittest.TestCase):
     def setUp(self) -> None:
         self.settings = Gio.Settings.new(os.environ["DAILIES_SCHEMA_ID"])
@@ -201,6 +232,88 @@ class PreferencesTest(unittest.TestCase):
         dialog.auto_done_row.props.active = True
         assert self.settings.get_boolean("auto-done-today")
         self.settings.reset("auto-done-today")
+
+
+class BrowserPreferencesTest(unittest.TestCase):
+    KEYS = (
+        "session-isolation",
+        "cookie-policy",
+        "itp-enabled",
+        "hardware-acceleration",
+        "user-agent",
+        "developer-extras",
+    )
+
+    def setUp(self) -> None:
+        self.settings = Gio.Settings.new(os.environ["DAILIES_SCHEMA_ID"])
+        for key in self.KEYS:
+            self.settings.reset(key)
+            self.addCleanup(self.settings.reset, key)
+        for name, value in (("have_webkit", True), ("host_access", False)):
+            patcher = mock.patch.object(opener, name, return_value=value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        self.dialog = PreferencesDialog(settings=self.settings, store=FakeStore())
+        self.addCleanup(self.dialog.force_close)
+
+    @staticmethod
+    def titles(row: Adw.ComboRow) -> list[str]:
+        return [row.props.model.get_string(i) for i in range(row.props.model.get_n_items())]
+
+    def test_the_options_sit_in_an_expander_row_of_the_browser_group(self) -> None:
+        dialog = self.dialog
+        rows = (
+            dialog.session_isolation_row,
+            dialog.cookie_policy_row,
+            dialog.itp_row,
+            dialog.hardware_acceleration_row,
+            dialog.user_agent_row,
+            dialog.developer_extras_row,
+        )
+
+        assert isinstance(dialog.browser_options_row, Adw.ExpanderRow)
+        assert dialog.browser_options_row.get_ancestor(Adw.PreferencesGroup) is dialog.browser_group
+        assert all(row.get_ancestor(Adw.ExpanderRow) is dialog.browser_options_row for row in rows)
+        assert dialog.session_isolation_row.props.subtitle.endswith("Games will need to sign in again")
+
+    def test_the_rows_show_the_defaults_of_v0_1(self) -> None:
+        dialog = self.dialog
+
+        assert self.titles(dialog.session_isolation_row) == ["Shared by all games", "Separate for each game"]
+        assert dialog.session_isolation_row.props.selected == 0
+        assert self.titles(dialog.cookie_policy_row) == ["Always", "Not from third parties", "Never"]
+        assert dialog.cookie_policy_row.props.selected == 0
+        assert not dialog.itp_row.props.active
+        assert dialog.hardware_acceleration_row.props.active
+        assert dialog.user_agent_row.props.text == ""
+        assert not dialog.developer_extras_row.props.active
+
+    def test_the_rows_change_the_settings(self) -> None:
+        dialog = self.dialog
+
+        dialog.session_isolation_row.props.selected = 1
+        dialog.cookie_policy_row.props.selected = 1
+        dialog.itp_row.props.active = True
+        dialog.hardware_acceleration_row.props.active = False
+        dialog.developer_extras_row.props.active = True
+        dialog.user_agent_row.props.text = "  Mozilla/5.0 Compat/1.0 "
+        dialog.user_agent_row.emit("apply")
+
+        assert self.settings.get_string("session-isolation") == "per-game"
+        assert self.settings.get_string("cookie-policy") == "no-third-party"
+        assert self.settings.get_boolean("itp-enabled")
+        assert self.settings.get_string("hardware-acceleration") == "never"
+        assert self.settings.get_boolean("developer-extras")
+        assert self.settings.get_string("user-agent") == "Mozilla/5.0 Compat/1.0"
+
+    def test_the_rows_follow_changed_settings(self) -> None:
+        self.settings.set_string("session-isolation", "per-game")
+        self.settings.set_string("cookie-policy", "never")
+        self.settings.set_string("hardware-acceleration", "never")
+
+        assert self.dialog.session_isolation_row.props.selected == 1
+        assert self.dialog.cookie_policy_row.props.selected == 2
+        assert not self.dialog.hardware_acceleration_row.props.active
 
 
 if __name__ == "__main__":

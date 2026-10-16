@@ -5,6 +5,7 @@ from dailies.core.opening import (
     OpenMode,
     choices,
     custom_command_argv,
+    game_mode,
     host_access_granted,
     notice,
     offers_open_here,
@@ -175,3 +176,18 @@ def test_open_here_is_offered_after_an_external_open_with_webkit(
     resolved: OpenMode, have_webkit: bool, expected: bool
 ) -> None:
     assert offers_open_here(resolved, have_webkit=have_webkit) is expected
+
+
+@pytest.mark.parametrize(
+    ("override", "expected"),
+    [
+        # A game's `open-mode-override` beats the global `open-mode`; empty or unknown means "use the global one".
+        ("", EXTERNAL),
+        ("in-app", IN_APP),
+        ("custom", CUSTOM),
+        ("external", EXTERNAL),
+        ("telepathy", EXTERNAL),
+    ],
+)
+def test_a_game_override_replaces_the_global_open_mode(override: str, expected: OpenMode) -> None:
+    assert game_mode(EXTERNAL, override) is expected

@@ -56,6 +56,63 @@ template $DailiesPreferencesDialog: Adw.PreferencesDialog {
         title: _("Clear website data on exit");
       }
 
+      // The order of each combo row's choices matches its nicks in dailies/ui/preferences.py.
+      Adw.ExpanderRow browser_options_row {
+        title: _("Privacy and compatibility");
+        subtitle: _("Website data, cookies, tracking prevention and rendering");
+
+        Adw.ComboRow session_isolation_row {
+          title: _("Website data");
+          subtitle: _("Switching does not move signed-in sessions. Games will need to sign in again");
+
+          model: StringList {
+            strings [
+              _("Shared by all games"),
+              _("Separate for each game"),
+            ]
+          };
+        }
+
+        Adw.ComboRow cookie_policy_row {
+          title: _("Accept cookies");
+          subtitle: _("Some games sign in through other sites and need third-party cookies");
+
+          model: StringList {
+            strings [
+              _("Always"),
+              _("Not from third parties"),
+              _("Never"),
+            ]
+          };
+        }
+
+        Adw.SwitchRow itp_row {
+          title: _("Intelligent tracking prevention");
+          subtitle: _("Limits cross-site tracking; third-party cookies then follow its rules");
+        }
+
+        Adw.SwitchRow hardware_acceleration_row {
+          title: _("Hardware acceleration");
+          subtitle: _("Turn off if games show rendering glitches; applies to games opened next");
+        }
+
+        // For compatibility fixes only: empty keeps the browser's own user agent.
+        Adw.EntryRow user_agent_row {
+          title: _("Custom user agent (leave empty)");
+          show-apply-button: true;
+          apply => $on_user_agent_applied();
+
+          styles [
+            "monospace",
+          ]
+        }
+
+        Adw.SwitchRow developer_extras_row {
+          title: _("Web inspector");
+          subtitle: _("Adds Inspect Element to the page's context menu of games opened next");
+        }
+      }
+
       Adw.ButtonRow clear_row {
         title: _("Clear website data…");
         activated => $on_clear_activated();

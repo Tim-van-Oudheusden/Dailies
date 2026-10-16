@@ -15,6 +15,10 @@ import unittest
 from collections.abc import Callable
 from pathlib import Path
 
+# The built-in browser writes its website data here, not into the home directory of whoever runs the tests.
+_HOME = Path(tempfile.mkdtemp())
+os.environ.update(XDG_DATA_HOME=str(_HOME / "data"), XDG_CACHE_HOME=str(_HOME / "cache"))
+
 import gi
 
 gi.require_version("Gtk", "4.0")
@@ -84,7 +88,10 @@ def spin(seconds: float) -> None:
 class BrowserPageTest(unittest.TestCase):
     def setUp(self) -> None:
         Gtk.Settings.get_default().props.gtk_enable_animations = True
-        self.app = Adw.Application(application_id=f"{SCHEMA_ID}.Test", flags=Gio.ApplicationFlags.NON_UNIQUE)
+        # One application id per test: a registered application stays exported on the bus for the whole run.
+        self.app = Adw.Application(
+            application_id=f"{SCHEMA_ID}.Test.{self._testMethodName}", flags=Gio.ApplicationFlags.NON_UNIQUE
+        )
         self.app.register(None)
         self.app.settings = Gio.Settings.new(SCHEMA_ID)
         self.app.settings.set_string("open-mode", "in-app")
@@ -134,6 +141,30 @@ class BrowserPageTest(unittest.TestCase):
         self.view.pop()
         assert run_until(lambda: self.view.props.visible_page.props.tag == "library")
         assert self.criticals == [], self.criticals
+
+    def test_a_game_with_another_session_replaces_the_shown_page(self) -> None:
+        self.app.settings.set_string("session-isolation", "per-game")
+        self.addCleanup(self.app.settings.reset, "session-isolation")
+        first, second = (
+            dataclasses.replace(game, id=name) for game, name in zip(self.games, ("first", "second"), strict=True)
+        )
+        self.window.open_game(first)
+        assert run_until(lambda: self.view.props.navigation_stack.get_n_items() == 2)
+        old_page = self.view.props.visible_page
+        spin(0.6)
+
+        self.window.open_game(second)
+
+        assert self.criticals == [], self.criticals
+        page = self.view.props.visible_page
+        assert page is not old_page
+        assert page.session != old_page.session
+        assert self.view.props.navigation_stack.get_n_items() == 2
+        spin(0.6)
+        assert self.view.props.visible_page is page
+        assert self.criticals == [], self.criticals
+        sessions = _HOME / "data" / "dailies" / "web" / "games"
+        assert sorted(p.name for p in sessions.iterdir()) == ["first", "second"]
 
 
 if __name__ == "__main__":

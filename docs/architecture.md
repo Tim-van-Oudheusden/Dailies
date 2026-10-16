@@ -128,7 +128,7 @@ machine, and the coverage floors apply to `dailies/core` and `scripts/` only.
 | Item | Location | Policy |
 |---|---|---|
 | Catalog and popularity | `$XDG_CACHE_HOME/dailies/v1/`, inside the Flatpak `~/.var/app/<id>/cache/dailies/v1/` | Seeded from the bundled snapshot; conditional GET every 6 h (catalog) and 24 h (popularity); the last good copy is kept on any failure; fully usable offline |
-| Website data of the built-in browser | `$XDG_DATA_HOME/dailies/web/` and the matching cache directory | Persistent `WebKit.NetworkSession` with SQLite cookie storage, so logins and streaks survive a restart; cleared from Preferences, or on exit when enabled |
+| Website data of the built-in browser | `$XDG_DATA_HOME/dailies/web/shared/` (or `web/games/<id>/` per game) and the matching cache directories | Persistent `WebKit.NetworkSession` per session directory with its own SQLite cookie file (`cookies.sqlite`), so logins and streaks survive a restart; cleared from Preferences (every session, also ones not opened since the app started), or on exit when enabled |
 | Favourites, done-today marks, preferences, window state | GSettings | Stored by GLib; inside the Flatpak in `~/.var/app/<id>/config/glib-2.0/settings/keyfile`; nothing leaves the device |
 | Game icons | none | Category glyphs bundled in the GResource |
 
@@ -146,9 +146,20 @@ GSettings schema `io.github.tim_van_oudheusden.Dailies` (the Devel build gets it
 | `show-other-languages` | `b` | `true` | Show games whose language differs from the system locale |
 | `done-today` | `a{ss}` | `{}` | Game id → local date (`YYYY-MM-DD`) it was marked as done; only today's marks count, the others are pruned at startup and at midnight |
 | `auto-done-today` | `b` | `false` | Mark a game as done once it has been open in the built-in browser for 60 seconds |
+| `session-isolation` | enum `shared`, `per-game` | `shared` | `shared`: one session for all games (v0.1); `per-game`: a session per game in `web/games/<id>`. Switching moves no data, so games need to sign in again |
+| `cookie-policy` | enum `always`, `never`, `no-third-party` | `always` | `WebKit.CookieAcceptPolicy` of every session; `always` keeps third-party log-in flows working |
+| `itp-enabled` | `b` | `false` | Intelligent Tracking Prevention; while on, WebKit ignores `no-third-party` |
+| `hardware-acceleration` | enum `always`, `never` | `always` | `always` leaves WebKit's own choice (on where the system supports it); `never` forces `HardwareAccelerationPolicy.NEVER` |
+| `user-agent` | `s` | `''` | Compatibility fixes only; empty keeps WebKit's user agent with `Dailies/<version>` appended. Never set by default |
+| `developer-extras` | `b` | `false` | The Web Inspector (Inspect Element in the page's context menu) |
 
-A `State` child schema keeps `width`, `height`, `is-maximized`, `last-section` and `first-run-banner-dismissed`. New
-keys are additive and need no migration.
+A `State` child schema keeps `width`, `height`, `is-maximized`, `last-section` and `first-run-banner-dismissed`. The
+relocatable `Game` schema lives at `<schema path>/games/<id>/` for each catalog id (`core/web.py: game_settings_path`):
+`open-mode-override` (`s`, `''`: an `open-mode` nick that replaces it for this game; empty or unknown uses
+`open-mode`) and `isolated-session` (`b`, `false`: a session of its own for this game even while games share one).
+Preferences has no rows for them yet; inside the Flatpak set one with `flatpak run --command=gsettings <app id> set
+<app id>.Game:/io/github/tim_van_oudheusden/Dailies/games/wordle/ isolated-session true`. New keys are additive and
+need no migration.
 
 ### Exporting favourites
 
@@ -215,7 +226,7 @@ sandbox escape. Dailies therefore maps the brief onto what the sandbox allows wi
 escape to the user.
 
 ```text
-mode = settings["open-mode"]
+mode = game["open-mode-override"] or settings["open-mode"]
 if mode == custom and host access granted and command != "":
     flatpak-spawn --host -- <argv…> <url>    # only after the user ran `flatpak override --talk-name=...`
 elif mode in (in-app, custom) and HAVE_WEBKIT:
@@ -246,13 +257,24 @@ else:
 - WebKit is imported the first time a game opens or Preferences needs to know, never at startup.
 - Every in-app page has **Open in Browser** (Ctrl+Shift+O) and **Copy Link** in its menu.
 - The built-in page is an `Adw.NavigationPage` with back, forward, reload and a title showing the page title and host.
-  One `WebKit.NetworkSession` is shared by all games (sibling games share a login); cookies are stored persistently;
-  TLS errors fail; downloads are cancelled and handed to the external browser; permission requests are denied; WebRTC
-  and `data:` top-level navigation are off; `target="_blank"` links load in the same view, while script pop-ups
-  (`window.open`) and unsupported file types go to the external browser. There are no injected scripts or styles, no
-  ad blocking and no user-agent spoofing. One `WebView` lives at a time, in a `WebKit.WebContext` of its own; when its
-  page is popped the view is closed and dropped with its context, which ends its web processes (the shared network
-  session stays). Ctrl+R reloads while the page is shown and refreshes the game list on the library.
+  By default one `WebKit.NetworkSession` is shared by all games (sibling games share a login). With
+  `session-isolation` `per-game`, or a game's `isolated-session`, the game gets
+  `WebKit.NetworkSession.new(<data>/web/games/<id>, <cache>/web/games/<id>)` instead (`core/web.py: session_dir`;
+  ids that are not catalog ids share), made once per run and cached by directory. Opening a game whose session
+  differs from the shown page's replaces that page at once (`AdwNavigationView.replace`), and a page popped a moment
+  ago that still slides out is removed before a new one is pushed, so two pages never hold the `browser` tag; a pop-up
+  brought back with **Open Here** loads in the shown page's session. Every session stores its cookies persistently in
+  its own `cookies.sqlite` and follows `cookie-policy` and `itp-enabled` live; `hardware-acceleration`, `user-agent` and
+  `developer-extras` apply to pages opened next. TLS errors fail; downloads are cancelled and handed to the external
+  browser; permission requests are denied; WebRTC and `data:` top-level navigation are off; `target="_blank"` links
+  load in the same view, while script pop-ups (`window.open`) and unsupported file types go to the external browser.
+  There are no injected scripts or styles, no ad blocking and no user-agent spoofing: `user-agent` is empty unless the
+  user sets it for a compatibility fix. One `WebView` lives at a time, in a `WebKit.WebContext` of its own; when its
+  page is popped the view is closed and dropped with its context, which ends its web processes (the network sessions
+  stay). Ctrl+R reloads while the page is shown and refreshes the game list on the library.
+- Preferences → Built-in browser has a **Privacy and compatibility** expander row with the six browser keys; the
+  website-data row says that switching moves no data and games will need to sign in again. **Clear website data…**
+  clears every session: the shared one and every `web/games/<id>` directory on disk, opened in this run or not.
 
 ## Data and release pipelines
 
