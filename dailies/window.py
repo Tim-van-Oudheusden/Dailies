@@ -149,6 +149,10 @@ class Window(Adw.ApplicationWindow):
             )
             # Loaded before it is pushed, so the page already has a title when it is shown.
             self._browser_page.load(url)
+            # A page popped a moment ago is still a child, sliding out, and holds the "browser" tag until then: cut
+            # its animation short and drop it, or the new page would not be pushed at all.
+            if (popping := self.navigation_view.find_page("browser")) is not None:
+                self.navigation_view.remove(popping)
             self.navigation_view.push(self._browser_page)
         else:
             self._browser_page.load(url)

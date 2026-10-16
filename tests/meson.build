@@ -19,15 +19,15 @@ if glib_compile_schemas.found()
     )
   endforeach
 
-  # The tile and the opening tests need the built resources and config.py, and a display: each test starts its own
-  # Broadway server.
+  # The tile, the opening and the window tests need the built resources and config.py, and a display: each test starts
+  # its own Broadway server.
   broadwayd = find_program('gtk4-broadwayd', required: false)
   if broadwayd.found()
     tile_test_env = gi_test_env
     tile_test_env.set('BROADWAYD', broadwayd.full_path())
     tile_test_env.set('DAILIES_GRESOURCE', resources[0].full_path())
     tile_test_env.set('DAILIES_CONFIG', meson.project_build_root() / 'dailies' / 'config.py')
-    foreach name : ['tile', 'opening']
+    foreach name : ['tile', 'opening', 'window']
       test(
         name,
         py,

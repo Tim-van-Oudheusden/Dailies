@@ -145,10 +145,11 @@ keys are additive and need no migration.
 ### Window
 
 `Adw.ApplicationWindow` → `Adw.ToastOverlay` → `Adw.NavigationView` with a `library` page (the split view) and a
-`browser` page pushed when a game opens in-app. The sidebar is an `Adw.Sidebar`; below 500 sp the split view collapses.
-The content is an `Adw.ToolbarView` with sort and search buttons, a `Gtk.SearchBar` (Ctrl+F) and a stack of the grid
-and `Adw.StatusPage` empty states. Every user-facing string goes through gettext; the widgets are current libadwaita
-API only.
+`browser` page pushed when a game opens in-app. A popped browser page keeps its tag until its slide-out ends, so a game
+opened before then removes it first (cutting the animation short) and pushes a fresh page. The sidebar is an
+`Adw.Sidebar`; below 500 sp the split view collapses. The content is an `Adw.ToolbarView` with sort and search buttons,
+a `Gtk.SearchBar` (Ctrl+F) and a stack of the grid and `Adw.StatusPage` empty states. Every user-facing string goes
+through gettext; the widgets are current libadwaita API only.
 
 Toasts follow one policy: sentence case without a trailing period, the default 5 s timeout, and **Undo** for every
 reversible action (removing a favourite puts it back where it was). Irreversible actions say so without a button
