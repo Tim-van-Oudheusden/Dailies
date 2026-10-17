@@ -604,13 +604,14 @@ def test_main_never_fetches_a_taken_down_icon_and_deletes_its_file(
     assert "worldle: taken down" in capsys.readouterr().out
 
 
+@pytest.mark.parametrize("status", ["retired", "active"])
 @pytest.mark.parametrize("ids", [[], ["--id", "gone"], ["--id", "worldle"]], ids=["full run", "its id", "another id"])
 def test_main_applies_every_takedown_even_to_a_retired_game_or_one_not_asked_for(
-    tmp_path: Path, ids: list[str]
+    tmp_path: Path, ids: list[str], status: str
 ) -> None:
     catalog = write_catalog(
         tmp_path,
-        [game("gone", "https://gone.example/", "retired", icon="icons/gone.png", icon_source="site"), game()],
+        [game("gone", "https://gone.example/", status, icon="icons/gone.png", icon_source="site"), game()],
     )
     out = tmp_path / "icons"
     out.mkdir()
