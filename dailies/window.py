@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from gi.repository import Adw, Gio, GLib, GObject, Gtk
 
 from dailies import config
-from dailies.core import done_today, languages, opening, reorder, sections
+from dailies.core import done_today, languages, opening, reorder, sections, web
 from dailies.core.models import Category, Game
 from dailies.core.opening import OpenMode
 from dailies.core.reorder import Move
@@ -143,10 +143,17 @@ class Window(Adw.ApplicationWindow):
         self.toast_overlay.add_toast(opener.opened_toast(notice, how, open_here=open_here))
 
     def open_external(self, url: str) -> None:
-        """Open `url` in the host's default browser."""
+        """Open `url` in the host's default browser; anything but an http or https URL is dropped (#151)."""
+        if not web.is_web_uri(url):
+            log.warning("Not opening %r: only http and https links go to the browser", url)
+            return
         opener.launch_external(self, url)
 
     def _hand_off_pop_up(self, url: str) -> None:
+        # No "Open Here" either: the page chose this URI, and the built-in browser must not load a `file:` one.
+        if not web.is_web_uri(url):
+            log.warning("Not opening the pop-up %r: only http and https links go to the browser", url)
+            return
         self.open_external(url)
         self._notify_opened(OpenMode.EXTERNAL, OpenMode.EXTERNAL, url, None)
 

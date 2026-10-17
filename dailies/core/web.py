@@ -109,6 +109,21 @@ def display_host(uri: str | None) -> str:
         return ""
 
 
+def is_web_uri(uri: str | None) -> bool:
+    """Whether `uri` is an http or https URL with a host: the only links Dailies hands to the browser or reloads.
+
+    A page in the built-in browser chooses the URIs of its pop-ups and downloads. Any other scheme (`file:`, `smb:`, an
+    app's own `x-scheme-handler`) would start whatever host application handles it, so those are dropped.
+    """
+    if not uri:
+        return False
+    try:
+        parts = urlsplit(uri)
+        return parts.scheme in {"http", "https"} and bool(parts.hostname)
+    except ValueError:
+        return False
+
+
 def site_matches(name: str, host: str) -> bool:
     """Whether website data stored under `name` (a domain, as WebKit groups it) belongs to the site at `host`."""
     name = name.lower().lstrip(".")
