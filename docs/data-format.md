@@ -325,6 +325,12 @@ A site that asks for its icon to be removed is listed in
 [`scripts/data/icon-takedowns.txt`](../scripts/data/icon-takedowns.txt): the next run deletes the PNG, sets
 `icon_source: none` and never downloads that icon again.
 
+The app reads `icon` only when it is `icons/<name>.png`, and asks for it under the same data URLs as the catalog, in the
+same order, so it contacts no other host. It asks only for the games it shows, at most once a week per icon (with
+`If-None-Match`) and never on a metered connection, and keeps them in `$XDG_CACHE_HOME/dailies/v1/icons/`. A body that
+is not a PNG of at most 256 KiB, or that glycin cannot decode to an image of at most 256×256, is not shown. When an
+entry loses its `icon`, the app deletes its copy at the next catalog update and shows the category glyph again.
+
 ## Rules beyond the schemas
 
 `tests/data/test_catalog_file.py` enforces these on every pull request:

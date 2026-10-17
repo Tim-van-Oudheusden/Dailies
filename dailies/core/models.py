@@ -103,6 +103,8 @@ class Game:
     free_no_account: bool | None = None
     wikipedia: str | None = None
     source_issue: int | None = None
+    #: The game's icon relative to the data URLs, always `icons/<name>.png`; None when it has none.
+    icon: str | None = None
 
 
 def _lookup[E: Enum](enum: type[E], value: str, fallback: E) -> E:

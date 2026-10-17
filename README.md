@@ -117,11 +117,14 @@ without an account or labelled as needing one, not a duplicate) is in
 Each game's icon is its site's own icon (the web-app manifest icon, the `apple-touch-icon` or the favicon), or else the
 one Google or DuckDuckGo shows for the site, normalised to a 64×64 PNG by `scripts/icons/fetch_icon.py`. The icons are
 published with the catalog on GitHub Pages under `v1/icons/`, are not part of the Flatpak, and remain the marks of
-their owners; [Icons](docs/data-format.md#icons) in `docs/data-format.md` has the details.
+their owners; [Icons](docs/data-format.md#icons) in `docs/data-format.md` has the details. The app downloads an icon
+from the same place as the game list, only for the games it shows, at most once a week and never on a metered
+connection; it never contacts a game's site for its icon.
 
 **Takedown.** If you run a listed game and want its icon removed, open an issue or reach the maintainer through
 [Contact](#contact). The game's id goes into `scripts/data/icon-takedowns.txt`; the next fetch deletes the icon and
-never downloads it again, and Dailies shows the game's category glyph instead.
+never downloads it again, and Dailies deletes its copy at the next game-list update and shows the game's category glyph
+instead.
 
 ## Tech stack
 

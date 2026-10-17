@@ -29,7 +29,8 @@ class Store(GObject.Object):
     properties tell the UI how old the data is: `popularity-week` and `popularity-stale` for the This Week shelves,
     `last-success` (when the server last confirmed the catalog, None before the first time) and `stale-banner`
     (whether to say that the game list is old). `catalog` and `popularity` notify on every reload. Without
-    `done_today`, no game is ever done.
+    `done_today`, no game is ever done. A game's object asks the fetcher's `icons` for the game's icon, and every reload
+    drops the icons the catalog no longer names; without a fetcher, no game has an icon.
     """
 
     __gtype_name__ = "DailiesStore"
@@ -57,6 +58,7 @@ class Store(GObject.Object):
         self._favorites = favorites
         self._fetcher = fetcher
         self._done_today = done_today
+        self._icons = fetcher.icons if fetcher is not None else None
         self._objects: dict[str, GameObject] = {}
         self._network = Gio.NetworkMonitor.get_default()
         favorites.connect("changed", self._on_favorite_changed)
@@ -81,7 +83,8 @@ class Store(GObject.Object):
             item = self._objects.get(game.id)
             current = self.model.get_item(position)
             if item is None:
-                item = self._objects[game.id] = GameObject(game)
+                load_icon = self._icons.load if self._icons is not None else None
+                item = self._objects[game.id] = GameObject(game, load_icon=load_icon)
                 # Existing objects follow `changed`; a new one starts from the current marks.
                 item.props.done = self._done_today is not None and self._done_today.is_done(game.id)
                 self.model.insert(position, item)
@@ -94,6 +97,8 @@ class Store(GObject.Object):
                 popular_rank=new_popularity.rank_of(game.id, Shelf.POPULAR) or 0,
                 trending_rank=new_popularity.rank_of(game.id, Shelf.TRENDING) or 0,
             )
+        if self._icons is not None:
+            self._icons.forget({game.icon for game in new_catalog.games if game.icon is not None})
         log.debug("showing %d games, popularity week %s", len(ids), new_popularity.week)
         if self.props.popularity_week != new_popularity.week:
             self.props.popularity_week = new_popularity.week

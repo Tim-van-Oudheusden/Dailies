@@ -30,6 +30,7 @@ install_data(
   'core/catalog.py',
   'core/favorites_file.py',
   'core/done_today.py',
+  'core/icons.py',
   'core/languages.py',
   'core/models.py',
   'core/opening.py',
@@ -45,6 +46,7 @@ install_data(
   'data/done_today.py',
   'data/favorites.py',
   'data/fetcher.py',
+  'data/icons.py',
   'data/store.py',
   install_dir: moduledir / 'data',
 )

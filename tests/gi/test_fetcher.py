@@ -1,5 +1,6 @@
 """Fetcher against a local HTTP server with ETag support; run by Meson (see tests/meson.build)."""
 
+import gettext
 import tempfile
 import threading
 import unittest
@@ -14,8 +15,12 @@ gi.require_version("Soup", "3.0")
 
 from gi.repository import GLib
 
+gettext.install("dailies")
+
+from dailies.core import catalog
 from dailies.core.cache import CacheDir, Outcome
 from dailies.data.fetcher import Fetcher
+from dailies.ui.game_object import GameObject
 
 BUNDLE = Path(__file__).resolve().parents[2] / "data" / "v1"
 GAMES = (BUNDLE / "games.json").read_bytes()
@@ -168,6 +173,20 @@ class FetcherTest(unittest.TestCase):
 
         assert self.refresh_all([self.server.url]) == {"games": Outcome.FAILED, "popularity": Outcome.FAILED}
         assert snapshot(self.cache.path) == before
+
+    def test_the_icons_come_from_the_same_urls_into_the_cache(self) -> None:
+        self.server.files["/v1/icons/worldle.png"] = (BUNDLE / "icons" / "worldle.png").read_bytes()
+        game = catalog.parse(GAMES).get("worldle")
+        fetcher = Fetcher(self.cache, [self.server.url], "1.2.3")
+
+        fetcher.icons.load(GameObject(game))
+        context = GLib.MainContext.default()
+        deadline = GLib.get_monotonic_time() + 10_000_000
+        while not self.server.requests and GLib.get_monotonic_time() < deadline:
+            context.iteration(False)
+
+        assert [request["path"] for request in self.server.requests] == ["/v1/icons/worldle.png"]
+        assert self.server.requests[0]["User-Agent"] == "Dailies/1.2.3 (+https://github.com/Tim-van-Oudheusden/Dailies)"
 
 
 if __name__ == "__main__":

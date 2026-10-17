@@ -52,10 +52,12 @@ flowchart LR
   subgraph remote["GitHub: Pages, then raw.githubusercontent.com"]
     RG["games.json"]
     RP["popularity.json"]
+    RI["icons/&lt;id&gt;.png"]
   end
   subgraph cache["Cache: $XDG_CACHE_HOME/dailies/v1"]
     CG["games.json + .etag + .fetched"]
     CP["popularity.json + .etag + .fetched"]
+    CI["icons/&lt;id&gt;.png + .etag + .fetched"]
   end
   remote --> F["data/fetcher.py<br/>libsoup 3, If-None-Match"]
   F --> cache
@@ -69,6 +71,9 @@ flowchart LR
   S --> FL["Gtk.FilterListModel<br/>ui/filters.py: section + search"]
   FL --> SO["Gtk.SortListModel<br/>search rank, then section order"]
   SO --> GV["Gtk.GridView<br/>GameTile per game"]
+  GV -->|"request_icon"| IC["data/icons.py<br/>glycin, sandboxed"]
+  IC --> CI
+  IC -.->|"tile shown, icon a week old"| RI
   GV -->|"activate"| OP["ui/opener.py<br/>in-app, external or custom"]
   OP --> WK["ui/browser_page.py<br/>WebKit.WebView"]
   OP --> UL["Gtk.UriLauncher<br/>OpenURI portal"]
@@ -90,14 +95,16 @@ machine, and the coverage floors apply to `dailies/core` and `scripts/` only.
 | `core/done_today.py` | no | The "Done today" marks (game id → local `YYYY-MM-DD`): `is_done`, `prune` (only today's marks are kept), `toggle`, `mark`, the seconds until local midnight, and `AUTO_MARK_SECONDS` (60) for the automatic mode |
 | `core/reorder.py` | no | Reordering favourites: `moved()` (an id to an index), the destination of Move Up, Move Down and Move to Top (`None` when impossible) and of a drop before or after another favourite |
 | `core/cache.py` | no | The cache directory (`<name>.json`, `.etag`, `.fetched`, atomic writes) and the decisions of one refresh: skip while younger than the maximum age, `If-None-Match`, fall-through order of the data URLs, `Retry-After` backoff, validate before writing; the stale-banner rule |
+| `core/icons.py` | no | The icon cache (`icons/<name>.png`, `.etag`, `.fetched`, atomic writes; `prune` keeps only the icons the catalog names) and the decisions of one icon fetch: none on a metered network, none while younger than a week, `If-None-Match`, fall-through order of the data URLs, only a PNG of at most 256 KiB replaces the cached one |
 | `core/favorites_file.py` | no | The favourites export file (see [Exporting favourites](#exporting-favourites)): `dump`, `parse` (raises `FavoritesFileError` on anything but a valid version-1 file) and `combine` for Merge and Replace |
-| `data/fetcher.py` | Soup, Gio, GLib | Thin asynchronous libsoup 3 shell over `core/cache.py`: one `Soup.Session` with `User-Agent: Dailies/<version> (+https://github.com/Tim-van-Oudheusden/Dailies)` sends the requests a refresh asks for, one at a time, and never retries in a loop |
+| `data/fetcher.py` | Soup, Gio, GLib | Thin asynchronous libsoup 3 shell over `core/cache.py`: one `Soup.Session` with `User-Agent: Dailies/<version> (+https://github.com/Tim-van-Oudheusden/Dailies)` sends the requests a refresh asks for, one at a time, and never retries in a loop; its `icons` uses the same session and data URLs |
+| `data/icons.py` | Soup, Gly, Gdk | `Icons`: `load(GameObject)` sets the game's icon from the cache, then fetches it at low priority once per run when `core/icons.py` asks for it; `decode()` turns a PNG into a `Gdk.Texture` with glycin in its sandbox; `forget()` clears the icons the catalog dropped |
 | `data/favorites.py` | Gio, GLib | Wraps the `favorites` string-array key: `is_favorite`, `toggle`, `add`, `move` (one key write per move), order (newest last), `set_order`, `import_ids`; emits `changed(id)`. `export` and `read_export` write and read the export file with Gio's asynchronous file I/O |
 | `data/done_today.py` | Gio, GLib | Wraps the `done-today` key: `is_done`, `toggle`, `mark`, `refresh()`; prunes earlier days at startup and at local midnight (a GLib timeout, re-armed each day); emits `changed(id)` |
 | `data/store.py` | Gio | Owns the `Gio.ListStore` of `GameObject`; applies catalog, popularity, favourites and the done-today marks; `reload()` diffs by id so the grid keeps its scroll position |
-| `ui/game_object.py` | GObject | `GameObject` with `game`, `name`, `category-label`, `difficulty-label`, `caption`, `available`, `favorite`, `popular-rank`, `trending-rank` and `done` properties for Blueprint bindings and filters, and `in-favorites`, `can-move-up` and `can-move-down`, which the window sets for the tile's menu and drag-and-drop |
+| `ui/game_object.py` | GObject | `GameObject` with `game`, `name`, `category-label`, `difficulty-label`, `caption`, `available`, `favorite`, `popular-rank`, `trending-rank` and `done` properties for Blueprint bindings and filters, `icon` (a `Gdk.Texture`, or None) with `request_icon()`, and `in-favorites`, `can-move-up` and `can-move-down`, which the window sets for the tile's menu and drag-and-drop |
 | `ui/filters.py` | Gtk | `SectionFilter` (Favorites, Popular, Trending or a category) and `SearchFilter`, combined in a `Gtk.EveryFilter`; `SectionSorter` orders shelves by rank, Favorites by favourite order, categories by name; `SearchSorter`, first in a `Gtk.MultiSorter`, puts the best matches first while a query is active and leaves the section order otherwise |
-| `ui/tile.py` | Gtk, Adw | `GameTile`: a `.card` button (tinted category glyph, name, category, difficulty pill, a "Done today" badge on a dimmed card; screen readers hear "Name, Category · Difficulty") with an overlaid star toggle, never a button inside a button; `game_menu()` builds the tile's context menu (right click, long press, Shift+F10 or Menu), whose **Open With** and **Isolated Session** items set the game's own `Game` settings; in Favorites, the drag source and drop target that reorder favourites |
+| `ui/tile.py` | Gtk, Adw | `GameTile`: a `.card` button (tinted category glyph, or the game's icon on that tint with the glyph as a corner badge; name, category, difficulty pill, a "Done today" badge on a dimmed card; screen readers hear "Name, Category · Difficulty") with an overlaid star toggle, never a button inside a button; `game_menu()` builds the tile's context menu (right click, long press, Shift+F10 or Menu), whose **Open With** and **Isolated Session** items set the game's own `Game` settings; in Favorites, the drag source and drop target that reorder favourites |
 | `ui/library.py` | GLib | The library's translated texts: category and difficulty names, tile captions, the This Week subtitle, the stale banner |
 | `window.py` | Adw | Window, sidebar, grid, search bar, empty states, toasts; `open_game()` is the one way a game is opened |
 | `ui/browser_page.py` | WebKit | The in-app browser page; only imported when `HAVE_WEBKIT` |
@@ -122,6 +129,10 @@ machine, and the coverage floors apply to `dailies/core` and `scripts/` only.
    the subtitle "Week 2026-W42", or "Week 2026-W42 (as of *date*)" once `valid_until` has passed; the shelves are shown
    either way.
 4. **Refresh Game List** (primary menu, Ctrl+R in the library) forces a revalidation and reports the result in a toast.
+5. A tile that shows a game asks for its icon (`GameObject.request_icon()`). `Icons` puts the cached PNG on the tile as
+   soon as glycin has decoded it, and asks the data URLs for `icons/<id>.png` when the cached copy is missing or a week
+   old, at most once per icon and run and never on a metered connection. Until then, and for good when there is no
+   icon, the tile shows its category glyph; the square has the same size either way.
 
 ### Caching and offline behaviour
 
@@ -130,7 +141,7 @@ machine, and the coverage floors apply to `dailies/core` and `scripts/` only.
 | Catalog and popularity | `$XDG_CACHE_HOME/dailies/v1/`, inside the Flatpak `~/.var/app/<id>/cache/dailies/v1/` | Seeded from the bundled snapshot; conditional GET every 6 h (catalog) and 24 h (popularity); the last good copy is kept on any failure; fully usable offline |
 | Website data of the built-in browser | `$XDG_DATA_HOME/dailies/web/shared/` (or `web/games/<id>/` per game) and the matching cache directories | Persistent `WebKit.NetworkSession` per session directory with its own SQLite cookie file (`cookies.sqlite`), so logins and streaks survive a restart; cleared from Preferences (every session, also ones not opened since the app started), or on exit when enabled |
 | Favourites, done-today marks, preferences, window state | GSettings | Stored by GLib; inside the Flatpak in `~/.var/app/<id>/config/glib-2.0/settings/keyfile`; nothing leaves the device |
-| Game icons | none | Category glyphs bundled in the GResource |
+| Game icons | `$XDG_CACHE_HOME/dailies/v1/icons/` | Fetched from the data URLs only for the games on screen; revalidated with `If-None-Match` after a week, never on a metered connection; a PNG that does not decode is deleted; every catalog reload deletes the icons it no longer names (takedowns). Without an icon, the category glyph bundled in the GResource |
 
 ### Settings
 
@@ -433,6 +444,11 @@ favicons fetched by the app. Why: one origin the app already trusts and caches, 
 every game's site, and icons that are fetched, checked and reviewed once in a pull request. The cost is that Dailies
 redistributes third-party marks, so they stay out of the Flatpak, are not covered by the catalog's CC0, and a takedown
 list removes one on request.
+
+**Decision:** the app fetches a game's icon only when its tile is shown, keeps it for a week, and decodes it with glycin
+([#77][issue-77]). Why: the first start does not download 100+ icons the user may never scroll to, a week matches how
+rarely an icon changes, and the PNG comes from the network, so it is decoded in glycin's sandbox, as the GTK
+documentation recommends for untrusted images. The glyph stays as a badge so the categories remain scannable.
 
 **Decision:** the catalog is a curated seed, and fan-made games based on someone else's IP are included with the
 `fan-made` tag ([#10][issue-10]). Why: a curated list keeps quality and link health manageable for one maintainer, and

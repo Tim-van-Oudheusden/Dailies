@@ -58,6 +58,11 @@ Gio.resources_register(Gio.Resource.load(os.environ["DAILIES_GRESOURCE"]))
 from dailies.ui.tile import GameTile, game_menu
 
 
+def texture(side: int = 64) -> Gdk.Texture:
+    pixels = GLib.Bytes.new(bytes(side * side * 4))
+    return Gdk.MemoryTexture.new(side, side, Gdk.MemoryFormat.R8G8B8A8, pixels, side * 4)
+
+
 def worldle(**changes: object) -> Game:
     fields = {
         "id": "worldle",
@@ -119,6 +124,66 @@ class GameTileTest(unittest.TestCase):
         assert not self.tile.difficulty_label.has_css_class("difficulty-easy")
         assert self.tile.glyph.has_css_class("cat-words")
         assert not self.tile.glyph.has_css_class("cat-geography")
+
+    def test_a_game_without_an_icon_shows_its_category_glyph_and_no_badge(self) -> None:
+        assert self.tile.glyph.props.icon_name == "dailies-category-geography-symbolic"
+        assert not self.tile.game_icon.get_visible()
+        assert not self.tile.category_badge.get_visible()
+
+    def test_an_icon_takes_the_glyphs_place_and_the_glyph_becomes_a_corner_badge(self) -> None:
+        icon = texture()
+        self.item.props.icon = icon
+
+        assert self.tile.game_icon.get_visible()
+        assert self.tile.game_icon.props.paintable is icon
+        assert self.tile.glyph.props.icon_name is None
+        # The tint behind the icon and the badge keep the category scannable.
+        assert self.tile.glyph.has_css_class("cat-geography")
+        badge = self.tile.category_badge
+        assert badge.get_visible()
+        assert badge.props.icon_name == "dailies-category-geography-symbolic"
+        assert badge.has_css_class("tile-badge")
+        assert badge.has_css_class("cat-geography")
+        assert badge.props.halign == Gtk.Align.END
+        assert badge.props.valign == Gtk.Align.END
+
+    def test_the_badge_follows_a_changed_category(self) -> None:
+        self.item.props.icon = texture()
+        self.item.update(game=worldle(category=Category.WORDS), favorite=False, popular_rank=0, trending_rank=0)
+
+        assert self.tile.category_badge.props.icon_name == "dailies-category-words-symbolic"
+        assert self.tile.category_badge.has_css_class("cat-words")
+        assert not self.tile.category_badge.has_css_class("cat-geography")
+
+    def test_losing_the_icon_brings_the_glyph_back(self) -> None:
+        self.item.props.icon = texture()
+        self.item.props.icon = None
+
+        assert self.tile.glyph.props.icon_name == "dailies-category-geography-symbolic"
+        assert not self.tile.game_icon.get_visible()
+        assert not self.tile.category_badge.get_visible()
+
+    def test_an_icon_does_not_change_the_size_of_the_tile(self) -> None:
+        def size() -> tuple[int, int]:
+            width = self.tile.measure(Gtk.Orientation.HORIZONTAL, -1)[0]
+            return width, self.tile.measure(Gtk.Orientation.VERTICAL, width)[0]
+
+        without = size()
+        for side in (16, 64, 256):
+            self.item.props.icon = texture(side)
+            assert size() == without
+
+    def test_the_icon_is_decoration(self) -> None:
+        for image in (self.tile.game_icon, self.tile.category_badge):
+            assert image.get_accessible_role() == Gtk.AccessibleRole.PRESENTATION
+
+    def test_showing_a_game_asks_for_its_icon(self) -> None:
+        asked: list[GameObject] = []
+        item = GameObject(worldle(), load_icon=asked.append)
+
+        self.tile.props.game = item
+
+        assert asked[-1] is item
 
     def test_the_card_is_named_by_the_game_and_described_by_its_caption(self) -> None:
         card = self.tile.open_button

@@ -65,6 +65,9 @@ def game_menu(item: GameObject, *, have_webkit: bool, host_access: bool) -> Gio.
 class GameTile(Gtk.Overlay):
     """A game's card in the grid: its category glyph, name, category and difficulty pill, and a favourite star.
 
+    Showing a game asks for its icon (`GameObject.request_icon`). Once the game has one, the icon takes the glyph's
+    place on the category's tint and the glyph moves to a badge in the square's corner.
+
     Pressing the card activates `win.open-game` with the game's id; pressing the star activates
     `win.toggle-game-favorite` with it. `favorite` follows the game's and drives the star (Blueprint cannot bind a
     chained lookup bidirectionally). A game done today shows a "Done today" badge on a dimmed card. A right click, a
@@ -85,6 +88,8 @@ class GameTile(Gtk.Overlay):
 
     open_button: Gtk.Button = Gtk.Template.Child()
     glyph: Gtk.Image = Gtk.Template.Child()
+    game_icon: Gtk.Image = Gtk.Template.Child()
+    category_badge: Gtk.Image = Gtk.Template.Child()
     title_label: Gtk.Label = Gtk.Template.Child()
     category_label: Gtk.Label = Gtk.Template.Child()
     difficulty_label: Gtk.Label = Gtk.Template.Child()
@@ -145,6 +150,7 @@ class GameTile(Gtk.Overlay):
                 item.connect("notify::game", lambda *_args: self._update()),
                 item.connect("notify::favorite", lambda *_args: self._sync_favorite()),
                 item.connect("notify::done", lambda *_args: self._update()),
+                item.connect("notify::icon", lambda *_args: self._show_icon()),
                 item.connect("notify::can-move-up", lambda *_args: self._sync_moves()),
                 item.connect("notify::can-move-down", lambda *_args: self._sync_moves()),
             ]
@@ -296,8 +302,11 @@ class GameTile(Gtk.Overlay):
         item = self._item
         game = item.props.game
         done = item.props.done
-        self.glyph.props.icon_name = game.category.icon_name
-        self.glyph.set_css_classes(["tile-glyph", sections.category_style(game.category)])
+        category = sections.category_style(game.category)
+        self.glyph.set_css_classes(["tile-glyph", category])
+        self.category_badge.set_css_classes(["tile-badge", category])
+        self._show_icon()
+        item.request_icon()
         self.difficulty_label.set_css_classes(
             ["caption-heading", "difficulty-badge", sections.difficulty_style(game.difficulty)]
         )
@@ -309,6 +318,15 @@ class GameTile(Gtk.Overlay):
             self.open_button.remove_css_class("done")
         description = library.tile_description(item.props.caption, available=item.props.available, done=done)
         self.open_button.update_property([Gtk.AccessibleProperty.DESCRIPTION], [description])
+
+    def _show_icon(self) -> None:
+        icon = self._item.props.icon
+        glyph = self._item.props.game.category.icon_name
+        self.game_icon.props.paintable = icon
+        self.game_icon.props.visible = icon is not None
+        self.glyph.props.icon_name = None if icon is not None else glyph
+        self.category_badge.props.icon_name = glyph
+        self.category_badge.props.visible = icon is not None
 
     @Gtk.Template.Callback()
     def on_open_clicked(self, _button: Gtk.Button) -> None:

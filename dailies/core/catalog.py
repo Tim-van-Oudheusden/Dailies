@@ -3,15 +3,20 @@
 `parse` checks structure only: `schema_version` is 1, required keys are present and every field the app reads has the
 right JSON type. Anything else raises `CatalogError`, so the caller keeps its last good copy. Enum values are
 tolerant instead (see `dailies.core.models`): an unknown category is shown as trivia, an unknown status hides the game
-as broken and an unknown difficulty is treated as medium, so a catalog written for a newer app still loads.
+as broken and an unknown difficulty is treated as medium, so a catalog written for a newer app still loads. An `icon`
+that is not `icons/<name>.png` is ignored: the app appends it to its data URLs and names a cache file after it.
 """
 
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from functools import cached_property
 
 from dailies.core._fields import Fields
 from dailies.core.models import Category, Difficulty, Game, Status
+
+#: The form of an `icon`: a PNG directly in the icons directory, so it is safe in a URL and as a file name.
+ICON_PATH = re.compile(r"icons/[a-z0-9-]+\.png")
 
 
 class CatalogError(ValueError):
@@ -78,4 +83,9 @@ def _parse_game(record: Fields) -> Game:
         free_no_account=record.optional("free_no_account", bool, None),
         wikipedia=record.optional("wikipedia", str, None),
         source_issue=record.optional("source_issue", int, None),
+        icon=_icon(record.optional("icon", str, None)),
     )
+
+
+def _icon(value: str | None) -> str | None:
+    return value if value is not None and ICON_PATH.fullmatch(value) else None
