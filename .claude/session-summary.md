@@ -9,17 +9,14 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-10-16. #148 on `ci/148-stage-b-icon`, stacked on #149 (#77): `game-submission-approve.yml` runs
-`scripts/icons/fetch_icon.py --id "$SLUG"` between `Add entry` and `Validate catalog` and commits `data/v1/icons` with
-`games.json`, so an approved game's `data(games): add …` PR carries its icon.
+2026-10-17. #158 on `fix/158-retired-takedown`: `scripts/icons/fetch_icon.py` checks the takedown list before the
+retired and `--id` skips, so every run deletes a taken-down game's PNG and sets `icon_source: none`, including a
+retired game's and one `--id` did not name.
 
-- **Outcome:** workflow, a `tests/tooling/test_workflows.py` invariant (a job that runs `add_game.py` and opens a PR
-  fetches the icon before the catalog check and adds the `--out` directory), CONTRIBUTING, `docs/architecture.md`,
-  `docs/data-format.md` and the `add_game.py` docstring.
-- **Open follow-ups:** merge #149 first: on `main` without `scripts/icons/fetch_icon.py` the new step fails every
-  approval.
+- **Outcome:** fix, a parametrized `tests/scripts/test_fetch_icon.py` case (full run, `--id` of the game, `--id` of
+  another game), the module docstring and `docs/data-format.md` "Icons".
+- **Open follow-ups:** #157 / PR #160 adds the data check that no takedown id has a published PNG.
 - **Gotchas:**
-  - The host has Python 3.11, `jaq` as `jq` and no `uv`: `pip install uv` then `uv venv -p 3.12` gets a 3.12 that
-    collects all of `pytest`; the `auto-qa-tuner` and `pr-metrics` tests still fail locally on `jaq`, not on CI.
-  - `add_game.py` needs `source_issue` in the result entry; a hand-made `result.json` for a local stage B run must
-    carry it.
+  - Stage B commits all of `data/v1/icons` and `games.json` (`add-paths`), so a takedown its `--id` run applies lands
+    in the `data(games): add …` PR; mention it when reviewing one.
+  - Local `jq` is `jaq`: the `auto-qa-tuner`, `pr-metrics` and `quality-report` tests fail locally, not on CI.
