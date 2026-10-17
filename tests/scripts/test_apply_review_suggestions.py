@@ -108,6 +108,32 @@ def test_a_fence_inside_a_line_is_part_of_the_suggestion(tmp_path: Path) -> None
     assert (checkout / "a.txt").read_text(encoding="utf-8").startswith("use ``` here\ntwo\n")
 
 
+def test_a_suggested_fence_line_is_content_until_a_bare_closing_fence(tmp_path: Path) -> None:
+    # CommonMark: a closing fence holds only backticks and spaces, so ```bash is the suggestion's content (#162).
+    checkout = tmp_path / "pr"
+    checkout.mkdir()
+    (checkout / "a.txt").write_text("Install:\n```sh\nmake\n```\n", encoding="utf-8")
+    comments = [
+        comment(1, "a.txt", 2, suggestion("```bash")),
+        comment(2, "a.txt", 3, suggestion("make all", "``` not a fence")),
+    ]
+
+    result, _ = apply(tmp_path, comments)
+
+    assert result.returncode == 0, result.stderr
+    assert (checkout / "a.txt").read_text(encoding="utf-8") == "Install:\n```bash\nmake all\n``` not a fence\n```\n"
+
+
+def test_a_longer_fence_lets_a_suggestion_carry_a_code_block(tmp_path: Path) -> None:
+    body = "Nit:\n````suggestion\nRun:\n```sh\nmake\n```\n`````  \nThanks.\n"
+
+    result, checkout = apply(tmp_path, [comment(1, "a.txt", 2, body)])
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == "applied: a.txt:2-2 (comment 1)\n"
+    assert (checkout / "a.txt").read_text(encoding="utf-8") == "one\nRun:\n```sh\nmake\n```\nthree\nfour\nfive\n"
+
+
 def test_windows_line_endings_in_the_comment_are_ignored(tmp_path: Path) -> None:
     _, checkout = apply(tmp_path, [comment(1, "a.txt", 1, "```suggestion\r\nONE\r\n```\r\n")])
 

@@ -17,13 +17,15 @@ comments_file="${COMMENTS_FILE:?COMMENTS_FILE must point to the review comments 
 # applies to the head's side of the diff (GitHub nulls `line` once a comment is
 # outdated). A comment with several suggestion blocks is ambiguous and skipped.
 # Fences count only at the start of a line, so ``` inside a suggested line
-# stays part of it. Records are sorted bottom-up per file so earlier edits
-# never shift later ones.
+# stays part of it. As in CommonMark, a block ends at a line holding only a
+# fence at least as long as the one that opened it, so ````suggestion can carry
+# a ``` code block and a suggested ```bash line stays content. Records are
+# sorted bottom-up per file so earlier edits never shift later ones.
 rows="$(jq -r '
   ["OWNER", "MEMBER", "COLLABORATOR"] as $trusted
   | [ .[]
       | . as $c
-      | [("\n" + (.body // "") | gsub("\r"; "")) | scan("\n```suggestion[ \t]*\n((?:[^\n]*\n)*?)```")] as $blocks
+      | [("\n" + (.body // "") | gsub("\r"; "")) | scan("\n(`{3,})suggestion[ \t]*\n((?:[^\n]*\n)*?)\\1`*[ \t]*(?![^\n])")] as $blocks
       | select($blocks | length > 0)
       | (if ($trusted | index([$c.author_association])) == null
            then "author \($c.author_association // null) has no write access"
@@ -35,7 +37,7 @@ rows="$(jq -r '
           path: ($c.path // ""),
           start: ($c.start_line // $c.line // 0),
           end: ($c.line // 0),
-          action: (if $skip then ["skip", $skip] else ["apply", $blocks[0][0]] end) } ]
+          action: (if $skip then ["skip", $skip] else ["apply", $blocks[0][1]] end) } ]
   | sort_by(.path, -.start)
   | .[]
   | [(.id | tostring), (.path | @base64), (.start | tostring), (.end | tostring), .action[0], (.action[1] | @base64)]
