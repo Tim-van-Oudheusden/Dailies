@@ -53,6 +53,7 @@ def test_the_published_seed_parses() -> None:
     assert worldle.domain == "teuteuf.fr"
     assert worldle.added == date(2026, 10, 15)
     assert "countries" in worldle.tags
+    assert worldle.icon == "icons/worldle.png"
 
 
 def test_an_unknown_category_is_shown_as_trivia() -> None:
@@ -68,7 +69,7 @@ def test_an_unknown_difficulty_is_treated_as_medium() -> None:
 
 
 def test_unknown_fields_are_ignored() -> None:
-    assert parse_one(sparkles=True, icon="icons/testle.png").id == "testle"
+    assert parse_one(sparkles=True).id == "testle"
 
 
 def test_optional_fields_have_defaults() -> None:
@@ -78,17 +79,44 @@ def test_optional_fields_have_defaults() -> None:
     assert game.free_no_account is None
     assert game.wikipedia is None
     assert game.source_issue is None
+    assert game.icon is None
 
 
 def test_optional_fields_are_read_when_present() -> None:
     game = parse_one(
-        tags=["countries", "maps"], language="fr", free_no_account=False, wikipedia="Testle", source_issue=12
+        tags=["countries", "maps"],
+        language="fr",
+        free_no_account=False,
+        wikipedia="Testle",
+        source_issue=12,
+        icon="icons/testle.png",
     )
     assert game.tags == ("countries", "maps")
     assert game.language == "fr"
     assert game.free_no_account is False
     assert game.wikipedia == "Testle"
     assert game.source_issue == 12
+    assert game.icon == "icons/testle.png"
+
+
+@pytest.mark.parametrize(
+    "icon",
+    [
+        "../games.json",
+        "icons/../../secret.png",
+        "/icons/testle.png",
+        "https://elsewhere.example/icons/testle.png",
+        "icons/Testle.png",
+        "icons/testle.svg",
+        "icons/sub/testle.png",
+        "icons/.png",
+        "icons/testle.png\n",
+        "",
+    ],
+)
+def test_an_icon_outside_the_icons_directory_is_ignored(icon: str) -> None:
+    # The app puts the path after its data URLs and names the cached file after it, so only icons/<id>.png will do.
+    assert parse_one(icon=icon).icon is None
 
 
 def test_games_are_hashable() -> None:
@@ -143,6 +171,7 @@ def test_a_structurally_wrong_catalog_is_rejected(data: bytes) -> None:
         ("wikipedia", False),
         ("source_issue", "12"),
         ("source_issue", True),
+        ("icon", 3),
     ],
 )
 def test_a_game_with_a_mistyped_field_is_rejected(key: str, value: object) -> None:

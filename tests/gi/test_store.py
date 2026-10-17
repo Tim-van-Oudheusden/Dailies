@@ -32,6 +32,27 @@ def edited(name: str, edit: Callable[[dict], object]) -> bytes:
     return json.dumps(document).encode()
 
 
+class RecordingIcons:
+    """Stands in for `dailies.data.icons.Icons`: records which games asked for an icon and what was kept."""
+
+    def __init__(self) -> None:
+        self.loaded: list[str] = []
+        self.kept: list[set[str]] = []
+
+    def load(self, item: object) -> None:
+        self.loaded.append(item.props.game.id)
+
+    def forget(self, keep: set[str]) -> None:
+        self.kept.append(set(keep))
+
+
+class RecordingFetcher:
+    """Stands in for `dailies.data.fetcher.Fetcher`, for its icons only."""
+
+    def __init__(self) -> None:
+        self.icons = RecordingIcons()
+
+
 class StoreTest(unittest.TestCase):
     def setUp(self) -> None:
         directory = tempfile.TemporaryDirectory()
@@ -182,6 +203,36 @@ class StoreTest(unittest.TestCase):
         self.store.reload(self.store.catalog, self.store.popularity)
 
         assert changes == []
+
+    def test_a_game_asks_the_icons_for_its_icon(self) -> None:
+        fetcher = RecordingFetcher()
+        icons = fetcher.icons
+        store = Store(self.cache, BUNDLE, self.favorites, fetcher)
+        store.load_initial()
+
+        store.get("worldle").request_icon()
+
+        assert icons.loaded == ["worldle"]
+
+    def test_without_a_fetcher_asking_for_an_icon_does_nothing(self) -> None:
+        self.store.load_initial()
+        self.store.get("worldle").request_icon()
+        assert self.store.get("worldle").props.icon is None
+
+    def test_each_reload_keeps_only_the_icons_the_catalog_names(self) -> None:
+        fetcher = RecordingFetcher()
+        icons = fetcher.icons
+        store = Store(self.cache, BUNDLE, self.favorites, fetcher)
+        store.load_initial()
+        named = {game.icon for game in store.catalog.games if game.icon}
+        assert "icons/worldle.png" in named
+
+        def take_down(document: dict) -> None:
+            next(game for game in document["games"] if game["id"] == "worldle").pop("icon")
+
+        store.reload(catalog.parse(edited("games", take_down)), store.popularity)
+
+        assert icons.kept == [named, named - {"icons/worldle.png"}]
 
 
 if __name__ == "__main__":

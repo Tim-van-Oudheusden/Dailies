@@ -8,7 +8,7 @@ if glib_compile_schemas.found()
   # The fetcher tests talk to a server on 127.0.0.1; inside a sandbox the proxy portal may refuse to resolve for them.
   gi_test_env.set('GIO_USE_PROXY_RESOLVER', 'dummy')
 
-  foreach name : ['favorites', 'done_today', 'store', 'fetcher', 'filters']
+  foreach name : ['favorites', 'done_today', 'store', 'fetcher', 'icons', 'filters']
     test(
       name,
       py,

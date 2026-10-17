@@ -10,23 +10,34 @@ from gi.repository import Gio, GLib, Soup
 
 from dailies.core import cache
 from dailies.core.cache import Backoff, CacheDir, Outcome, Refresh, Request, Response
+from dailies.core.icons import IconCache
+from dailies.data.icons import Icons
 
 log = logging.getLogger(__name__)
 
 _TIMEOUT_SECONDS = 30
 
 
+def new_session(version: str) -> Soup.Session:
+    """Return a libsoup session whose user agent names the app at `version` and nothing else."""
+    return Soup.Session(
+        user_agent=f"Dailies/{version} (+https://github.com/Tim-van-Oudheusden/Dailies)",
+        timeout=_TIMEOUT_SECONDS,
+    )
+
+
 class Fetcher:
-    """Sends the requests a `dailies.core.cache.Refresh` asks for over libsoup, asynchronously, one at a time."""
+    """Sends the requests a `dailies.core.cache.Refresh` asks for over libsoup, asynchronously, one at a time.
+
+    `icons` fetches the games' icons from the same URLs with the same session, into `icons/` in the cache.
+    """
 
     def __init__(self, cache_dir: CacheDir, urls: list[str], version: str) -> None:
         self._cache = cache_dir
         self._urls = urls
         self._backoff = Backoff()
-        self._session = Soup.Session(
-            user_agent=f"Dailies/{version} (+https://github.com/Tim-van-Oudheusden/Dailies)",
-            timeout=_TIMEOUT_SECONDS,
-        )
+        self._session = new_session(version)
+        self.icons = Icons(IconCache(cache_dir.path / "icons"), urls, self._session)
 
     def refresh_all(self, callback: Callable[[dict[str, Outcome]], None], *, force: bool = False) -> None:
         """Refresh the catalog, then the popularity file, and call `callback` with both outcomes.

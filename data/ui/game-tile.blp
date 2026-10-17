@@ -24,13 +24,36 @@ template $DailiesGameTile: Overlay {
       orientation: vertical;
       spacing: 6;
 
-      Image glyph {
-        pixel-size: 32;
-        width-request: 64;
-        height-request: 64;
+      // The category glyph on its tint. A game with an icon shows the icon on the tint instead and keeps the glyph as a
+      // badge in the corner, so the category stays scannable; the square keeps its size. Both are set from code.
+      Overlay {
         halign: start;
         margin-bottom: 6;
-        accessible-role: presentation;
+
+        child: Image glyph {
+          pixel-size: 32;
+          width-request: 64;
+          height-request: 64;
+          accessible-role: presentation;
+        };
+
+        [overlay]
+        Image game_icon {
+          pixel-size: 40;
+          visible: false;
+          can-target: false;
+          accessible-role: presentation;
+        }
+
+        [overlay]
+        Image category_badge {
+          pixel-size: 12;
+          visible: false;
+          halign: end;
+          valign: end;
+          can-target: false;
+          accessible-role: presentation;
+        }
       }
 
       Label title_label {

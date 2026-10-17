@@ -1,3 +1,6 @@
+from collections.abc import Callable
+from typing import Self
+
 from gi.repository import GObject
 
 from dailies.core.models import Game, Status
@@ -12,7 +15,8 @@ class GameObject(GObject.Object):
     (the game is active) follow `game`. A rank of 0 means the game is not on that shelf this week. `done` says whether
     the game was marked as done today; the store sets it apart from `update`, as it changes with the day. The window
     sets `in-favorites` (the game is a favourite and Favorites is shown), `can-move-up` and `can-move-down` (it can move
-    in the favourite order there), which drive the tile's menu and drag-and-drop.
+    in the favourite order there), which drive the tile's menu and drag-and-drop. `icon` is the game's icon as a
+    `Gdk.Paintable` once `request_icon` has found one (`dailies.data.icons.Icons`), else None.
     """
 
     __gtype_name__ = "DailiesGameObject"
@@ -30,10 +34,17 @@ class GameObject(GObject.Object):
     in_favorites = GObject.Property(type=bool, default=False)
     can_move_up = GObject.Property(type=bool, default=False)
     can_move_down = GObject.Property(type=bool, default=False)
+    icon = GObject.Property(type=object)
 
-    def __init__(self, game: Game) -> None:
+    def __init__(self, game: Game, *, load_icon: Callable[[Self], None] | None = None) -> None:
         super().__init__()
+        self._load_icon = load_icon
         self._set(_derived(game))
+
+    def request_icon(self) -> None:
+        """Ask for the game's icon; a tile calls this whenever it shows the game, and `icon` follows."""
+        if self._load_icon is not None:
+            self._load_icon(self)
 
     def update(self, *, game: Game, favorite: bool, popular_rank: int, trending_rank: int) -> None:
         """Set the properties that differ from the given values, so only real changes notify."""

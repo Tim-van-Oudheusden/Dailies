@@ -26,10 +26,26 @@
   background-color: color-mix(in srgb, var(--category-color) 18%, transparent);
 }
 
+/* A game with an icon keeps its category glyph in this badge on the square's corner: the same tint, made opaque so the
+ * icon does not show through, and set off from the icon by a ring of the card's colour. */
+.tile-badge {
+  min-width: 20px;
+  min-height: 20px;
+  border-radius: 999px;
+  color: color-mix(in srgb, var(--category-color) 75%, var(--card-fg-color));
+  background-color: color-mix(in srgb, var(--category-color) 18%, var(--card-bg-color));
+  box-shadow: 0 0 0 2px var(--card-bg-color);
+}
+
 @media (prefers-contrast: more) {
   .tile-glyph {
     color: var(--card-fg-color);
     box-shadow: inset 0 0 0 1px currentColor;
+  }
+
+  .tile-badge {
+    color: var(--card-fg-color);
+    box-shadow: inset 0 0 0 1px currentColor, 0 0 0 2px var(--card-bg-color);
   }
 }
 
