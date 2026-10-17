@@ -185,10 +185,11 @@ access (human or Claude) left on its current diff. `.github/workflows/auto-revie
 outdated suggestions, ones on the base side of the diff, ranges past the end of the file or overlapping an already
 applied range, comments holding more than one suggestion block, paths outside the checkout, and files under
 `.github/workflows/` (the workflow token cannot push those, and one such edit would sink the whole push). A suggestion
-block ends only at a fence that starts a line. Only `OWNER`/`MEMBER`/`COLLABORATOR` comments trigger it and only their
-suggestions count; fork pull requests are refused, and so is a head committed after the command comment (comment again
-once you have looked at it). Resolved or declined review threads are not detected (the REST API does not expose thread
-state): delete or edit a suggestion you do not want before commenting. The apply script
+block ends only at a line holding nothing but a fence at least as long as its opening one, as GitHub renders it, so a
+````` ````suggestion ````` block can carry a code block. Only `OWNER`/`MEMBER`/`COLLABORATOR` comments trigger it and
+only their suggestions count; fork pull requests are refused, and so is a head committed after the command comment
+(comment again once you have looked at it). Resolved or declined review threads are not detected (the REST API does not
+expose thread state): delete or edit a suggestion you do not want before commenting. The apply script
 (`scripts/apply-review-suggestions.sh`) runs from the default branch, never from the PR. Pushes made with the workflow
 token start no CI run, so push again or re-run CI before merging.
 
