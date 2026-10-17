@@ -1,6 +1,7 @@
 # Contributing
 
-Thanks for helping out. This guide covers how to get set up, find work, and ship changes through review.
+Thanks for helping out. This guide covers how to get set up, find work, and ship changes through review. All
+participation is covered by the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 Stack: Python 3 with PyGObject, GTK 4 and libadwaita, Blueprint for the UI, Meson for the build, Flatpak on the GNOME 51
 runtime for packaging, ruff and pytest for lint and tests. The app has no third-party Python dependencies at runtime:

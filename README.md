@@ -243,6 +243,8 @@ are trademarks of their owners; Dailies only opens their public websites and sho
 - Other projects: [MinimalUI](https://github.com/Tim-van-Oudheusden/MinimalUI), a minimal Android launcher for
   keyboard-centric phones, and [website](https://github.com/Tim-van-Oudheusden/website), the source of buildwithtim.dev
 
+Participation in this project is governed by the [Code of Conduct](CODE_OF_CONDUCT.md).
+
 ## Licence
 
 | Path | Licence |
