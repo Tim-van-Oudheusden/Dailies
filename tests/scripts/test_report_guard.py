@@ -145,6 +145,21 @@ def test_a_deleted_file_fails_the_job(repo: Path, capsys: pytest.CaptureFixture[
     assert errors(capsys) == ["::error::Unexpected change outside the weekly report: data/v1/games.json"]
 
 
+@pytest.mark.parametrize("with_report", [False, True], ids=["no report", "with report"])
+def test_deleted_shelves_fail_the_job(with_report: bool, repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """popularity.json is an allowed path, but deleting it must not pass: the publish PR would delete the shelves."""
+    (repo / "data" / "v1" / "popularity.json").unlink()
+    if with_report:
+        (repo / REPORT).write_text("# Week 2026-W43\n", encoding="utf-8")
+
+    assert run(repo) == 1
+
+    [error] = errors(capsys)
+    assert error.startswith("::error::report guard failed:")
+    assert "popularity.json" in error
+    assert not (repo / "data" / "v1" / "popularity.json").exists()
+
+
 def test_a_staged_rename_reports_both_paths(repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
     git(repo, "mv", "data/v1/games.json", REPORT)
 
