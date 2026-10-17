@@ -345,6 +345,10 @@ entry loses its `icon`, the app deletes its copy at the next catalog update and 
 | `games.json` | `history`, when present, starts with an `added` event dated `added` |
 | `games.json` | Every category has at least one active game |
 | `games.json` | The file is under 100 KB, 2-space indented, UTF-8 without escaping, with a final newline |
+| `icons/` | Every PNG is the `icon` of exactly one entry; every `icon` is `icons/<id>.png` and exists |
+| `icons/` | An entry has `icon` exactly when its `icon_source` is `site`, `google`, `duckduckgo` or `manual` |
+| `icons/` | Every icon is a 64×64 PNG of at most 256 KiB |
+| `icons/` | No id in `scripts/data/icon-takedowns.txt` has a PNG or an `icon`; its entry says `icon_source: none` |
 | `popularity.json` | Every `id` on a shelf exists in `games.json`; no `id` appears twice on a shelf |
 | `popularity.json` | Ranks run 1, 2, 3, … and scores never increase down a shelf |
 | `popularity.json` | `valid_until` is exactly 10 days after `generated_at`, and `week` is the ISO week of `generated_at` |
