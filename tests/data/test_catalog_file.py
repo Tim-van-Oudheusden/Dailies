@@ -8,6 +8,7 @@ installed.
 import copy
 import json
 import re
+import struct
 from datetime import date, datetime, timedelta
 from functools import cache
 from pathlib import Path
@@ -21,6 +22,8 @@ GAMES = DATA / "games.json"
 POPULARITY = DATA / "popularity.json"
 CATALOG_SCHEMA = DATA / "schema" / "catalog.schema.json"
 POPULARITY_SCHEMA = DATA / "schema" / "popularity.schema.json"
+ICONS = DATA / "icons"
+TAKEDOWNS = ROOT / "scripts" / "data" / "icon-takedowns.txt"
 
 CATEGORIES = (
     "words",
@@ -73,6 +76,12 @@ MULTI_LABEL_PUBLIC_SUFFIXES = frozenset(
 )
 
 MAX_GAMES_BYTES = 100 * 1024
+# The app shows an icon only when it is a PNG of at most 256 KiB (docs/data-format.md, "Icons").
+MAX_ICON_BYTES = 256 * 1024
+ICON_SIZE = 64
+# The icon_source values that come with an icon file; "none" means there is none.
+ICON_SOURCES_WITH_ICON = frozenset({"site", "google", "duckduckgo", "manual"})
+PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 VALIDITY = timedelta(days=10)
 
 
@@ -370,6 +379,49 @@ def test_popularity_is_valid_for_ten_days_of_its_week() -> None:
     assert datetime.fromisoformat(popularity["valid_until"]) - generated == VALIDITY
     year, week, _ = generated.isocalendar()
     assert popularity["week"] == f"{year}-W{week:02d}"
+
+
+# --- icons/ ---------------------------------------------------------------------------------------------------------
+
+
+def takedown_ids() -> set[str]:
+    lines = (line.strip() for line in TAKEDOWNS.read_text(encoding="utf-8").splitlines())
+    return {line for line in lines if line and not line.startswith("#")}
+
+
+def test_every_icon_file_belongs_to_exactly_one_entry() -> None:
+    named = [game["icon"] for game in games() if "icon" in game]
+    for game in games():
+        if "icon" in game:
+            assert game["icon"] == f"icons/{game['id']}.png", game["id"]
+    assert len(set(named)) == len(named)
+    published = {f"icons/{path.name}" for path in ICONS.iterdir()}
+    assert sorted(set(named) - published) == [], "named in games.json but not in data/v1/icons/"
+    assert sorted(published - set(named)) == [], "in data/v1/icons/ but no entry's icon"
+
+
+def test_an_entry_has_an_icon_exactly_when_its_source_says_so() -> None:
+    for game in games():
+        assert ("icon" in game) == (game.get("icon_source") in ICON_SOURCES_WITH_ICON), game["id"]
+
+
+def test_every_icon_is_a_small_64px_png() -> None:
+    for path in ICONS.iterdir():
+        data = path.read_bytes()
+        assert len(data) <= MAX_ICON_BYTES, path.name
+        assert data[:8] == PNG_SIGNATURE, path.name
+        # The IHDR chunk comes first: length 13, type, then width and height as big-endian 32-bit integers.
+        assert data[12:16] == b"IHDR", path.name
+        assert struct.unpack(">II", data[16:24]) == (ICON_SIZE, ICON_SIZE), path.name
+
+
+def test_taken_down_icons_are_not_published() -> None:
+    entries = {game["id"]: game for game in games()}
+    for game_id in takedown_ids():
+        assert not (ICONS / f"{game_id}.png").exists(), game_id
+        if game_id in entries:
+            assert "icon" not in entries[game_id], game_id
+            assert entries[game_id].get("icon_source") == "none", game_id
 
 
 # --- helpers --------------------------------------------------------------------------------------------------------
