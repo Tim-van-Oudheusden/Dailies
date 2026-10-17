@@ -604,6 +604,29 @@ def test_main_never_fetches_a_taken_down_icon_and_deletes_its_file(
     assert "worldle: taken down" in capsys.readouterr().out
 
 
+@pytest.mark.parametrize("status", ["retired", "active"])
+@pytest.mark.parametrize("ids", [[], ["--id", "gone"], ["--id", "worldle"]], ids=["full run", "its id", "another id"])
+def test_main_applies_every_takedown_even_to_a_retired_game_or_one_not_asked_for(
+    tmp_path: Path, ids: list[str], status: str
+) -> None:
+    catalog = write_catalog(
+        tmp_path,
+        [game("gone", "https://gone.example/", status, icon="icons/gone.png", icon_source="site"), game()],
+    )
+    out = tmp_path / "icons"
+    out.mkdir()
+    (out / "gone.png").write_bytes(b"old")
+    session = FakeSession({GAME_URL: page(""), FAVICON: ok(image((64, 64), "ICO"))})
+
+    status = run(tmp_path, ["--catalog", str(catalog), "--out", str(out), *ids], session, "gone\n")
+
+    assert status == 0
+    assert not any("gone.example" in url for url in session.calls)
+    assert not (out / "gone.png").exists()
+    assert "icon" not in entries(catalog)["gone"]
+    assert entries(catalog)["gone"]["icon_source"] == "none"
+
+
 def test_main_skips_an_id_that_is_not_a_safe_file_name(tmp_path: Path) -> None:
     catalog = write_catalog(tmp_path, [game("../escape")])
     out = tmp_path / "icons"

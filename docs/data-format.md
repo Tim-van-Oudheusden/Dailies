@@ -323,7 +323,8 @@ Stage B of the submission flow (`game-submission-approve.yml`) runs it with `--i
 
 A site that asks for its icon to be removed is listed in
 [`scripts/data/icon-takedowns.txt`](../scripts/data/icon-takedowns.txt): the next run deletes the PNG, sets
-`icon_source: none` and never downloads that icon again.
+`icon_source: none` and never downloads that icon again. Every run applies the whole list, with or without `--id` and
+for retired games too, so stage B's next pull request also carries a takedown nobody ran by hand.
 
 The app reads `icon` only when it is `icons/<name>.png`, and asks for it under the same data URLs as the catalog, in the
 same order, so it contacts no other host. It asks only for the games it shows, at most once a week per icon (with

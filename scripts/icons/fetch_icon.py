@@ -27,9 +27,9 @@ fetch finds nothing but an earlier run stored a PNG, both stay. An entry whose `
 a maintainer placed by hand and is never fetched. When an entry changed, `generated_at` becomes the current time and
 games.json is written in its committed format.
 
-Ids listed in scripts/data/icon-takedowns.txt are never fetched; their PNG is deleted and their entry gets
-`icon_source: "none"`, even a manual one. That is how a site's request to remove its icon is honoured (README, "Game
-icons").
+Ids listed in scripts/data/icon-takedowns.txt are never fetched; on every run, with or without --id, their PNG is
+deleted and their entry gets `icon_source: "none"`, even a manual one and even a retired game's. That is how a site's
+request to remove its icon is honoured (README, "Game icons").
 
 Usage:
     python -I scripts/icons/fetch_icon.py --catalog data/v1/games.json --out data/v1/icons [--id ID ...]
@@ -414,12 +414,13 @@ def main(
             throttled = session or Throttle(default_session)
             for index, game in enumerate(games):
                 game_id = str(game.get("id"))
-                if game.get("status") == "retired" or (args.ids and game_id not in args.ids):
+                # A takedown applies on every run: to a retired game, and to one --id did not ask for.
+                taken_down = game_id in takedowns
+                if not taken_down and (game.get("status") == "retired" or (args.ids and game_id not in args.ids)):
                     continue
                 if not SAFE_ID.match(game_id):
                     sys.stderr.write(f"fetch_icon: skipping unsafe id {game_id!r}\n")
                     continue
-                taken_down = game_id in takedowns
                 if not taken_down and (
                     game.get("icon_source") == "manual"
                     or (args.missing_only and (args.out / f"{game_id}.png").exists())
