@@ -10,6 +10,7 @@ from dailies.core.web import (
     display_host,
     game_settings_path,
     hardware_acceleration_policy,
+    is_web_uri,
     isolated_session_toggle,
     session_dir,
     site_matches,
@@ -33,6 +34,36 @@ from dailies.core.web import (
 )
 def test_display_host(uri: str | None, expected: str) -> None:
     assert display_host(uri) == expected
+
+
+@pytest.mark.parametrize(
+    "uri",
+    ["https://www.nytimes.com/games/wordle/", "http://127.0.0.1:8000/test.html", "HTTPS://Example.ORG/download.zip"],
+)
+def test_http_and_https_urls_are_web_uris(uri: str) -> None:
+    assert is_web_uri(uri)
+
+
+@pytest.mark.parametrize(
+    "uri",
+    [
+        # Schemes a page could use to start a host application through its pop-ups or downloads (#151).
+        "file:///etc/passwd",
+        "smb://attacker.example/share",
+        "ssh://attacker.example",
+        "someapp://run?cmd=calc",
+        "javascript:alert(1)",
+        "data:text/html,<script>alert(1)</script>",
+        "blob:https://example.org/0b1c",
+        "about:blank",
+        "https://",
+        "http://[::1",
+        "",
+        None,
+    ],
+)
+def test_other_uris_are_not_web_uris(uri: str | None) -> None:
+    assert not is_web_uri(uri)
 
 
 @pytest.mark.parametrize(
