@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: dailies\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-16 15:21+0000\n"
+"POT-Creation-Date: 2026-10-18 09:39+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -299,23 +299,23 @@ msgstr ""
 msgid "_Remove from Favorites"
 msgstr ""
 
-#: dailies/ui/tile.py:293 dailies/window.py:348
+#: dailies/ui/tile.py:299 dailies/window.py:355
 msgid "Remove from Favorites"
 msgstr ""
 
-#: dailies/ui/tile.py:293
+#: dailies/ui/tile.py:299
 msgid "Add to Favorites"
 msgstr ""
 
-#: dailies/window.py:348
+#: dailies/window.py:355
 msgid "This game is no longer available"
 msgstr ""
 
-#: dailies/window.py:455
+#: dailies/window.py:462
 msgid "Removed from Favorites"
 msgstr ""
 
-#: dailies/window.py:455
+#: dailies/window.py:462
 msgid "Undo"
 msgstr ""
 
@@ -459,7 +459,8 @@ msgid ""
 "Games open in a built-in browser that keeps your streaks between sessions, "
 "or in your default web browser if you prefer. Dailies needs no account and "
 "collects no data: your favorites stay on your device, and the app only "
-"downloads the game list and the game pages you open."
+"downloads the game list, this week's shelves and the games' icons from "
+"GitHub, and the game pages you open."
 msgstr ""
 
 #: data/io.github.tim_van_oudheusden.Dailies.metainfo.xml.in:67
@@ -518,15 +519,15 @@ msgstr ""
 msgid "C_lear Data for This Site"
 msgstr ""
 
-#: data/ui/game-tile.blp:75
+#: data/ui/game-tile.blp:98
 msgid "Unavailable"
 msgstr ""
 
-#: data/ui/game-tile.blp:98
+#: data/ui/game-tile.blp:121
 msgid "Done today"
 msgstr ""
 
-#: data/ui/game-tile.blp:119
+#: data/ui/game-tile.blp:142
 msgid "Favorite"
 msgstr ""
 
