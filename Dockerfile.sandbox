@@ -1,0 +1,64 @@
+# Agent sandbox: the GNOME 51 SDK as the root filesystem, plus the Python, shell and workflow tools CI pins. Every
+# quality gate except the Flatpak build runs in it as an unprivileged user, with no --privileged and no nested
+# sandbox. docs/testing.md#agent-sandbox-what-runs-where says what runs where, and why the Flatpak build cannot.
+#
+#   scripts/sandbox.sh                       build the image if needed, then run scripts/sandbox-gates.sh in it
+#   scripts/sandbox.sh bash                  a shell in it, with the checkout at /workspace
+#   podman build -f Dockerfile.sandbox -t localhost/dailies-sandbox scripts
+#
+# The build context is scripts/: the image takes only requirements.txt from it.
+#
+# Base: GNOME's OCI mirror of the org.gnome.Sdk//51 Flatpak runtime, built by gnome-build-meta. Its /usr is the SDK
+# flatpak-builder builds the Devel manifest in, so GTK, libadwaita, WebKitGTK, Python with PyGObject, Meson,
+# blueprint-compiler, gettext and the desktop/AppStream/schema validators match CI's Flatpak job. It has no package
+# manager: everything added below is a pinned download. To bump it, read the tag's digest with
+# `skopeo inspect docker://quay.io/gnome_infrastructure/gnome-build-meta:sdk-51 | jq -r .Digest` and update the date.
+# sdk-51 as of 2026-10-18.
+FROM quay.io/gnome_infrastructure/gnome-build-meta:sdk-51@sha256:db1bb10c4146b6062d64ac6664af0978a8d855757849592806cbb76a67a742d7
+
+# The versions .github/workflows/ci.yml installs (Build, lint, test and Static checks); bump them together.
+ARG RUFF_VERSION=0.17.1
+ARG PYTEST_VERSION=9.1.1
+ARG PYTEST_COV_VERSION=7.1.0
+ARG SHELLCHECK_VERSION=0.11.0
+ARG SHELLCHECK_SHA256=8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198
+ARG ACTIONLINT_VERSION=1.7.12
+ARG ACTIONLINT_SHA256=8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+
+# CI's Python tools in a virtualenv of their own, at the end of PATH: `python3` stays the SDK's, which has PyGObject
+# for Meson's gi tests, and the scripts' lock is installed exactly as CI installs it.
+COPY requirements.txt /tmp/requirements.txt
+RUN python3 -m venv /opt/dailies-tools && \
+    /opt/dailies-tools/bin/pip install --no-cache-dir --quiet --require-hashes -r /tmp/requirements.txt && \
+    /opt/dailies-tools/bin/pip install --no-cache-dir --quiet \
+      "ruff==${RUFF_VERSION}" "pytest==${PYTEST_VERSION}" "pytest-cov==${PYTEST_COV_VERSION}" && \
+    rm /tmp/requirements.txt
+
+# shellcheck and actionlint: the release binaries CI's Static checks job downloads, checksum-verified.
+RUN cd /tmp && \
+    shellcheck_archive="shellcheck-v${SHELLCHECK_VERSION}.linux.x86_64.tar.xz" && \
+    curl -fsSLO "https://github.com/koalaman/shellcheck/releases/download/v${SHELLCHECK_VERSION}/${shellcheck_archive}" && \
+    echo "${SHELLCHECK_SHA256}  ${shellcheck_archive}" | sha256sum -c - && \
+    tar -xJf "$shellcheck_archive" --no-same-owner -C /opt/dailies-tools/bin --strip-components=1 \
+      "shellcheck-v${SHELLCHECK_VERSION}/shellcheck" && \
+    actionlint_archive="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz" && \
+    curl -fsSLO "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/${actionlint_archive}" && \
+    echo "${ACTIONLINT_SHA256}  ${actionlint_archive}" | sha256sum -c - && \
+    tar -xzf "$actionlint_archive" --no-same-owner -C /opt/dailies-tools/bin actionlint && \
+    rm "$shellcheck_archive" "$actionlint_archive"
+
+ENV PATH=/usr/bin:/opt/dailies-tools/bin
+ENV LANG=C.UTF-8
+# WebKitGTK starts its web and network processes in a bubblewrap sandbox of its own, which mounts /proc and devpts:
+# what an unprivileged container forbids, and why flatpak-builder cannot run here either. Without this the gi browser
+# and window tests abort. The container is the sandbox; inside the Flatpak, WebKit's own sandbox stays on.
+ENV WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1
+
+# Non-root user, uid 1000 like a typical host user, for `--userns=keep-id` bind mounts.
+RUN useradd --create-home --uid 1000 --shell /bin/bash dev && \
+    mkdir -p /workspace && chown dev:dev /workspace
+
+USER dev
+WORKDIR /workspace
+
+CMD ["bash"]

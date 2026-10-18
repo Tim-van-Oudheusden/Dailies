@@ -9,13 +9,14 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-10-18. #176 on `docs/176-metainfo-data-downloads`: the metainfo description now says the app downloads the game
-list, this week's shelves and the games' icons from GitHub, and the game pages you open, not only the list and pages.
+2026-10-18. #182 on `feat/182-dockerfile-sandbox`: can the dev gates run in a restricted agent container? Yes for
+everything but the Flatpak build.
 
-- **Outcome:** reworded `<description>` sentence, `po/dailies.pot` regenerated, `po/nl.po` merged and translated.
-- **Open follow-ups:** #175 / PR #177 fixes the same sentence in `README.md` and `data/v1/README.md`.
+- **Outcome:** `Dockerfile.sandbox` (GNOME 51 SDK as the root filesystem, CI's tool pins), `scripts/sandbox.sh`
+  (host wrapper, rootless podman) and `scripts/sandbox-gates.sh` (every gate but the Flatpak build); the decision and
+  the evidence are in `docs/testing.md#agent-sandbox-what-runs-where`.
+- **Open follow-ups:** nothing builds `Dockerfile.sandbox` in CI, so a broken pin only shows when someone builds it.
 - **Gotchas:**
-  - A metainfo or other `POTFILES.in` string change needs `po/` regenerated in the same commit, or the Meson
-    "Template is up to date" test fails; `tests/tooling/check_pot.py` runs on its own with any gettext 0.21+ whose
-    `GETTEXTDATADIRS` holds `metainfo.its` (appstream) and `gschema.its` (glib).
-  - Local `jq` may not be CI's: the `auto-qa-tuner`, `pr-metrics` and `quality-report` tests fail locally, not on CI.
+  - bubblewrap in an unprivileged container can create a user namespace but not mount `/proc` or devpts, so
+    `flatpak build`, `flatpak-builder` and WebKit's web-process sandbox all fail there; bind mounts still work.
+  - The installed app only finds its GSettings schema when the install prefix's `share/` is on `XDG_DATA_DIRS`.

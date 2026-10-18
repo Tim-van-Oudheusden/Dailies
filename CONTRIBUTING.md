@@ -27,7 +27,10 @@ python3 -m pip install --user ruff pytest pytest-cov check-jsonschema
 ```
 
 If your distribution does not ship the GNOME 51 libraries, skip the native build: the Flatpak gate runs the same Meson
-tests inside the SDK.
+tests inside the SDK. Without Flatpak either (an agent in a container, say), `scripts/sandbox.sh` runs every gate except
+the Flatpak build in `Dockerfile.sandbox`, an unprivileged podman container whose root filesystem is the GNOME 51 SDK;
+[`docs/testing.md`](docs/testing.md#agent-sandbox-what-runs-where) says what it covers and why the Flatpak build
+cannot run in it.
 
 `scripts/dev.sh` wraps the everyday Flatpak commands, so you rarely type a manifest path. It uses `flatpak-builder` and
 `flatpak-builder-lint` from your `PATH`, or the `org.flatpak.Builder` Flatpak when they are not installed:
@@ -427,6 +430,12 @@ the maintainer and has not been done yet; until then, send translations as ordin
   `skopeo inspect --raw docker://ghcr.io/flathub-infra/flatpak-github-actions:gnome-51 | sha256sum`, then open a `ci:`
   pull request that puts it after `@sha256:` in both workflows and updates the `# gnome-51 as of <date>` comments. Both
   workflows use the same digest; the index covers x86_64 and aarch64, which `release.yml` builds on.
+- `quay.io/gnome_infrastructure/gnome-build-meta:sdk-51` (GNOME's OCI mirror of `org.gnome.Sdk//51`) in
+  `Dockerfile.sandbox`. Nothing runs it in CI, so nothing tracks it; bump it when the runtime branch changes, together
+  with the `gnome-51` build image above. Read the tag's digest with
+  `skopeo inspect docker://quay.io/gnome_infrastructure/gnome-build-meta:sdk-51 | jq -r .Digest`, put it after
+  `@sha256:` and update the `sdk-51 as of <date>` comment. Its `ARG` tool versions copy `ci.yml`'s; bump them when
+  `ci.yml` bumps its own.
 
 ## Agent safety layers
 
