@@ -114,12 +114,18 @@ def test_retry_after_as_an_http_date_without_a_zone_is_utc() -> None:
     assert cache.parse_retry_after("Thu, 15 Oct 2026 13:00:00 -0000", NOW, longest=DAY) == NOW + timedelta(hours=1)
 
 
-@pytest.mark.parametrize("value", ["300000000000", "9" * 400, "Fri, 31 Dec 9999 23:59:59 GMT"])
+@pytest.mark.parametrize(
+    "value", ["300000000000", "9" * 400, pytest.param("9" * 5000, id="5000-nines"), "Fri, 31 Dec 9999 23:59:59 GMT"]
+)
 def test_retry_after_is_capped_at_the_longest_deferral(value: str) -> None:
     assert cache.parse_retry_after(value, NOW, longest=DAY) == NOW + DAY
 
 
-@pytest.mark.parametrize("value", [None, "", "soon", "-5", "Thu, 99 Foo 2026"])
+def test_retry_after_in_seconds_ignores_leading_zeros() -> None:
+    assert cache.parse_retry_after("0" * 5000 + "120", NOW, longest=DAY) == NOW + timedelta(seconds=120)
+
+
+@pytest.mark.parametrize("value", [None, "", "soon", "-5", "Thu, 99 Foo 2026", "²", "①", "١٢٠"])
 def test_a_missing_or_unreadable_retry_after_is_ignored(value: str | None) -> None:
     assert cache.parse_retry_after(value, NOW, longest=DAY) is None
 
@@ -307,6 +313,18 @@ def test_an_odd_retry_after_still_falls_through_and_defers_at_most_the_max_age(
 
     assert not backoff.allows("https://pages.example/v1/games.json", NOW)
     assert backoff.allows("https://pages.example/v1/games.json", NOW + timedelta(hours=6))
+
+
+@pytest.mark.parametrize("retry_after", ["²", "nope"])
+def test_an_unreadable_retry_after_still_falls_through_without_deferring(cache_dir: CacheDir, retry_after: str) -> None:
+    cache_dir.store("games", GAMES, None, NOW - timedelta(days=1))
+    backoff = Backoff()
+    plan = refresh(cache_dir, backoff=backoff)
+    plan.first_request()
+
+    assert plan.handle(Response(503, retry_after=retry_after)).url == "https://raw.example/v1/games.json"
+
+    assert backoff.allows("https://pages.example/v1/games.json", NOW)
 
 
 class FullDisk(CacheDir):
