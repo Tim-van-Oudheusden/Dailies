@@ -277,7 +277,8 @@
       "tags": [
         "semantic",
         "french",
-        "non-english"
+        "non-english",
+        "bot-walled"
       ],
       "language": "fr",
       "free_no_account": true,
@@ -291,6 +292,11 @@
           "date": "2026-10-15",
           "event": "added",
           "note": "seed"
+        },
+        {
+          "date": "2026-10-18",
+          "event": "verified",
+          "note": "Live: answers HTTP 200 to the checker's User-Agent from outside GitHub Actions, but HTTP 403 to the hosted runner, so tagged bot-walled (issue #173)"
         }
       ]
     },
@@ -1983,7 +1989,8 @@
       "tags": [
         "wikipedia",
         "redaction",
-        "semantic"
+        "semantic",
+        "bot-walled"
       ],
       "language": "en",
       "free_no_account": true,
@@ -1997,6 +2004,11 @@
           "date": "2026-10-15",
           "event": "added",
           "note": "seed"
+        },
+        {
+          "date": "2026-10-18",
+          "event": "verified",
+          "note": "Live: answers HTTP 200 to the checker's User-Agent from outside GitHub Actions, but HTTP 403 to the hosted runner, so tagged bot-walled (issue #173)"
         }
       ]
     },
