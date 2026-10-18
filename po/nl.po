@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: dailies\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-16 15:21+0000\n"
+"POT-Creation-Date: 2026-10-18 09:39+0000\n"
 "PO-Revision-Date: 2026-10-16 17:30+0200\n"
 "Last-Translator: Dailies contributors\n"
 "Language-Team: Dutch\n"
@@ -304,23 +304,23 @@ msgstr "Naar _boven verplaatsen"
 msgid "_Remove from Favorites"
 msgstr "_Verwijderen uit favorieten"
 
-#: dailies/ui/tile.py:293 dailies/window.py:348
+#: dailies/ui/tile.py:299 dailies/window.py:355
 msgid "Remove from Favorites"
 msgstr "Verwijderen uit favorieten"
 
-#: dailies/ui/tile.py:293
+#: dailies/ui/tile.py:299
 msgid "Add to Favorites"
 msgstr "Toevoegen aan favorieten"
 
-#: dailies/window.py:348
+#: dailies/window.py:355
 msgid "This game is no longer available"
 msgstr "Dit spel is niet meer beschikbaar"
 
-#: dailies/window.py:455
+#: dailies/window.py:462
 msgid "Removed from Favorites"
 msgstr "Verwijderd uit favorieten"
 
-#: dailies/window.py:455
+#: dailies/window.py:462
 msgid "Undo"
 msgstr "Ongedaan maken"
 
@@ -489,12 +489,14 @@ msgid ""
 "Games open in a built-in browser that keeps your streaks between sessions, "
 "or in your default web browser if you prefer. Dailies needs no account and "
 "collects no data: your favorites stay on your device, and the app only "
-"downloads the game list and the game pages you open."
+"downloads the game list, this week's shelves and the games' icons from "
+"GitHub, and the game pages you open."
 msgstr ""
 "Spellen openen in een ingebouwde browser die uw reeksen tussen sessies "
 "bewaart, of desgewenst in uw standaardwebbrowser. Dailies heeft geen account "
 "nodig en verzamelt geen gegevens: uw favorieten blijven op uw apparaat, en "
-"de app downloadt alleen de spellijst en de spelpagina's die u opent."
+"de app downloadt alleen de spellijst, de planken van deze week en de "
+"spelpictogrammen van GitHub, en de spelpagina's die u opent."
 
 #: data/io.github.tim_van_oudheusden.Dailies.metainfo.xml.in:67
 msgid "Your favorite daily games together in one place"
@@ -552,15 +554,15 @@ msgstr "_Koppeling kopiëren"
 msgid "C_lear Data for This Site"
 msgstr "Gegevens van deze website _wissen"
 
-#: data/ui/game-tile.blp:75
+#: data/ui/game-tile.blp:98
 msgid "Unavailable"
 msgstr "Niet beschikbaar"
 
-#: data/ui/game-tile.blp:98
+#: data/ui/game-tile.blp:121
 msgid "Done today"
 msgstr "Vandaag gespeeld"
 
-#: data/ui/game-tile.blp:119
+#: data/ui/game-tile.blp:142
 msgid "Favorite"
 msgstr "Favoriet"
 
