@@ -90,6 +90,9 @@ def test_input_that_is_not_a_list_fails() -> None:
         pytest.param(["--since", "2026-09-17"], id="no days"),
         pytest.param(["--days", "28"], id="no since"),
         pytest.param(["--since", "2026-09-17", "--days", "28", "--repo", "x"], id="unknown option"),
+        # `shift 2` with one argument left shifts nothing, so an unguarded parser loops on the same flag forever.
+        pytest.param(["--days", "28", "--since"], id="since without a value"),
+        pytest.param(["--since", "2026-09-17", "--days"], id="days without a value"),
     ],
 )
 def test_usage_errors(args: list[str]) -> None:

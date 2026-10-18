@@ -9,18 +9,23 @@
 # a GitHub App as app/<slug>, the REST API as <slug>[bot]; both are accepted).
 set -uo pipefail
 
+usage() {
+  echo "usage: $0 --since YYYY-MM-DD --days N" >&2
+  exit 2
+}
+
 since=""
 days=""
 while [ "$#" -gt 0 ]; do
+  # A flag must have its value: `shift 2` with one argument left shifts nothing and the loop would never end.
   case "$1" in
-    --since) since="${2:-}"; shift 2 ;;
-    --days) days="${2:-}"; shift 2 ;;
-    *) echo "usage: $0 --since YYYY-MM-DD --days N" >&2; exit 2 ;;
+    --since) [ "$#" -ge 2 ] || usage; since="$2"; shift 2 ;;
+    --days) [ "$#" -ge 2 ] || usage; days="$2"; shift 2 ;;
+    *) usage ;;
   esac
 done
 if [ -z "$since" ] || [ -z "$days" ]; then
-  echo "usage: $0 --since YYYY-MM-DD --days N" >&2
-  exit 2
+  usage
 fi
 
 jq -r --arg since "$since" --arg days "$days" '
