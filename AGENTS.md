@@ -47,7 +47,7 @@ Work is NOT complete until the issue branch is pushed and its pull request is op
 3. **Update issue status** — comment progress on the GitHub issue
 4. **Push the branch and open a PR** — `main` is protected by `.github/rulesets/main.json`: it only changes through
    merged pull requests with passing checks (`PR review rubric`, `Build, lint, test`, `Unit-test coverage floors`,
-   `Static checks`):
+   `Static checks`, `Flatpak (x86_64)`):
    ```bash
    git push -u origin HEAD
    gh pr create --title "type(scope): summary (#<number>)" --body-file <file>  # follow .github/pull_request_template.md

@@ -47,10 +47,10 @@ def test_changes_land_through_merge_commit_pull_requests_without_approvals() -> 
     assert parameters["allowed_merge_methods"] == ["merge"]
 
 
-def test_required_checks_are_exactly_the_four_gates() -> None:
+def test_required_checks_are_exactly_the_five_gates() -> None:
     checks = rules_by_type()["required_status_checks"]["parameters"]["required_status_checks"]
     assert sorted(check["context"] for check in checks) == sorted(
-        ["PR review rubric", "Build, lint, test", "Unit-test coverage floors", "Static checks"]
+        ["PR review rubric", "Build, lint, test", "Unit-test coverage floors", "Static checks", "Flatpak (x86_64)"]
     )
     assert {check["integration_id"] for check in checks} == {GITHUB_ACTIONS_APP_ID}
 
