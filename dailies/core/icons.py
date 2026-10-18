@@ -134,7 +134,9 @@ class IconFetch:
         self._cache = cache
         self._urls = [f"{base}{icon}" for base in urls]
         self._now = now
-        etag = cache.etag(icon) if cache.read(icon) is not None else None
+        # Without the PNG, its ETag and fetched time no longer describe anything the cache holds.
+        self._cached = cache.read(icon) is not None
+        etag = cache.etag(icon) if self._cached else None
         self._headers = {"If-None-Match": etag} if etag else {}
         self._current: str | None = None
 
@@ -142,7 +144,7 @@ class IconFetch:
         """Return the first request to send, or None when the cached icon is fresh enough or the network is metered."""
         if metered:
             return self._finish(Outcome.SKIPPED)
-        fetched = self._cache.fetched_at(self.icon)
+        fetched = self._cache.fetched_at(self.icon) if self._cached else None
         if fetched is not None and self._now - fetched < MAX_AGE:
             return self._finish(Outcome.FRESH)
         return self._next_request()
