@@ -46,8 +46,9 @@ A GNOME app that lists daily guessing games ("-dles") such as Wordle, Connection
 - **Favorites.** Star the games you play every day (or press Ctrl+D) to keep them together at the top of the sidebar.
 - **A built-in browser that remembers you.** Games open in a WebKitGTK page that keeps logins and streaks between
   sessions, or in your default browser, or through a command of your choice.
-- **No account, no tracking.** Favorites stay on your device. Dailies downloads only the game list and the game pages
-  you open, and a bundled copy of the list means it works offline from the first start.
+- **No account, no tracking.** Favorites stay on your device. Dailies downloads only the game list, this week's shelves
+  and the games' icons, all from GitHub, and the game pages you open; a bundled copy of the list means it works offline
+  from the first start.
 
 ## Installing
 
@@ -132,7 +133,7 @@ instead.
   downloads; no third-party Python packages at runtime
 - **UI:** Blueprint files compiled to GTK Builder XML at build time
 - **Build and packaging:** Meson, Flatpak on the GNOME 51 runtime (`org.gnome.Platform//51`)
-- **Data:** two JSON files in [`data/v1/`](data/v1/README.md), checked against JSON Schema in CI
+- **Data:** JSON files checked against JSON Schema in CI, plus the games' PNG icons, in [`data/v1/`](data/v1/README.md)
 - **Testing:** ruff, pytest with coverage floors, Meson tests and GTK tests inside the GNOME SDK
 - **CI/CD:** GitHub Actions, GitHub Releases for the Flatpak bundles, Dependabot
 
