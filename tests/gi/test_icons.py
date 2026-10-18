@@ -36,12 +36,17 @@ UNSANDBOXED = functools.partial(decode, sandbox=Gly.SandboxSelector.NOT_SANDBOXE
 
 
 class Server(ThreadingHTTPServer):
-    """Serves `files` (path -> body) with a fixed ETag per body; every other path is 404."""
+    """Serves `files` (path -> body) with a fixed ETag per body; every other path is 404.
+
+    Each response waits until `gate` is set; it is set unless a test holds the responses back.
+    """
 
     def __init__(self) -> None:
         super().__init__(("127.0.0.1", 0), Handler)
         self.files: dict[str, bytes] = {"/v1/icons/worldle.png": WORLDLE}
         self.requests: list[dict[str, str]] = []
+        self.gate = threading.Event()
+        self.gate.set()
         threading.Thread(target=self.serve_forever, daemon=True).start()
 
     @property
@@ -54,6 +59,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         self.server.requests.append({"path": self.path, **dict(self.headers.items())})
+        # Bounded, so a failing test cannot leave server_close waiting on this thread.
+        self.server.gate.wait(10)
         body = self.server.files.get(self.path)
         if body is None:
             self.send_response(HTTPStatus.NOT_FOUND)
@@ -149,8 +156,12 @@ class IconsTest(unittest.TestCase):
         item = GameObject(worldle())
         shown: list[Gdk.Texture] = []
         item.connect("notify::icon", lambda *_args: shown.append(item.props.icon))
+        # Hold the new icon back until the cached one is shown: a newer decode supersedes an unfinished older one.
+        self.server.gate.clear()
 
         self.icons.load(item)
+        run_until(lambda: len(shown) == 1)
+        self.server.gate.set()
         run_until(lambda: self.cache.read("icons/worldle.png") == WORLDLE and len(shown) == 2)
 
         assert self.server.requests[0]["If-None-Match"] == '"old"'
