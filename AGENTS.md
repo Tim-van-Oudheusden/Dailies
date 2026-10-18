@@ -43,7 +43,11 @@ Work is NOT complete until the issue branch is pushed and its pull request is op
    flatpak-builder --user --install --force-clean _flatpak build-aux/flatpak/io.github.tim_van_oudheusden.Dailies.Devel.json
    ```
    After touching `scripts/` or `.github/workflows/`, also run `shellcheck -x scripts/*.sh scripts/lib/*.sh` and
-   `actionlint` at the versions pinned in `ci.yml`'s `Static checks` job
+   `actionlint` at the versions pinned in `ci.yml`'s `Static checks` job.
+   Without Flatpak or the GNOME 51 libraries (a restricted agent container), run every gate but the Flatpak build in
+   the agent sandbox: `scripts/sandbox-gates.sh` inside an image built from `Dockerfile.sandbox`, or
+   `scripts/sandbox.sh` from a host with podman. The Flatpak build cannot run in an unprivileged container; CI's
+   `Flatpak (x86_64)` job runs it (`docs/testing.md#agent-sandbox-what-runs-where`).
 3. **Update issue status** — comment progress on the GitHub issue
 4. **Push the branch and open a PR** — `main` is protected by `.github/rulesets/main.json`: it only changes through
    merged pull requests with passing checks (`PR review rubric`, `Build, lint, test`, `Unit-test coverage floors`,

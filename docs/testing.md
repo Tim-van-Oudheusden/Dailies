@@ -42,6 +42,56 @@ check-jsonschema --schemafile data/v1/schema/catalog.schema.json data/v1/games.j
 check-jsonschema --schemafile data/v1/schema/popularity.schema.json data/v1/popularity.json
 ```
 
+## Agent sandbox: what runs where
+
+**Decision (#182):** an unprivileged container can run every gate except the Flatpak build. `Dockerfile.sandbox` is
+that container, for agents and contributors without Flatpak or the GNOME 51 libraries; the Flatpak build runs on a
+host with Flatpak and in CI's `Flatpak (x86_64)` job, which runs on every pull request.
+
+| Gate | In the sandbox |
+| --- | --- |
+| `ruff check`, `ruff format --check`, `pytest` with the coverage floors, `check-jsonschema` | Yes, at the versions CI installs |
+| `shellcheck -x`, `actionlint` | Yes, the binaries CI's `Static checks` job pins |
+| Meson build, install and `meson test`: build validation, gi tests, e2e smoke test | Yes, against the GNOME 51 SDK's libraries |
+| `flatpak-builder` on the Devel manifest, `flatpak-builder-lint` | No: CI, or a host with Flatpak |
+
+Why the Flatpak build cannot: `flatpak-builder` runs every build and test command through `flatpak build`, which
+starts bubblewrap with a fresh `/proc` and `/dev/pts`. Inside an unprivileged container, bubblewrap can create its
+user namespace but may not mount those: the runtime masks parts of the container's `/proc` and SELinux confines it,
+so the kernel refuses the mounts. In a rootless podman container, `bwrap --unshare-user --dev-bind / / true` works,
+while `bwrap --unshare-all --ro-bind / / --proc /proc --dev /dev true` fails with
+`Can't mount proc on /newroot/proc: Permission denied` (and `--dev /dev` alone with
+`Can't mount devpts on /newroot/dev/pts`). CI's Flatpak job runs its container with `--privileged` for this reason.
+The only fix is to start the outer container with `--privileged`, or with an unmasked `/proc` and SELinux labelling
+off, which widens the sandbox it exists to keep narrow, and an agent inside a container cannot change how it was
+started.
+
+Why the rest can: the image's root filesystem is GNOME's OCI mirror of `org.gnome.Sdk//51`, the SDK `flatpak-builder`
+builds in, so Meson finds GTK, libadwaita, WebKitGTK and Python with PyGObject directly, with no sandbox to start.
+`scripts/sandbox-gates.sh` installs the build into a throwaway prefix before `meson test`, as `--run-tests` does, so
+the e2e smoke test runs instead of skipping. One difference: WebKit starts its web processes in a bubblewrap sandbox
+of its own, which fails the same way, so the image sets `WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1`. Inside the
+Flatpak, WebKit's sandbox stays on.
+
+What only the Flatpak build checks: the manifests (`finish-args`, modules, `cleanup`), the app's layout under `/app`,
+and the `flatpak-builder-lint` rules. A change to `build-aux/flatpak/` or to what Meson installs needs CI's Flatpak job
+(or a local Flatpak build) to pass. The sandbox's Python is the SDK's (3.14 for GNOME 51), while CI's `Build, lint,
+test` job runs `pytest` on 3.12.
+
+On a host with rootless podman, `scripts/sandbox.sh` builds the image (a no-op when nothing changed; the first build
+downloads the SDK, about 1.5 GB) and runs a command in it with the checkout at `/workspace`:
+
+```sh
+scripts/sandbox.sh                    # every gate above except the Flatpak build
+scripts/sandbox.sh pytest tests/core  # any command
+scripts/sandbox.sh bash               # a shell
+```
+
+An agent whose container is built from `Dockerfile.sandbox` runs `scripts/sandbox-gates.sh` directly. It runs every
+gate even when one fails, prints a `PASS`/`FAIL` line per gate at the end and exits 1 if any failed. It builds in a
+temporary directory, so it leaves no `_build/` behind. In a git worktree, `.git` points outside the mount and git sees
+no repository inside the container; the gates do not need one.
+
 ## Coverage floors
 
 Unit-test coverage is measured with [pytest-cov](https://pytest-cov.readthedocs.io/) on two modules: `core`
