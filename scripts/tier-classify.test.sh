@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Tests for tier-classify.sh: the policy engine against throwaway policies (first matching rule wins, unmatched paths
 # are medium, the highest tier wins, malformed policies exit 2), NUL-terminated input with -z (paths git would C-quote,
-# a newline in a name, an unknown argument), then the shipped .github/policies/risk-tiers.policy against paths of this
-# repository.
+# a newline in a name, an unknown argument), git's C-quoted paths without -z (decoded, in a real git repository and as
+# strings), then the shipped .github/policies/risk-tiers.policy against paths of this repository.
 # Usage: scripts/tier-classify.test.sh (exits 1 if any case fails).
 set -uo pipefail
 
@@ -108,6 +108,39 @@ expect_z '-z: a newline in a name prints quoted, not as a second tier= line' \
   $'high    $\'.github/x\\ntier=low\'\ntier=high' $'.github/x\ntier=low'
 expect_z '-z with no changed paths is low' 'tier=low'
 rejects 'unknown argument' "$ROOT/.github/policies/risk-tiers.policy" 'usage: tier-classify.sh [-z]' --null
+
+# Without -z: git C-quotes these paths, and the quoted line is decoded before it is matched.
+expect 'a C-quoted non-ASCII path is decoded and rated by its rule' '' '".github/workflows/d\303\251ploy.yml"' \
+  "high    $accented"$'\ntier=high'
+expect 'C-quoted quote, backslash and tab are decoded' '' \
+  $'"data/v1/schema/\\"q\\".json"\n"scripts/back\\\\slash.sh"\n"scripts/tab\\tx.sh"\n' \
+  $'high    data/v1/schema/"q".json\nhigh    scripts/back\\slash.sh\nhigh    $\'scripts/tab\\tx.sh\'\ntier=high'
+expect 'a C-quoted newline prints quoted, not as a second tier= line' '' '".github/x\ntier=low"' \
+  $'high    $\'.github/x\\ntier=low\'\ntier=high'
+expect 'an escaped backslash before digits is not an octal escape' '' '"scripts/a\\101.sh"' \
+  $'high    scripts/a\\101.sh\ntier=high'
+expect 'a % in a C-quoted path is kept' '' '"docs/100%d \303\251.md"' $'low     docs/100%d \303\251.md\ntier=low'
+expect 'a line that is not exactly C-quoted is left as written' '' \
+  $'"docs/a.md\n"docs/a\\q.md"\n"docs/"a".md"\n"docs/a\\1.md"\n' \
+  $'low     "docs/a.md\nmedium  "docs/a\\q.md"\nmedium  "docs/"a".md"\nmedium  "docs/a\\1.md"\ntier=medium'
+expect_z '-z does not decode a name that looks C-quoted' $'medium  "docs/\\303.md"\ntier=medium' '"docs/\303.md"'
+
+# The same paths as `git diff --name-only` prints them in a real repository: decoded under both core.quotePath settings.
+repo="$tmp/repo"
+git_quoted_paths=("$accented" 'data/v1/schema/"q".json' 'scripts/back\slash.sh' $'scripts/tab\tx.sh' 'docs/100%.md')
+if git init -q "$repo" && git -C "$repo" -c user.name=t -c user.email=t@t commit -q --allow-empty -m base \
+  && mkdir -p "$repo/.github/workflows" "$repo/data/v1/schema" "$repo/scripts" "$repo/docs" \
+  && echo x | tee "${git_quoted_paths[@]/#/$repo/}" >/dev/null \
+  && git -C "$repo" add -A && git -C "$repo" -c user.name=t -c user.email=t@t commit -q -m change; then
+  git_expected="high    $accented"$'\nhigh    data/v1/schema/"q".json\nlow     docs/100%.md'
+  git_expected+=$'\nhigh    scripts/back\\slash.sh\nhigh    $\'scripts/tab\\tx.sh\'\ntier=high'
+  for quote_path in true false; do
+    expect "git diff --name-only output with core.quotePath=$quote_path" '' \
+      "$(git -C "$repo" -c core.quotePath="$quote_path" diff --name-only --no-renames HEAD~1...HEAD)" "$git_expected"
+  done
+else
+  not_ok 'could not set up the git repository for C-quoted paths'
+fi
 
 # The shipped policy (.github/policies/risk-tiers.policy).
 tier_of 'Flatpak manifest is high' 'build-aux/flatpak/io.github.tim_van_oudheusden.Dailies.Devel.json' high
