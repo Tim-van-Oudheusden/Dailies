@@ -30,6 +30,9 @@ MAX_AGE = {CATALOG: timedelta(hours=6), POPULARITY: timedelta(hours=24)}
 
 _VALIDATORS: Mapping[str, Callable[[bytes], object]] = {CATALOG: catalog.parse, POPULARITY: popularity.parse}
 
+#: The most digits a `Retry-After` in seconds is converted with; a `timedelta` holds at most 14.
+_MAX_SECONDS_DIGITS = 15
+
 #: How long without a successful fetch before the app says, while online, that its game list is old.
 STALE_BANNER_AFTER = timedelta(days=14)
 
@@ -158,8 +161,12 @@ def parse_retry_after(value: str | None, now: datetime, *, longest: timedelta) -
     """
     if not value:
         return None
-    if value.isdigit():
-        return now + timedelta(seconds=min(int(value), longest.total_seconds()))
+    # Seconds are ASCII digits: `isdigit` also takes "²", which `int` refuses. `int` refuses over 4300 digits too, so a
+    # longer number than any `timedelta` holds is cut back to `longest` without converting it.
+    if value.isascii() and value.isdigit():
+        digits = value.lstrip("0") or "0"
+        seconds = int(digits) if len(digits) <= _MAX_SECONDS_DIGITS else longest.total_seconds()
+        return now + timedelta(seconds=min(seconds, longest.total_seconds()))
     try:
         until = parsedate_to_datetime(value)
     except (TypeError, ValueError):
