@@ -95,12 +95,13 @@ We favour small, focused changes tied to a tracked issue.
 
 `main` is protected by the ruleset in [`.github/rulesets/main.json`](.github/rulesets/main.json): no direct pushes,
 force-pushes or deletion; changes land only through pull requests whose `PR review rubric`, `Build, lint, test`,
-`Unit-test coverage floors` and `Static checks` checks pass. Pull requests merge with a merge commit only (no squash or
-rebase), so each issue's single commit lands on `main` unchanged, and the head branch is deleted on merge. Repository
-admins can bypass the ruleset when merging a pull request (bot data pull requests opened with `GITHUB_TOKEN` run no
-checks), never to push directly. The file is the source of truth: a change to it lands by PR, then a maintainer applies
-it with `gh api -X PUT repos/Tim-van-Oudheusden/Dailies/rulesets/<id> --input .github/rulesets/main.json` (the first
-time, when no ruleset exists yet:
+`Unit-test coverage floors`, `Static checks` and `Flatpak (x86_64)` checks pass. Pull requests merge with a merge
+commit only (no squash or rebase), so each issue's single commit lands on `main` unchanged, and the head branch is
+deleted on merge. Repository admins can bypass the ruleset when merging a pull request (bot data pull requests opened
+with `GITHUB_TOKEN` run no checks), never to push directly. The file is the source of truth: a change to it lands by
+PR, then a maintainer applies it with
+`gh api -X PUT repos/Tim-van-Oudheusden/Dailies/rulesets/<id> --input .github/rulesets/main.json` (the first time,
+when no ruleset exists yet:
 `gh api -X POST repos/Tim-van-Oudheusden/Dailies/rulesets --input .github/rulesets/main.json`).
 `tests/tooling/test_ruleset.py` checks that every required check is the `name:` of a workflow job, so renaming a job
 without updating the ruleset fails `pytest`.
@@ -142,8 +143,11 @@ flatpak-builder --user --install --force-clean _flatpak build-aux/flatpak/io.git
 
 `meson setup` refuses an existing `_build`; use `meson setup --reconfigure _build -Dprofile=development` after the
 first time. In CI, `Build, lint, test` runs ruff, pytest and `check-jsonschema` on both data files on a plain runner;
-the `Flatpak (x86_64)` job runs the Flatpak gate in the `gnome-51` image with `flatpak-builder-lint` on the manifest and
-the exported repo. [`docs/testing.md`](docs/testing.md) says which test runs where.
+the `Flatpak (x86_64)` job, which the `main` ruleset requires, runs the Flatpak gate in the `gnome-51` image with
+`flatpak-builder-lint` on the manifest and the exported repo. [`docs/testing.md`](docs/testing.md) says which test runs
+where. The installed app runs from the files `dailies/meson.build` installs, not from the checkout, so a new module goes
+into its `install_data` list too: `tests/tooling/test_meson_install.py` fails `pytest` when one is missing, before the
+Flatpak job's launch test would.
 
 The `main` ruleset also requires the **Unit-test coverage floors** check (`.github/workflows/coverage-gate.yml`): it
 runs `pytest --cov=dailies/core --cov=scripts --cov-report=xml` and fails the PR if the line or branch coverage of

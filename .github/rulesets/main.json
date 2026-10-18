@@ -42,7 +42,8 @@
           { "context": "PR review rubric", "integration_id": 15368 },
           { "context": "Build, lint, test", "integration_id": 15368 },
           { "context": "Unit-test coverage floors", "integration_id": 15368 },
-          { "context": "Static checks", "integration_id": 15368 }
+          { "context": "Static checks", "integration_id": 15368 },
+          { "context": "Flatpak (x86_64)", "integration_id": 15368 }
         ]
       }
     }
