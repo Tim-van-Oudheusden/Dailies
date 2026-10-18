@@ -15,12 +15,20 @@ _INSTALL_DATA = re.compile(r"\binstall_data\((?P<args>.*?)\)", re.DOTALL)
 _INSTALL_DIR = re.compile(r"install_dir:\s*moduledir(?:\s*/\s*'(?P<subdir>[^']+)')?\s*,")
 _CONFIGURED_OUTPUT = re.compile(r"\bconfigure_file\(.*?output:\s*'(?P<output>[^']+)'.*?\)", re.DOTALL)
 _QUOTED = re.compile(r"'([^']+)'")
+# A Meson string (multiline, or single-quoted with escapes) or a comment, which runs from a `#` outside any string to
+# the end of the line.
+_STRING_OR_COMMENT = re.compile(r"'''.*?'''|'(?:[^'\\\n]|\\.)*'|#[^\n]*", re.DOTALL)
+
+
+def without_comments(meson: str) -> str:
+    """`meson` with its comments removed: Meson does not install a file whose line is commented out."""
+    return _STRING_OR_COMMENT.sub(lambda match: "" if match.group().startswith("#") else match.group(), meson)
 
 
 def install_lists(meson: str) -> list[tuple[str, list[str]]]:
     """Each `install_data` call into the package as (subdirectory of moduledir, files relative to dailies/)."""
     lists = []
-    for call in _INSTALL_DATA.finditer(meson):
+    for call in _INSTALL_DATA.finditer(without_comments(meson)):
         args = call.group("args")
         install_dir = _INSTALL_DIR.search(args)
         assert install_dir, f"install_data without an install_dir under moduledir: {args.strip()!r}"
@@ -35,7 +43,7 @@ def installed_modules(meson: str) -> set[str]:
 
 def generated_modules(meson: str) -> set[str]:
     """Modules Meson writes from a template, such as config.py from config.py.in: there is no .py in the checkout."""
-    outputs = (match.group("output") for match in _CONFIGURED_OUTPUT.finditer(meson))
+    outputs = (match.group("output") for match in _CONFIGURED_OUTPUT.finditer(without_comments(meson)))
     return {output for output in outputs if output.endswith(".py")}
 
 
@@ -78,3 +86,23 @@ def test_a_module_left_out_of_meson_build_is_reported(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     assert missing_from_install(tmp_path) == {"core/icons.py"}
+
+
+def test_a_commented_out_module_is_reported(tmp_path: Path) -> None:
+    # Meson ignores everything after `#`, so a commented-out file is not installed even though its name is quoted.
+    (tmp_path / "core").mkdir()
+    for module in ("__init__.py", "version.py", "core/__init__.py", "core/icons.py", "core/web.py"):
+        (tmp_path / module).write_text("", encoding="utf-8")
+    (tmp_path / "meson.build").write_text(
+        "# configure_file(input: 'version.py.in', output: 'version.py', install_dir: moduledir)\n"
+        "# install_data('core/web.py', install_dir: moduledir / 'core',)\n"
+        "install_data(\n  '__init__.py',\n  install_dir: moduledir,\n)\n"
+        "install_data(\n  'core/__init__.py',\n  # 'core/icons.py',\n  install_dir: moduledir / 'core',\n)\n",
+        encoding="utf-8",
+    )
+    assert missing_from_install(tmp_path) == {"version.py", "core/icons.py", "core/web.py"}
+
+
+def test_a_hash_inside_a_string_does_not_start_a_comment() -> None:
+    meson = "install_data(\n  'a#b.py', # 'c.py'\n  install_dir: moduledir,\n)\n"
+    assert installed_modules(meson) == {"a#b.py"}
