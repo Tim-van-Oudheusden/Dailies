@@ -182,6 +182,13 @@ def test_an_etag_without_a_cached_png_is_not_sent(cache: IconCache) -> None:
     assert fetch(cache).first_request(metered=False).headers == {}
 
 
+def test_a_recent_fetched_time_without_a_cached_png_still_makes_a_request(cache: IconCache) -> None:
+    # A PNG that does not decode is removed, and a 304 answered after that only rewrites the fetched time.
+    cache.touch(ICON, NOW - DAY)
+
+    assert fetch(cache).first_request(metered=False) == Request("https://pages.example/v1/icons/worldle.png", {})
+
+
 @pytest.mark.parametrize("cached", [True, False])
 def test_a_metered_network_makes_no_request(cache: IconCache, cached: bool) -> None:
     if cached:
