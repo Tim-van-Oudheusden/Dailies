@@ -22,8 +22,9 @@ git diff -z --name-only --no-renames origin/main...HEAD | scripts/tier-classify.
 too.
 
 `-z` on both sides passes the paths NUL-terminated. Without it, git C-quotes any path holding non-ASCII, `"`, `\` or a
-control character, and the quoted path matches no rule, so a high-risk file such as `.github/workflows/déploy.yml`
-would read as medium.
+control character (`".github/workflows/d\303\251ploy.yml"`); the script decodes a line in exactly that form back to
+the path before matching it, so a high-risk file such as `.github/workflows/déploy.yml` is still high. A line that is
+not exactly git's quoting is matched as written.
 
 ## Tier: high
 

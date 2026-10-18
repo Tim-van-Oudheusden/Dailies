@@ -4,10 +4,12 @@
 # `tier=<low|medium|high>`. The highest tier of any changed file wins.
 #
 # With -z, paths are NUL-terminated, as `git diff -z --name-only` prints them.
-# Use it with git: without -z, git C-quotes any path holding non-ASCII, `"`,
-# `\` or a control character, and the quoted path matches no rule. A path
-# holding a control character is printed %q-quoted, so a newline in a file
-# name cannot forge a `tier=` line. Any other argument exits 2.
+# Without -z, git C-quotes any path holding non-ASCII, `"`, `\` or a control
+# character (`"d\303\251ploy.yml"`); a line in exactly that form is decoded
+# back to the path before it is matched, so the quoted path is not left to
+# match no rule. A path holding a control character is printed %q-quoted, so
+# a newline in a file name cannot forge a `tier=` line. Any other argument
+# exits 2.
 #
 # Per-path tiers come from the policy file .github/policies/risk-tiers.policy
 # (RISK_TIER_POLICY overrides the path): the first rule whose glob matches a
@@ -51,9 +53,18 @@ while IFS=$' \t\r' read -r tier glob extra || [ -n "${tier:-}" ]; do
   rule_globs+=("$glob")
 done < "$policy"
 
+# A git C-quoted path: `"`, then plain bytes and the escapes git writes
+# (\" \\ \a \b \t \n \v \f \r and three-digit octal), then `"`.
+git_quoted='^"(([^"\\]|\\[abtnvfr"\\]|\\[0-3][0-7][0-7])*)"$'
+
 max=1
 while IFS= read -r -d "$delim" path || [ -n "$path" ]; do
   [ -n "$path" ] || continue
+  if [ -n "$delim" ] && [[ $path =~ $git_quoted ]]; then
+    # printf's format decodes exactly these escapes; %% keeps a literal %.
+    # shellcheck disable=SC2059
+    printf -v path -- "${BASH_REMATCH[1]//%/%%}"
+  fi
   r=2
   for i in "${!rule_globs[@]}"; do
     # Unquoted right-hand side: the rule is a glob pattern, not a literal.
