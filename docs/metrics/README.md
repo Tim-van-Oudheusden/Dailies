@@ -31,7 +31,7 @@ To add a metric:
 | [PR acceptance rate](#pr-acceptance-rate) | Merged vs. closed-unmerged PRs, agent vs. other | `scripts/pr-metrics.sh` via `pr-metrics.yml` | Weekly (Mon 06:17 UTC), manual | Job summary |
 | [Nightly compliance](#nightly-compliance) | Checks that can go stale without a code change | `scripts/nightly-compliance.sh` via `nightly-compliance.yml` | Nightly (03:23 UTC), manual | Job summary + `nightly-compliance` artifact |
 | [Risk tier](#risk-tier) | Review risk of each PR from the paths it changes | `scripts/tier-classify.sh` via `tier-classifier.yml` | Every PR | `Risk tier` job summary |
-| [Popularity report](#popularity-report) | Weekly popularity run success, stale weeks, data PRs merged unchanged vs edited | `gh` and `git` queries over `popularity.yml` runs, `data/popularity` PRs and `data/v1/popularity.json` history | On demand (review monthly) | Not published; reproduce with the commands below |
+| [Popularity report](#popularity-report) | Weekly popularity run success, stale weeks, data PRs merged unchanged vs edited | `scripts/popularity-report.sh` over `popularity.yml` runs, `data/popularity` PRs and `data/v1/popularity.json` history | On demand (review monthly) | Not published; reproduce with the commands below |
 
 ## Quality gates
 
@@ -122,18 +122,20 @@ How well the weekly [`popularity.yml`](../../.github/workflows/popularity.yml) p
   ones the maintainer pushed to before merging (a branch update counts as an edit too). A rising edit count means the
   computed shelves need a method change or a `data/v1/domain_weights.json` change instead of hand fixes.
 
-There is no script or workflow for it yet; with an authenticated `gh` in a clone of `main`:
+`scripts/popularity-report.sh` computes all three from three files and prints a Markdown table; no workflow publishes
+it yet. Collect the files with an authenticated `gh` in a clone of `main`:
 
 ```sh
-gh run list -R Tim-van-Oudheusden/Dailies --workflow popularity.yml --limit 100 --json conclusion \
-  --jq 'map(select(.conclusion != "" and .conclusion != "cancelled" and .conclusion != "skipped"))
-        | "\(map(select(.conclusion == "success")) | length) of \(length) runs succeeded"'
+gh run list -R Tim-van-Oudheusden/Dailies --workflow popularity.yml --limit 100 --json conclusion > runs.json
+gh pr list -R Tim-van-Oudheusden/Dailies --state merged --head data/popularity --limit 49 --json commits > prs.json
 git log --reverse --format=%H -- data/v1/popularity.json | while read -r commit; do
   git show "$commit:data/v1/popularity.json" | jq -r '[.generated_at, .valid_until] | @tsv'
-done | awk 'NR > 1 && $1 > expiry { stale++ } { expiry = $2 } END { print stale + 0, "stale weeks" }'
-gh pr list -R Tim-van-Oudheusden/Dailies --state merged --head data/popularity --limit 49 --json commits \
-  --jq 'map(.commits | length) | "\(map(select(. == 1)) | length) merged unchanged, \(map(select(. > 1)) | length) edited"'
+done > weeks.tsv
+scripts/popularity-report.sh --runs runs.json --prs prs.json --weeks weeks.tsv
 ```
+
+The stale-week check compares the timestamps as text, which is correct only for the `YYYY-MM-DDTHH:MM:SSZ` form
+`compute.py` writes, so the script fails on any other form rather than miscounting a hand-edited file.
 
 `--limit 49` is the most pull requests GitHub's GraphQL node limit allows with their commits, about a year of weeks.
 When a week went wrong, the [popularity runbook](../runbooks/popularity.md) says what to do.
