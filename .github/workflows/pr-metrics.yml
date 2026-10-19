@@ -3,7 +3,9 @@ name: PR metrics
 # PR acceptance metric: of the pull requests closed in the reporting window,
 # how many were merged vs. closed without merging. Split by agent-authored
 # (claude/* head branch or the hive-forge-app GitHub App) vs. other PRs so agent
-# work has its own feedback loop. Results land in the run's job summary.
+# work has its own feedback loop. The popularity report runs two hours after
+# popularity.yml (Mon 04:17 UTC): run success rate, stale weeks, and data PRs
+# merged unchanged vs edited. Results land in the run's job summary.
 
 on:
   schedule:
@@ -44,3 +46,31 @@ jobs:
             --search "closed:>=${since}" \
             --json number,mergedAt,headRefName,author > prs.json
           scripts/pr-metrics.sh --since "$since" --days "$DAYS" < prs.json | tee -a "$GITHUB_STEP_SUMMARY"
+
+  popularity:
+    name: Popularity report
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # contents: read for scripts/ and the data/v1/popularity.json history; actions: read for `gh run list`;
+    # pull-requests: read for `gh pr list`.
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Compute popularity report
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh run list --repo "$REPO" --workflow popularity.yml --limit 100 --json conclusion > runs.json
+          gh pr list --repo "$REPO" --state merged --head data/popularity --limit 49 --json commits > prs.json
+          git log --reverse --format=%H -- data/v1/popularity.json | while read -r commit; do
+            git show "$commit:data/v1/popularity.json" | jq -r '[.generated_at, .valid_until] | @tsv'
+          done > weeks.tsv
+          scripts/popularity-report.sh --runs runs.json --prs prs.json --weeks weeks.tsv | tee -a "$GITHUB_STEP_SUMMARY"

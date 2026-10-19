@@ -62,6 +62,8 @@ JOB_PERMISSIONS: dict[tuple[str, str], dict[str, str]] = {
     ("popularity.yml", "publish"): {"contents": "write", "pull-requests": "write"},
     # Check out scripts/ and list closed PRs.
     ("pr-metrics.yml", "acceptance"): {"contents": "read", "pull-requests": "read"},
+    # Check out scripts/ and the popularity.json history, list popularity.yml runs and merged data/popularity PRs.
+    ("pr-metrics.yml", "popularity"): {"contents": "read", "actions": "read", "pull-requests": "read"},
     # Create the GitHub Release and upload the bundles.
     ("release.yml", "publish"): {"contents": "write"},
 }
