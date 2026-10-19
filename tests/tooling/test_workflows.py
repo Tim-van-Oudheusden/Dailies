@@ -35,7 +35,7 @@ JOB_PERMISSIONS: dict[tuple[str, str], dict[str, str]] = {
         "issues": "write",
         "id-token": "write",
     },
-    # The checker pushes the update branch and opens the PR itself.
+    # The checker edits the manifest; create-pull-request pushes the update branch and opens the PR.
     ("external-data-checker.yml", "flatpak-external-data-checker"): {
         "contents": "write",
         "pull-requests": "write",
@@ -495,6 +495,31 @@ def icon_fetch_violations(name: str, workflow: dict) -> list[str]:
     return violations
 
 
+CHECKER = "docker://ghcr.io/flathub/flatpak-external-data-checker"
+
+
+def checker_push_violations(name: str, workflow: dict) -> list[str]:
+    """flatpak-external-data-checker only edits the manifest; create-pull-request pushes and opens the PR (#200).
+
+    The checker's own pull request step pushes to https://TOKEN:x-oauth-basic@github.com/..., which works with
+    Flathub's bot PAT but which GitHub refuses for the workflow's GITHUB_TOKEN ("Invalid username or token"), so a
+    run with a new tag fails instead of opening the pin PR.
+    """
+    violations = []
+    for job_id, job in jobs_of(workflow).items():
+        steps = job.get("steps") or []
+        for i, step in enumerate(steps):
+            if not str(step.get("uses", "")).startswith(CHECKER):
+                continue
+            if "--edit-only" not in shlex.split(str((step.get("with") or {}).get("args", ""))):
+                violations.append(f"{name}: job {job_id} runs flatpak-external-data-checker without --edit-only")
+            elif not any(str(later.get("uses", "")).startswith(CREATE_PULL_REQUEST) for later in steps[i + 1 :]):
+                violations.append(
+                    f"{name}: job {job_id} runs flatpak-external-data-checker but no create-pull-request step after it"
+                )
+    return violations
+
+
 # --- the repository's files -------------------------------------------------------------------------------------------
 
 FILES = workflow_files()
@@ -596,6 +621,11 @@ def test_strict_repo_lint_builds_with_mirrored_screenshots(path: Path) -> None:
 @pytest.mark.parametrize("path", FILES, ids=IDS)
 def test_a_game_added_for_a_pull_request_gets_its_icon(path: Path) -> None:
     assert icon_fetch_violations(path.name, load(path)) == []
+
+
+@pytest.mark.parametrize("path", FILES, ids=IDS)
+def test_the_external_data_checker_leaves_the_push_to_create_pull_request(path: Path) -> None:
+    assert checker_push_violations(path.name, load(path)) == []
 
 
 # --- each check catches a broken fixture ------------------------------------------------------------------------------
@@ -1055,3 +1085,38 @@ jobs:
           add-paths: data/v1/games.json
 """)
     assert icon_fetch_violations("links.yml", workflow) == []
+
+
+def checker_fixture(args: str, then: str = "") -> dict:
+    return load_yaml(f"""
+jobs:
+  check:
+    steps:
+      - uses: {CHECKER}@sha256:{"a" * 64}
+        with:
+          args: {args} build-aux/flatpak/io.github.tim_van_oudheusden.Dailies.json{then}
+""")
+
+
+CHECKER_PR_STEP = f"""
+      - uses: {CREATE_PULL_REQUEST}5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          add-paths: build-aux/flatpak/io.github.tim_van_oudheusden.Dailies.json"""
+
+
+@pytest.mark.parametrize("args", ["--update --never-fork", "--commit-only", ""])
+def test_fixture_checker_that_commits_or_pushes_itself_fails(args: str) -> None:
+    assert checker_push_violations("checker.yml", checker_fixture(args, CHECKER_PR_STEP)) == [
+        "checker.yml: job check runs flatpak-external-data-checker without --edit-only"
+    ]
+
+
+def test_fixture_checker_edit_without_a_pull_request_fails() -> None:
+    assert checker_push_violations("checker.yml", checker_fixture("--edit-only")) == [
+        "checker.yml: job check runs flatpak-external-data-checker but no create-pull-request step after it"
+    ]
+
+
+def test_fixture_checker_edit_then_create_pull_request_passes() -> None:
+    workflow = checker_fixture("--edit-only --require-important-update", CHECKER_PR_STEP)
+    assert checker_push_violations("checker.yml", workflow) == []

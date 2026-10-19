@@ -2,9 +2,10 @@ name: Check for Flatpak dependency updates
 
 # Bazaar's flatpak-external-data-checker workflow at a weekly cadence. The checker
 # reads the x-checker-data of the release manifest's git source; when a newer v*
-# tag exists it commits the bumped tag and commit to a branch and opens a pull
-# request against main. With nothing to update the run is a no-op. Until the first
-# v* tag exists the run fails: the checker finds no tag to compare against.
+# tag exists it writes the bumped tag and commit into the manifest, and
+# create-pull-request commits that to a branch and opens a pull request against
+# main. With nothing to update the run is a no-op. Until the first v* tag exists
+# the run fails: the checker finds no tag to compare against.
 # Dependabot and Renovate have no Flatpak-manifest manager, hence this workflow.
 # See CONTRIBUTING.md, "Cutting a release", step 6.
 
@@ -27,7 +28,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # contents: write pushes the update branch; pull-requests: write opens the PR.
-    # The checker pushes with GITHUB_TOKEN itself, so checkout keeps no credentials.
+    # create-pull-request authenticates with GITHUB_TOKEN itself, so checkout keeps
+    # no credentials.
     permissions:
       contents: write
       pull-requests: write
@@ -40,13 +42,33 @@ jobs:
       # Dependabot does not update docker:// references; the nightly compliance row
       # "External data checker image is :latest" reports a newer :latest, and
       # CONTRIBUTING.md, "Dependencies", describes the bump.
+      # --edit-only: the checker's own pull request step pushes to
+      # https://TOKEN:x-oauth-basic@github.com/..., which GitHub refuses for the
+      # GITHUB_TOKEN installation token ("Invalid username or token", #200), so it
+      # only edits the manifest and create-pull-request does the rest.
       - uses: docker://ghcr.io/flathub/flatpak-external-data-checker@sha256:58cbad601261c2ebaae2e18b6f639c09aa5809ef941dcff7284f68928ebb790d
-        env:
-          GIT_AUTHOR_NAME: Flatpak External Data Checker
-          GIT_COMMITTER_NAME: Flatpak External Data Checker
-          # This email shows the commits as authored by github-actions[bot].
-          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
-          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          args: --update --never-fork --require-important-update build-aux/flatpak/io.github.tim_van_oudheusden.Dailies.json
+          args: --edit-only --require-important-update build-aux/flatpak/io.github.tim_van_oudheusden.Dailies.json
+      - name: Read the proposed tag
+        id: tag
+        run: >-
+          jq -r '.modules[] | objects | select(.name == "dailies") | .sources[]
+          | select(has("x-checker-data")) | "tag=" + (.tag // "")'
+          build-aux/flatpak/io.github.tim_van_oudheusden.Dailies.json >> "$GITHUB_OUTPUT"
+      # A pull request opened with GITHUB_TOKEN starts no CI; CONTRIBUTING.md, step 6,
+      # says to close and reopen it.
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          branch: flatpak/external-data
+          delete-branch: true
+          add-paths: build-aux/flatpak/io.github.tim_van_oudheusden.Dailies.json
+          commit-message: "build(flatpak): pin release manifest to ${{ steps.tag.outputs.tag }}"
+          title: "build(flatpak): pin release manifest to ${{ steps.tag.outputs.tag }}"
+          body: |
+            The weekly flatpak-external-data-checker run found the `${{ steps.tag.outputs.tag }}` tag and pinned the release manifest's `dailies` source to its `tag` and `commit`.
+
+            Close and reopen this pull request to run the required checks (CONTRIBUTING.md, "Cutting a release", step 6).
+          labels: |
+            flatpak
+            automated

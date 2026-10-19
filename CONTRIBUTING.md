@@ -286,9 +286,10 @@ python3 scripts/release_check.py notes
 
 5. The `Release` workflow under **Actions** publishes the release, which then appears under **Releases**.
 6. `.github/workflows/external-data-checker.yml` runs `flatpak-external-data-checker` every Monday (or dispatch it
-   from **Actions**). It finds the new tag through the release manifest's `x-checker-data` and opens a pull request
-   that pins the manifest to the tag's `tag` and `commit`, the form a Flathub manifest uses. A pull request opened
-   with the workflow's `GITHUB_TOKEN` starts no CI, so close and reopen it to run the required checks, then merge it.
+   from **Actions**). It finds the new tag through the release manifest's `x-checker-data` and pins the manifest to
+   the tag's `tag` and `commit`, the form a Flathub manifest uses; `create-pull-request` then opens a pull request
+   from `flatpak/external-data`, labelled `flatpak` and `automated`. A pull request opened with the workflow's
+   `GITHUB_TOKEN` starts no CI, so close and reopen it to run the required checks, then merge it.
    With nothing to update the run does nothing. If it runs between steps 2 and 4, it proposes the previous tag
    instead: close that pull request.
 
