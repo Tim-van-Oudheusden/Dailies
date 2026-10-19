@@ -81,6 +81,19 @@
   </screenshots>
 
   <releases>
+    <release version="0.2.1" date="2026-10-19">
+      <description translate="no">
+        <p>Game icons, and more say in how each game opens.</p>
+        <ul>
+          <li>Tiles show each game’s own icon, with its category in a badge on the corner; Preferences has a switch to hide the badge</li>
+          <li>Choose from a game’s menu whether it opens in the built-in browser, your default browser or your own command, and whether it gets a session of its own</li>
+          <li>Hardware acceleration, the custom user agent and the web inspector now apply to the open game right away</li>
+          <li>The built-in browser only passes web links on to other apps</li>
+          <li>An unusual answer from the server no longer stops a refresh of the game list</li>
+          <li>A game icon that failed to load is fetched again on the next start instead of a week later</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.2.0" date="2026-10-16">
       <description translate="no">
         <p>The game list now grows between releases.</p>
