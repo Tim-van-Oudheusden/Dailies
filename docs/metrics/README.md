@@ -31,7 +31,7 @@ To add a metric:
 | [PR acceptance rate](#pr-acceptance-rate) | Merged vs. closed-unmerged PRs, agent vs. other | `scripts/pr-metrics.sh` via `pr-metrics.yml` | Weekly (Mon 06:17 UTC), manual | Job summary |
 | [Nightly compliance](#nightly-compliance) | Checks that can go stale without a code change | `scripts/nightly-compliance.sh` via `nightly-compliance.yml` | Nightly (03:23 UTC), manual | Job summary + `nightly-compliance` artifact |
 | [Risk tier](#risk-tier) | Review risk of each PR from the paths it changes | `scripts/tier-classify.sh` via `tier-classifier.yml` | Every PR | `Risk tier` job summary |
-| [Popularity report](#popularity-report) | Weekly popularity run success, stale weeks, data PRs merged unchanged vs edited | `scripts/popularity-report.sh` over `popularity.yml` runs, `data/popularity` PRs and `data/v1/popularity.json` history | On demand (review monthly) | Not published; reproduce with the commands below |
+| [Popularity report](#popularity-report) | Weekly popularity run success, stale weeks, data PRs merged unchanged vs edited | `scripts/popularity-report.sh` via `pr-metrics.yml`, over `popularity.yml` runs, `data/popularity` PRs and `data/v1/popularity.json` history | Weekly (Mon 06:17 UTC), manual | Job summary |
 
 ## Quality gates
 
@@ -122,8 +122,10 @@ How well the weekly [`popularity.yml`](../../.github/workflows/popularity.yml) p
   ones the maintainer pushed to before merging (a branch update counts as an edit too). A rising edit count means the
   computed shelves need a method change or a `data/v1/domain_weights.json` change instead of hand fixes.
 
-`scripts/popularity-report.sh` computes all three from three files and prints a Markdown table; no workflow publishes
-it yet. Collect the files with an authenticated `gh` in a clone of `main`:
+`scripts/popularity-report.sh` computes all three from three files and prints a Markdown table. The `Popularity report`
+job of [`pr-metrics.yml`](../../.github/workflows/pr-metrics.yml) collects the files and publishes the table to its job
+summary every Monday at 06:17 UTC, two hours after `popularity.yml`; **PR metrics → Run workflow** runs it on demand.
+To reproduce it locally, collect the files with an authenticated `gh` in a clone of `main`:
 
 ```sh
 gh run list -R Tim-van-Oudheusden/Dailies --workflow popularity.yml --limit 100 --json conclusion > runs.json
