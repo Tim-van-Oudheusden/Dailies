@@ -440,6 +440,10 @@ the maintainer and has not been done yet; until then, send translations as ordin
   `skopeo inspect docker://quay.io/gnome_infrastructure/gnome-build-meta:sdk-51 | jq -r .Digest`, put it after
   `@sha256:` and update the `sdk-51 as of <date>` comment. Its `ARG` tool versions copy `ci.yml`'s; bump them when
   `ci.yml` bumps its own.
+- ruff, pytest and pytest-cov are pinned in the workflows' `pip install` lines, the ruff hook in
+  `.pre-commit-config.yaml` and the `ARG`s of `Dockerfile.sandbox`; shellcheck and actionlint in the `Static checks`
+  job and `Dockerfile.sandbox`. Dependabot updates none of them, and `pre-commit autoupdate` bumps only its own file,
+  so bump every copy in one pull request: `tests/tooling/test_tool_pins.py` fails while any two differ.
 
 ## Agent safety layers
 
