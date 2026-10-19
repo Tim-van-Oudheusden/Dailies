@@ -9,20 +9,17 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-10-19. #195 on `feat/195-category-badge`: a legible category badge and a Preferences switch to hide it.
+2026-10-19. #200 on `ci/200-checker-create-pull-request`: the external data checker could not push its pin PR.
 
-- **Outcome:** `.tile-badge` is now a solid `--category-color` disc with a white 16 px glyph (it was 12 px) and an
-  opaque card-coloured ring. The cause was `--card-bg-color`, which is translucent (8 % white) in the dark style, so
-  both the old disc and the old ring were see-through there. There is a new `show-category-badge` key (default on), an
-  "Appearance" switch row in Preferences, and a tile property bound with `GET`. Games without an icon always show the
-  glyph. The research is in `docs/research/category-badge.md`.
-- **Open follow-ups:** the open questions in the research note: whether yellow at exactly 3.01:1 is enough, and the
-  app-wide sentence case vs HIG header capitalisation for switch rows.
+- **Outcome:** the checker image's `open_pr()` pushes to `https://TOKEN:x-oauth-basic@github.com/...`, which GitHub
+  refuses for a `GITHUB_TOKEN` installation token (it needs `x-access-token:TOKEN`). `external-data-checker.yml` now
+  runs the checker with `--edit-only` and opens the PR with `peter-evans/create-pull-request` from
+  `flatpak/external-data`. `checker_push_violations` in `tests/tooling/test_workflows.py` fails a checker step without
+  `--edit-only` or without a later create-pull-request step.
+- **Open follow-ups:** after merge, dispatch the workflow: expect `build(flatpak): pin release manifest to v0.2.0`;
+  close and reopen it to run the checks, merge it, then dispatch again for a no-op run.
 - **Gotchas:**
-  - Use `--card-bg-color` only for backgrounds that sit on the card. For an opaque card colour, stack it over
-    `--window-bg-color`.
-  - To render tiles headlessly, use Broadway in `scripts/sandbox.sh` with `GSETTINGS_SCHEMA_DIR` set and no pipe on
-    stdout/stderr: `gtk4-broadwayd` inherits stderr and keeps a pipe, and so the container, alive.
-    `GtkCssProvider:prefers-contrast` forces the high-contrast media query.
+  - Flathub runs the checker with a bot PAT, so Bazaar's `--update` template works there and not with `GITHUB_TOKEN`.
+  - A push that touches `.github/workflows/` needs a token with the Workflows permission.
   - The host has no GTK development files: run the Meson gate with `scripts/sandbox.sh` and the Flatpak gate with
     `scripts/dev.sh build-devel`.
