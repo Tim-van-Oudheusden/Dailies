@@ -131,3 +131,7 @@ jobs:
           arch: x86_64
       - name: Lint exported repo
         run: flatpak-builder-lint --gha-format --exceptions --user-exceptions build-aux/flatpak/lint-exceptions.json repo repo
+      # The FlatPark payload release.yml publishes (#205), built here so a change that breaks it fails on the PR, not on
+      # the tag. The script exits 1 if the tree lacks a file FlatPark's package starts from.
+      - name: Build FlatPark payload
+        run: python3 -I scripts/flatpark_payload.py --output "$RUNNER_TEMP/Dailies-flatpark.tar.xz"
