@@ -81,6 +81,11 @@
   </screenshots>
 
   <releases>
+    <release version="0.2.2" date="2026-10-19">
+      <description translate="no">
+        <p>A new app icon: today’s page torn off a pad, filled with a grid of guesses, so Dailies no longer looks like a calendar app.</p>
+      </description>
+    </release>
     <release version="0.2.1" date="2026-10-19">
       <description translate="no">
         <p>Game icons, and more say in how each game opens.</p>
