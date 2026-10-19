@@ -1,4 +1,4 @@
-"""The Preferences dialog: how games open, the built-in browser's website data, and when the catalog was updated."""
+"""The Preferences dialog: how games open, browser website data, the category badge, and the catalog's last update."""
 
 from gi.repository import Adw, Gio, GLib, Gtk
 
@@ -50,6 +50,7 @@ class PreferencesDialog(Adw.PreferencesDialog):
     clear_row: Adw.ButtonRow = Gtk.Template.Child()
     last_updated_row: Adw.ActionRow = Gtk.Template.Child()
     show_other_languages_row: Adw.SwitchRow = Gtk.Template.Child()
+    category_badge_row: Adw.SwitchRow = Gtk.Template.Child()
     auto_done_row: Adw.SwitchRow = Gtk.Template.Child()
 
     def __init__(self, *, settings: Gio.Settings, store: Store) -> None:
@@ -73,6 +74,7 @@ class PreferencesDialog(Adw.PreferencesDialog):
         settings.bind("clear-web-data-on-exit", self.clear_on_exit_row, "active", Gio.SettingsBindFlags.DEFAULT)
         settings.bind("auto-done-today", self.auto_done_row, "active", Gio.SettingsBindFlags.DEFAULT)
         settings.bind("show-other-languages", self.show_other_languages_row, "active", Gio.SettingsBindFlags.DEFAULT)
+        settings.bind("show-category-badge", self.category_badge_row, "active", Gio.SettingsBindFlags.DEFAULT)
         settings.bind("itp-enabled", self.itp_row, "active", Gio.SettingsBindFlags.DEFAULT)
         settings.bind("developer-extras", self.developer_extras_row, "active", Gio.SettingsBindFlags.DEFAULT)
         self._choice_handlers = [

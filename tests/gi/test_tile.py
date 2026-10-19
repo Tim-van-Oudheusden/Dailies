@@ -163,6 +163,33 @@ class GameTileTest(unittest.TestCase):
         assert not self.tile.game_icon.get_visible()
         assert not self.tile.category_badge.get_visible()
 
+    def test_switching_the_badge_off_hides_it_and_switching_it_on_brings_it_back(self) -> None:
+        settings = Gio.Settings.new(os.environ["DAILIES_SCHEMA_ID"])
+        self.addCleanup(settings.reset, "show-category-badge")
+        self.item.props.icon = texture()
+
+        settings.set_boolean("show-category-badge", False)
+        drain_main_context()
+        assert not self.tile.category_badge.get_visible()
+        assert self.tile.game_icon.get_visible()
+
+        settings.set_boolean("show-category-badge", True)
+        drain_main_context()
+        assert self.tile.category_badge.get_visible()
+
+    def test_with_the_badge_off_a_game_without_an_icon_still_shows_its_glyph(self) -> None:
+        settings = Gio.Settings.new(os.environ["DAILIES_SCHEMA_ID"])
+        settings.set_boolean("show-category-badge", False)
+        self.addCleanup(settings.reset, "show-category-badge")
+        tile = GameTile(game=GameObject(worldle()))
+
+        assert tile.glyph.props.icon_name == "dailies-category-geography-symbolic"
+        assert not tile.category_badge.get_visible()
+
+        tile.props.game.props.icon = texture()
+        assert tile.game_icon.get_visible()
+        assert not tile.category_badge.get_visible()
+
     def test_an_icon_does_not_change_the_size_of_the_tile(self) -> None:
         def size() -> tuple[int, int]:
             width = self.tile.measure(Gtk.Orientation.HORIZONTAL, -1)[0]

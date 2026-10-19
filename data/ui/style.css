@@ -26,15 +26,18 @@
   background-color: color-mix(in srgb, var(--category-color) 18%, transparent);
 }
 
-/* A game with an icon keeps its category glyph in this badge on the square's corner: the same tint, made opaque so the
- * icon does not show through, and set off from the icon by a ring of the card's colour. */
+/* A game with an icon keeps its category glyph in this badge on the square's corner: a white glyph on a solid disc of
+ * the category's colour, like libadwaita's own badges, which keeps it at 3:1 or more for every category in light and
+ * dark (the accent palette is the same in both). A ring of the card's colour sets it off from the icon; it is the
+ * card's colour over the window's, because --card-bg-color is translucent in the dark style.
+ * docs/research/category-badge.md compares the options. */
 .tile-badge {
-  min-width: 20px;
-  min-height: 20px;
+  min-width: 24px;
+  min-height: 24px;
   border-radius: 999px;
-  color: color-mix(in srgb, var(--category-color) 75%, var(--card-fg-color));
-  background-color: color-mix(in srgb, var(--category-color) 18%, var(--card-bg-color));
-  box-shadow: 0 0 0 2px var(--card-bg-color);
+  color: white;
+  background-color: var(--category-color);
+  box-shadow: 0 0 0 2px var(--card-bg-color), 0 0 0 2px var(--window-bg-color);
 }
 
 @media (prefers-contrast: more) {
@@ -45,7 +48,9 @@
 
   .tile-badge {
     color: var(--card-fg-color);
-    box-shadow: inset 0 0 0 1px currentColor, 0 0 0 2px var(--card-bg-color);
+    background-color: var(--window-bg-color);
+    background-image: image(var(--card-bg-color));
+    box-shadow: inset 0 0 0 1px currentColor, 0 0 0 2px var(--card-bg-color), 0 0 0 2px var(--window-bg-color);
   }
 }
 

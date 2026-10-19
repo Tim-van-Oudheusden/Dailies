@@ -19,6 +19,7 @@ These reports are inputs to the architecture document. See [`docs/plans/design-j
 | [logo-icon](logo-icon.md) | high | 7525 |
 | [dle-catalog](dle-catalog.md) | high | 5742 |
 | [libadwaita-ui-patterns](libadwaita-ui-patterns.md) | high | 8357 |
+| [category-badge](category-badge.md) (2026-10-19) | high | 5238 |
 
 ## Summaries and open questions
 
@@ -644,3 +645,39 @@ Sources (as returned by the agent; full list inside the report):
 - https://docs.gtk.org/gtk4/class.DragSource.html
 - https://docs.gtk.org/gtk4/class.DropTarget.html
 - ... 45 more in the report
+
+### category-badge
+
+Full report: [`category-badge.md`](category-badge.md)
+
+Follow-up research (2026-10-19) on the tile's category badge, the 12 px category glyph on a 20 px circle that sits on a game icon's corner, and on a Preferences switch to hide it. Root cause, from source: `.tile-badge` mixes 18 % of the category colour with `--card-bg-color`, which is opaque white in the light style but `rgb(255 255 255 / 8%)` in the dark style. GTK's `color-mix()` premultiplies alpha, so in dark mode the disc is about 25 % opaque and its 2 px ring 8 % white. The icon shows through, and glyph contrast falls to 1.9-2.9:1 (WCAG 1.4.11 asks 3:1). In light mode contrast is 3.6-5.7:1, but 12 px is off the HIG's 16 px symbolic grid. libadwaita's own small badges (AdwIndicatorBin badge, AdwTabButton attention dot, AdwAvatar below 25 px) are all opaque, with a white or accent-fg glyph on a saturated fill. GNOME Software, Nautilus and Bazaar keep bare 16 px status glyphs off the icon. The accent palette (`--accent-*`) is identical in light and dark and is documented as background colours paired with white. Recommendation (Option A): `pixel-size: 16` on a 24 px opaque `--category-color` disc with a `white` glyph and a 2 px card-coloured ring. The ring is painted as background layers (`image(--card-bg-color)` over `--window-bg-color`, `background-clip: padding-box, border-box`), so it is opaque in both styles. Glyph contrast is 3.01-5.91:1 in light and dark; high contrast uses a neutral disc with a `--card-fg-color` glyph (about 12.5:1). An optional `transform: translate(4px, 4px)` with an RTL mirror (AdwTabButton precedent) reduces overlap with the icon. Alternatives: an opaque tint with libadwaita's standalone colour `oklab(from … var(--standalone-color-oklab))` (4.6-6.8:1), or moving the glyph off the icon next to the category caption. Do not use the `opacity` property: GTK fades the whole widget, glyph included. Preference: GSettings boolean `show-category-badge` (default true), an `Adw.SwitchRow` bound with `DEFAULT`, and each tile binding a GObject property with `Gio.SettingsBindFlags.GET`. GET-only avoids GIO's automatic `sensitive` binding, and the binding keeps the GSettings alive and follows `changed::`. The switch only hides the corner badge; games without an icon keep the glyph in the big square.
+
+Open questions:
+
+- Does GTK 4.24 apply `-gtk-icon-weight` to Dailies' legacy class-based stroked symbolics? This decides whether a 12 px glyph can be kept with heavier strokes.
+- Is a 28 px badge (16 px glyph + 4 px disc padding + 2 px ring) acceptable over the 40 px game icon, or should the icon shrink or the badge be offset outward?
+- White on the "visual" yellow (`#c88800`) scores exactly 3.01:1; should that category's disc use a darker palette yellow?
+- Switch-label capitalisation: the HIG asks for header-capitalised nouns, but Dailies' Preferences rows use sentence case throughout. Settle this app-wide.
+- The dark-style numbers assume the grid sits on `--window-bg-color`; recompute if the library moves onto a `.view` background.
+
+Sources (selection; full list inside the report):
+
+- https://docs.gtk.org/gtk4/css-properties.html
+- https://gitlab.gnome.org/GNOME/gtk/-/blob/4.24.0/gtk/gtkcsscolor.c#L780-830
+- https://gitlab.gnome.org/GNOME/gtk/-/blob/4.24.0/gtk/gtkwidget.c#L12151-12174
+- https://gitlab.gnome.org/GNOME/gtk/-/blob/4.24.0/gtk/gtkiconhelper.c#L186-235
+- https://gnome.pages.gitlab.gnome.org/libadwaita/doc/main/css-variables.html
+- https://gnome.pages.gitlab.gnome.org/libadwaita/doc/main/style-classes.html
+- https://gitlab.gnome.org/GNOME/libadwaita/-/blob/1.10.0/src/stylesheet/_colors.scss
+- https://gitlab.gnome.org/GNOME/libadwaita/-/blob/1.10.0/src/stylesheet/widgets/_view-switcher.scss#L83-124
+- https://gitlab.gnome.org/GNOME/libadwaita/-/blob/1.10.0/src/adw-indicator-bin.c#L143-200
+- https://gitlab.gnome.org/GNOME/libadwaita/-/blob/1.10.0/src/adw-avatar.c#L756-762
+- https://developer.gnome.org/hig/guidelines/ui-icons.html
+- https://developer.gnome.org/hig/patterns/controls/switches.html
+- https://docs.gtk.org/gio/method.Settings.bind.html
+- https://gitlab.gnome.org/GNOME/glib/-/blob/ae8632bab1b5f09f2bb996c9637b1added5b038f/gio/gsettings.c
+- https://www.w3.org/TR/WCAG22/#non-text-contrast
+- https://gitlab.gnome.org/GNOME/gnome-software/-/blob/b71574d2cbc1eb45df62b08065c72658daadb4cb/src/gs-summary-tile.ui
+- https://gitlab.gnome.org/GNOME/nautilus/-/blob/8fd4b29261e641d1e6bdb83cc841837d12aefff6/src/nautilus-grid-cell.c
+- https://github.com/bazaar-org/bazaar/blob/3d347d5d0fb828a0ff6ff0c1dcd356b26ddfdd33/src/bz-app-tile.blp
+- ... 32 more in the report
