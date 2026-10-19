@@ -233,6 +233,15 @@ class PreferencesTest(unittest.TestCase):
         assert self.settings.get_boolean("auto-done-today")
         self.settings.reset("auto-done-today")
 
+    def test_the_category_badge_is_on_by_default_and_follows_the_switch(self) -> None:
+        self.settings.reset("show-category-badge")
+        self.addCleanup(self.settings.reset, "show-category-badge")
+        dialog = self.dialog(host_access=False)
+
+        assert dialog.category_badge_row.props.active
+        dialog.category_badge_row.props.active = False
+        assert not self.settings.get_boolean("show-category-badge")
+
 
 class BrowserPreferencesTest(unittest.TestCase):
     KEYS = (

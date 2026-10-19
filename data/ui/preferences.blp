@@ -124,6 +124,16 @@ template $DailiesPreferencesDialog: Adw.PreferencesDialog {
     }
 
     Adw.PreferencesGroup {
+      title: _("Appearance");
+
+      // Hides only the corner badge: a game without an icon of its own always shows its category glyph instead.
+      Adw.SwitchRow category_badge_row {
+        title: _("Category badge on game icons");
+        subtitle: _("Games without an icon always show their category");
+      }
+    }
+
+    Adw.PreferencesGroup {
       title: _("Catalog");
 
       Adw.ActionRow last_updated_row {

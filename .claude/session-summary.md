@@ -9,23 +9,20 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-10-19. #191 (PR #193, `pr-metrics.yml` publishes the popularity report) and #190 on
-`docs/190-drop-visible-users-gate`.
+2026-10-19. #195 on `feat/195-category-badge`: a legible category badge and a Preferences switch to hide it.
 
-- **Outcome (#190):** the owner chose option A. The Flathub gate is now "≥ 3 tagged releases", with no user count:
-  `docs/proposals/mvp-first.md` §10 and `docs/research/flatpak-release-pipeline.md` §9 item 7 say so, and #72's
-  checklist line was edited to match.
-- **Open follow-ups:** the release/Flathub chain (#71 → #72 → #73, #84) waits on dates and owner-only steps; #137 and
-  #79 wait on owner-created tokens.
-2026-10-19. #191 on `ci/191-popularity-report-publish`: publish the popularity report weekly.
-
-- **Outcome:** `pr-metrics.yml` gains a `popularity` job (Mon 06:17 UTC, two hours after `popularity.yml`) that runs
-  `scripts/popularity-report.sh` (from #192) and writes the table to its job summary; its token row is in
-  `JOB_PERMISSIONS`; `docs/metrics/README.md` lists it as published.
-- **Open follow-ups:** none for #191. #190 (define "visible users") and the release/Flathub chain (#71 → #72 → #73,
-  #84) wait on owner decisions or dates.
+- **Outcome:** `.tile-badge` is now a solid `--category-color` disc with a white 16 px glyph (it was 12 px) and an
+  opaque card-coloured ring. The cause was `--card-bg-color`, which is translucent (8 % white) in the dark style, so
+  both the old disc and the old ring were see-through there. There is a new `show-category-badge` key (default on), an
+  "Appearance" switch row in Preferences, and a tile property bound with `GET`. Games without an icon always show the
+  glyph. The research is in `docs/research/category-badge.md`.
+- **Open follow-ups:** the open questions in the research note: whether yellow at exactly 3.01:1 is enough, and the
+  app-wide sentence case vs HIG header capitalisation for switch rows.
 - **Gotchas:**
-  - The host has no GTK development files, so `meson setup` fails there; run the Meson gate with `scripts/sandbox.sh`
-    and the Flatpak gate with `flatpak run org.flatpak.Builder` (no host `flatpak-builder`).
-  - A new `JOB_PERMISSIONS` row fails `test_every_reviewed_job_permission_row_names_an_existing_job` until the job
-    exists, which makes it the failing-first test for a new job.
+  - Use `--card-bg-color` only for backgrounds that sit on the card. For an opaque card colour, stack it over
+    `--window-bg-color`.
+  - To render tiles headlessly, use Broadway in `scripts/sandbox.sh` with `GSETTINGS_SCHEMA_DIR` set and no pipe on
+    stdout/stderr: `gtk4-broadwayd` inherits stderr and keeps a pipe, and so the container, alive.
+    `GtkCssProvider:prefers-contrast` forces the high-contrast media query.
+  - The host has no GTK development files: run the Meson gate with `scripts/sandbox.sh` and the Flatpak gate with
+    `scripts/dev.sh build-devel`.

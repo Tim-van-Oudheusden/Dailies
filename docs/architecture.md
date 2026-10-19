@@ -104,12 +104,12 @@ machine, and the coverage floors apply to `dailies/core` and `scripts/` only.
 | `data/store.py` | Gio | Owns the `Gio.ListStore` of `GameObject`; applies catalog, popularity, favourites and the done-today marks; `reload()` diffs by id so the grid keeps its scroll position |
 | `ui/game_object.py` | GObject | `GameObject` with `game`, `name`, `category-label`, `difficulty-label`, `caption`, `available`, `favorite`, `popular-rank`, `trending-rank` and `done` properties for Blueprint bindings and filters, `icon` (a `Gdk.Texture`, or None) with `request_icon()`, and `in-favorites`, `can-move-up` and `can-move-down`, which the window sets for the tile's menu and drag-and-drop |
 | `ui/filters.py` | Gtk | `SectionFilter` (Favorites, Popular, Trending or a category) and `SearchFilter`, combined in a `Gtk.EveryFilter`; `SectionSorter` orders shelves by rank, Favorites by favourite order, categories by name; `SearchSorter`, first in a `Gtk.MultiSorter`, puts the best matches first while a query is active and leaves the section order otherwise |
-| `ui/tile.py` | Gtk, Adw | `GameTile`: a `.card` button (tinted category glyph, or the game's icon on that tint with the glyph as a corner badge; name, category, difficulty pill, a "Done today" badge on a dimmed card; screen readers hear "Name, Category · Difficulty") with an overlaid star toggle, never a button inside a button; `game_menu()` builds the tile's context menu (right click, long press, Shift+F10 or Menu), whose **Open With** and **Isolated Session** items set the game's own `Game` settings; in Favorites, the drag source and drop target that reorder favourites |
+| `ui/tile.py` | Gtk, Adw | `GameTile`: a `.card` button (tinted category glyph, or the game's icon on that tint with the glyph as a corner badge unless `show-category-badge` is off; name, category, difficulty pill, a "Done today" badge on a dimmed card; screen readers hear "Name, Category · Difficulty") with an overlaid star toggle, never a button inside a button; `game_menu()` builds the tile's context menu (right click, long press, Shift+F10 or Menu), whose **Open With** and **Isolated Session** items set the game's own `Game` settings; in Favorites, the drag source and drop target that reorder favourites |
 | `ui/library.py` | GLib | The library's translated texts: category and difficulty names, tile captions, the This Week subtitle, the stale banner |
 | `window.py` | Adw | Window, sidebar, grid, search bar, empty states, toasts; `open_game()` is the one way a game is opened |
 | `ui/browser_page.py` | WebKit | The in-app browser page; only imported when `HAVE_WEBKIT` |
 | `ui/opener.py` | Gtk, Gio | Turns the `open-mode` setting into an action (see [Opening games](#opening-games)) |
-| `ui/preferences.py` | Adw | `Adw.PreferencesDialog`: open mode, website data, catalog options |
+| `ui/preferences.py` | Adw | `Adw.PreferencesDialog`: open mode, website data, the category badge, catalog options |
 | `ui/favorites_transfer.py` | Gtk, Adw | Export Favorites… and Import Favorites… (`app.export-favorites`, `app.import-favorites`): `Gtk.FileDialog`, the Merge/Replace `Adw.AlertDialog` and the result toasts |
 | `application.py` | Adw | `Adw.Application`, its actions and accelerators, the `.devel` style in the Devel build, the About dialog read from the metainfo |
 | `config.py.in` | none | `APP_ID`, `VERSION`, `PROFILE`, `PKGDATADIR`, `DATA_URLS`, `LOCALEDIR`, filled in by Meson |
@@ -155,6 +155,7 @@ GSettings schema `io.github.tim_van_oudheusden.Dailies` (the Devel build gets it
 | `clear-web-data-on-exit` | `b` | `false` | Clear the built-in browser's website data when the app quits |
 | `sort-mode` | enum `default`, `name`, `difficulty`, `not-done` | `default` | `default` is shelf rank, favourite order or name, depending on the section; `not-done` is the default order with the games done today last |
 | `show-other-languages` | `b` | `true` | Show games whose language differs from the system locale |
+| `show-category-badge` | `b` | `true` | Show the category glyph as a badge on the corner of a game's own icon ([#195][issue-195]); a game without an icon always shows the glyph in its square |
 | `done-today` | `a{ss}` | `{}` | Game id → local date (`YYYY-MM-DD`) it was marked as done; only today's marks count, the others are pruned at startup and at midnight |
 | `auto-done-today` | `b` | `false` | Mark a game as done once it has been open in the built-in browser for 60 seconds |
 | `session-isolation` | enum `shared`, `per-game` | `shared` | `shared`: one session for all games (v0.1); `per-game`: a session per game in `web/games/<id>`. Switching moves no data, so games need to sign in again |
@@ -599,3 +600,4 @@ approximate cold start that left shared libraries in memory; re-measure on a lap
 [issue-88]: https://github.com/Tim-van-Oudheusden/Dailies/issues/88
 [issue-103]: https://github.com/Tim-van-Oudheusden/Dailies/issues/103
 [issue-136]: https://github.com/Tim-van-Oudheusden/Dailies/issues/136
+[issue-195]: https://github.com/Tim-van-Oudheusden/Dailies/issues/195

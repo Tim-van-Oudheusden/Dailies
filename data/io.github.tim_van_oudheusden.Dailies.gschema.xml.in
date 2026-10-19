@@ -38,6 +38,9 @@
     <key name="sort-mode" enum="@APP_ID@.SortMode"><default>'default'</default></key>
     <key name="show-other-languages" type="b"><default>true</default>
       <summary>Show games whose language differs from the system locale</summary></key>
+    <key name="show-category-badge" type="b"><default>true</default>
+      <summary>Show the category badge on game icons</summary>
+      <description>A game with an icon of its own shows its category glyph in a badge on the icon's corner. A game without an icon always shows the glyph in place of the icon.</description></key>
     <key name="done-today" type="a{ss}"><default>{}</default>
       <summary>Games marked as done, by local date</summary>
       <description>Maps a game id to the local date (YYYY-MM-DD) it was marked as done on. Only today's marks count; the others are dropped at startup and at midnight.</description></key>

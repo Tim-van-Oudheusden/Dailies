@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: dailies\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-18 09:39+0000\n"
+"POT-Creation-Date: 2026-10-19 09:11+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -89,7 +89,7 @@ msgid ""
 "the list in the file."
 msgstr ""
 
-#: dailies/ui/favorites_transfer.py:82 dailies/ui/preferences.py:178
+#: dailies/ui/favorites_transfer.py:82 dailies/ui/preferences.py:180
 msgid "_Cancel"
 msgstr ""
 
@@ -230,24 +230,24 @@ msgstr ""
 msgid "Custom command"
 msgstr ""
 
-#: dailies/ui/preferences.py:164
+#: dailies/ui/preferences.py:166
 msgid "Never (using built-in list)"
 msgstr ""
 
-#: dailies/ui/preferences.py:173
+#: dailies/ui/preferences.py:175
 msgid "Clear website data?"
 msgstr ""
 
-#: dailies/ui/preferences.py:174
+#: dailies/ui/preferences.py:176
 msgid "You will be signed out of games and lose saved progress and streaks."
 msgstr ""
 
-#: dailies/ui/preferences.py:179
+#: dailies/ui/preferences.py:181
 msgid "_Clear"
 msgstr ""
 
 #. Every session: the shared one and each game's, also those of games not opened since the app started.
-#: dailies/ui/preferences.py:190
+#: dailies/ui/preferences.py:192
 msgid "Website data cleared"
 msgstr ""
 
@@ -299,11 +299,11 @@ msgstr ""
 msgid "_Remove from Favorites"
 msgstr ""
 
-#: dailies/ui/tile.py:299 dailies/window.py:355
+#: dailies/ui/tile.py:315 dailies/window.py:355
 msgid "Remove from Favorites"
 msgstr ""
 
-#: dailies/ui/tile.py:299
+#: dailies/ui/tile.py:315
 msgid "Add to Favorites"
 msgstr ""
 
@@ -319,18 +319,18 @@ msgstr ""
 msgid "Undo"
 msgstr ""
 
-#: data/io.github.tim_van_oudheusden.Dailies.desktop.in:3
+#: data/io.github.tim_van_oudheusden.Dailies.desktop.in:2
 #: data/io.github.tim_van_oudheusden.Dailies.metainfo.xml.in:8
 #: data/ui/window.blp:5 data/ui/window.blp:34 data/ui/window.blp:42
 msgid "Dailies"
 msgstr ""
 
-#: data/io.github.tim_van_oudheusden.Dailies.desktop.in:4
+#: data/io.github.tim_van_oudheusden.Dailies.desktop.in:3
 msgid "Play your daily guessing games in one place"
 msgstr ""
 
 #. Translators: Search terms to find this application. Do NOT translate or localize the semicolons. The list MUST also end with a semicolon.
-#: data/io.github.tim_van_oudheusden.Dailies.desktop.in:11
+#: data/io.github.tim_van_oudheusden.Dailies.desktop.in:10
 msgid "daily;puzzle;wordle;guessing;game;dle;"
 msgstr ""
 
@@ -357,87 +357,98 @@ msgid "Show games whose language differs from the system locale"
 msgstr ""
 
 #: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:42
-msgid "Games marked as done, by local date"
+msgid "Show the category badge on game icons"
 msgstr ""
 
 #: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:43
+msgid ""
+"A game with an icon of its own shows its category glyph in a badge on the "
+"icon's corner. A game without an icon always shows the glyph in place of the "
+"icon."
+msgstr ""
+
+#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:45
+msgid "Games marked as done, by local date"
+msgstr ""
+
+#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:46
 msgid ""
 "Maps a game id to the local date (YYYY-MM-DD) it was marked as done on. Only "
 "today's marks count; the others are dropped at startup and at midnight."
 msgstr ""
 
-#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:45
+#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:48
 #: data/ui/preferences.blp:51
 msgid "Mark games as done automatically"
 msgstr ""
 
-#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:46
+#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:49
 msgid ""
 "Mark a game as done once it has been open in the built-in browser for a "
 "minute."
 msgstr ""
 
-#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:48
+#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:51
 msgid "Website data isolation of the built-in browser"
 msgstr ""
 
-#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:49
+#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:52
 msgid ""
 "shared: one session for all games, so sibling games share a login; per-game: "
 "a separate session per game. Switching does not move any data."
 msgstr ""
 
-#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:51
+#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:54
 msgid "Which cookies the built-in browser accepts"
 msgstr ""
 
-#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:53
+#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:56
 msgid "Intelligent Tracking Prevention in the built-in browser"
 msgstr ""
 
-#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:54
+#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:57
 msgid "While it is on, WebKit ignores the no-third-party cookie policy."
 msgstr ""
 
-#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:56
+#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:59
 msgid "GPU rendering in the built-in browser"
 msgstr ""
 
-#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:57
+#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:60
 msgid ""
 "always: wherever the system supports it; never: turn it off, e.g. on broken "
 "drivers."
 msgstr ""
 
-#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:59
+#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:62
 msgid "User agent of the built-in browser"
 msgstr ""
 
-#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:60
+#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:63
 msgid ""
 "For compatibility fixes only. Empty uses WebKit's user agent with Dailies "
 "and its version appended."
 msgstr ""
 
-#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:62
+#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:65
 msgid "Enable the Web Inspector in the built-in browser"
 msgstr ""
 
-#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:70
+#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:73
 msgid "Whether the library stopped telling that games open inside Dailies"
 msgstr ""
 
-#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:75
+#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:78
 msgid "How this game opens, instead of open-mode"
 msgstr ""
 
-#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:76
+#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:79
 msgid ""
 "An open-mode nick (in-app, external or custom); empty or unknown uses open-"
 "mode."
 msgstr ""
 
-#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:78
+#: data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in:81
 msgid "Give this game a session of its own even while games share one"
 msgstr ""
 
@@ -647,22 +658,34 @@ msgid "Clear website data…"
 msgstr ""
 
 #: data/ui/preferences.blp:127
+msgid "Appearance"
+msgstr ""
+
+#: data/ui/preferences.blp:131
+msgid "Category badge on game icons"
+msgstr ""
+
+#: data/ui/preferences.blp:132
+msgid "Games without an icon always show their category"
+msgstr ""
+
+#: data/ui/preferences.blp:137
 msgid "Catalog"
 msgstr ""
 
-#: data/ui/preferences.blp:130
+#: data/ui/preferences.blp:140
 msgid "Last updated"
 msgstr ""
 
-#: data/ui/preferences.blp:135 data/ui/shortcuts-dialog.blp:61
+#: data/ui/preferences.blp:145 data/ui/shortcuts-dialog.blp:61
 msgid "Refresh Game List"
 msgstr ""
 
-#: data/ui/preferences.blp:150
+#: data/ui/preferences.blp:160
 msgid "Show games in other languages"
 msgstr ""
 
-#: data/ui/preferences.blp:151
+#: data/ui/preferences.blp:161
 msgid "Games in languages other than your system language"
 msgstr ""
 

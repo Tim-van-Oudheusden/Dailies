@@ -66,7 +66,8 @@ class GameTile(Gtk.Overlay):
     """A game's card in the grid: its category glyph, name, category and difficulty pill, and a favourite star.
 
     Showing a game asks for its icon (`GameObject.request_icon`). Once the game has one, the icon takes the glyph's
-    place on the category's tint and the glyph moves to a badge in the square's corner.
+    place on the category's tint and the glyph moves to a badge in the square's corner, unless the `show-category-badge`
+    setting (which the property of that name follows) is off. A game without an icon always shows its glyph.
 
     Pressing the card activates `win.open-game` with the game's id; pressing the star activates
     `win.toggle-game-favorite` with it. `favorite` follows the game's and drives the star (Blueprint cannot bind a
@@ -102,6 +103,7 @@ class GameTile(Gtk.Overlay):
     def __init__(self, **kwargs: object) -> None:
         self._item: GameObject | None = None
         self._game_settings: Gio.Settings | None = None
+        self._show_badge = True
         self._handlers: list[int] = []
         self._favorite = False
         self._actions = self._create_actions()
@@ -119,6 +121,9 @@ class GameTile(Gtk.Overlay):
         self.insert_action_group("tile", self._actions)
         self._add_drag_and_drop()
         self._sync_moves()
+        Gio.Settings.new(config.APP_ID).bind(
+            "show-category-badge", self, "show-category-badge", Gio.SettingsBindFlags.GET
+        )
 
     def do_size_allocate(self, width: int, height: int, baseline: int) -> None:
         """Lay out the card and keep the menu attached to the tile."""
@@ -171,6 +176,17 @@ class GameTile(Gtk.Overlay):
         self._show_favorite()
         if self._item is not None and value != self._item.props.favorite:
             self.activate_action("win.toggle-game-favorite", GLib.Variant.new_string(self._item.props.game.id))
+
+    @GObject.Property(type=bool, default=True)
+    def show_category_badge(self) -> bool:
+        """Whether a game with an icon shows its category glyph in the badge; follows the setting of that name."""
+        return self._show_badge
+
+    @show_category_badge.setter
+    def show_category_badge(self, value: bool) -> None:
+        self._show_badge = value
+        if self._item is not None:
+            self._show_icon()
 
     def popup_menu(self, x: float | None = None, y: float | None = None) -> None:
         """Show the game's menu at (`x`, `y`) in the tile, or under the whole tile when no point is given."""
@@ -326,7 +342,7 @@ class GameTile(Gtk.Overlay):
         self.game_icon.props.visible = icon is not None
         self.glyph.props.icon_name = None if icon is not None else glyph
         self.category_badge.props.icon_name = glyph
-        self.category_badge.props.visible = icon is not None
+        self.category_badge.props.visible = icon is not None and self._show_badge
 
     @Gtk.Template.Callback()
     def on_open_clicked(self, _button: Gtk.Button) -> None:
