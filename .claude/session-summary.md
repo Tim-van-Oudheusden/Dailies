@@ -9,6 +9,14 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
+2026-10-19. #191 (PR #193, `pr-metrics.yml` publishes the popularity report) and #190 on
+`docs/190-drop-visible-users-gate`.
+
+- **Outcome (#190):** the owner chose option A. The Flathub gate is now "≥ 3 tagged releases", with no user count:
+  `docs/proposals/mvp-first.md` §10 and `docs/research/flatpak-release-pipeline.md` §9 item 7 say so, and #72's
+  checklist line was edited to match.
+- **Open follow-ups:** the release/Flathub chain (#71 → #72 → #73, #84) waits on dates and owner-only steps; #137 and
+  #79 wait on owner-created tokens.
 2026-10-19. #191 on `ci/191-popularity-report-publish`: publish the popularity report weekly.
 
 - **Outcome:** `pr-metrics.yml` gains a `popularity` job (Mon 06:17 UTC, two hours after `popularity.yml`) that runs
