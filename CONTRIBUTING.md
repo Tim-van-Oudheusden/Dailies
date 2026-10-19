@@ -267,8 +267,10 @@ inside `org.gnome.Platform`, which has no tool that unpacks a `.flatpak` bundle.
 `meson install` of the checkout with prefix `/app/extra/dailies` inside `org.gnome.Sdk//51` (`flatpak build`), so the
 launcher and `config.py` name the paths the runtime and FlatPark use, and writes the tree as a reproducible tar.xz:
 sorted members owned by root, every mtime the commit time (or `$SOURCE_DATE_EPOCH`). It holds no compiled code, so one
-archive serves both arches. The `Flatpak (x86_64)` CI job builds it on every pull request too. Build it locally (it
-needs the GNOME 51 SDK and Platform; the scratch directory `_flatpark/` is rebuilt each run):
+archive serves both arches. The `Flatpak (x86_64)` CI job builds it on every pull request too: it builds it twice and
+fails unless both archives are byte-identical, then unpacks it with `bsdtar` into `/app/extra/dailies` and runs the e2e
+smoke test (`tests/e2e/test_smoke.py`) against it on `org.gnome.Platform//51`. Build it locally (it needs the GNOME 51
+SDK and Platform; the scratch directory `_flatpark/` is rebuilt each run):
 
 ```sh
 python3 scripts/flatpark_payload.py --output Dailies-flatpark.tar.xz
