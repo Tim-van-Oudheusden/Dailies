@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="data/icons/hicolor/scalable/apps/io.github.tim_van_oudheusden.Dailies.svg" width="128" height="128" alt="The Dailies icon: a tear-off desk-calendar card whose page is a grid of blue and orange guessing-game tiles.">
+<img src="data/icons/hicolor/scalable/apps/io.github.tim_van_oudheusden.Dailies.svg" width="128" height="128" alt="The Dailies icon: a page torn off a pad, filled by a three-by-three grid of grey, orange and blue guessing-game tiles.">
 
 # Dailies
 

@@ -44,18 +44,20 @@ clone of any game, and not affiliated with any game's publisher.
 - **Palette:** icons and illustrations use only the
   [GNOME HIG palette](https://developer.gnome.org/hig/reference/palette.html), with the HIG's
   [app icon guidelines](https://developer.gnome.org/hig/guidelines/app-icons.html) for shape, perspective and detail.
-- **Icon ("Daily Grid"):** a tear-off desk-calendar card whose page is a guessing game's feedback grid, so it shows the
-  name (a daily page) and the purpose (guessing games) in one object. Square base shape on the HIG grid: a header band
-  in Blue 3 `#3584e4` with a Blue 4 `#1c71d8` edge, two binder rings in Dark 2 `#5e5c64` (shaded from Dark 1 to Dark 3
-  across their curve), the page in Light 2 `#f6f5f4` over a Light 4 `#c0bfbc` chin. On the page, a 3×2 grid of tiles:
-  the solved row Blue 4 `#1c71d8`, Orange 3 `#ff7800`, Blue 4; the unsolved row Light 3 `#deddda` ×3, today's game
-  still to play. Blue and orange rather than green and yellow keep the icon clear of Wordle's trade dress; the grid
-  stays 3×2 and is never drawn as 5×6. No letters, no outer shadow, no clip paths, masks or filters.
-- **Symbolic icon:** the header bar and the 2×3 tiles at 16 px: 4 px tiles with 1 px gaps on the pixel grid.
+- **Icon ("Torn Page"):** today's page torn off a pad, filled by a guessing game's feedback grid, so it shows the name
+  (a daily page) and the purpose (guessing games) in one object. It has no binder rings and no coloured header band,
+  the two marks of a calendar, so it is not mistaken for one. Square base shape on the HIG grid with a torn top edge:
+  the page in Light 2 `#f6f5f4` over a Light 4 `#c0bfbc` chin that follows the same torn outline. On the page, a 3×3
+  grid of tiles that tells a game from first guess to solved: a miss, a near miss (Orange 3 `#ff7800`) and a miss; a
+  near miss, a hit (Blue 4 `#1c71d8`) and a miss; then three hits. Misses are Light 4. Blue and orange rather than
+  green and yellow keep the icon clear of Wordle's trade dress; the grid stays 3×3 and is never drawn as 5×6. No
+  letters, no outer shadow, no clip paths, masks or filters.
+- **Symbolic icon:** the torn page at 16 px with the 3×3 grid cut out of it: 2 px tiles with 2 px gaps on the pixel
+  grid.
 - **Devel icon and window:** the Devel build uses App Icon Preview's stripes overlay (Yellow 1 to Yellow 4 with dark
   stripes, baked to the icon's outline instead of masked) and libadwaita's striped `.devel` header bar.
 - **Brand colours:** Blue 1 `#99c1f1` (light) and Blue 5 `#1a5fb4` (dark), set in the metainfo's `<branding>`; they are
-  lighter and darker versions of the icon's header blue.
+  lighter and darker versions of the icon's Blue 4 tiles.
 - **Tiles:** each game is a card with its category's symbolic glyph (from the GNOME Icon Development Kit where one
   exists, otherwise drawn at 16 px with 2 px strokes) in a rounded square tinted per category, the game's name, and its
   category and difficulty as text. Difficulty also has a small pill, because colour never carries information alone.

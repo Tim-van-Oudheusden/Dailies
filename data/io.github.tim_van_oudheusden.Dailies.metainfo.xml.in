@@ -33,7 +33,7 @@
   <url type="vcs-browser">https://github.com/Tim-van-Oudheusden/Dailies</url>
   <url type="contribute">https://github.com/Tim-van-Oudheusden/Dailies/blob/main/CONTRIBUTING.md</url>
 
-  <!-- Blue 1 and Blue 5 from the GNOME palette, the icon's header colours (docs/research/logo-icon.md §8). -->
+  <!-- Blue 1 and Blue 5 from the GNOME palette, a lighter and a darker version of the icon's Blue 4 tiles. -->
   <branding>
     <color type="primary" scheme_preference="light">#99c1f1</color>
     <color type="primary" scheme_preference="dark">#1a5fb4</color>
