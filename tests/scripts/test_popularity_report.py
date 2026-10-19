@@ -65,6 +65,15 @@ def test_reports_runs_stale_weeks_and_edited_pull_requests(tmp_path: Path) -> No
     )
 
 
+@pytest.mark.parametrize("conclusion", ["timed_out", "startup_failure", "action_required"])
+def test_a_finished_run_that_did_not_succeed_counts_against_the_rate(tmp_path: Path, conclusion: str) -> None:
+    # Both jobs of popularity.yml have a timeout-minutes, so a slow Tranco ends as timed_out rather than failure.
+    result = report(tmp_path, [run("success"), run(conclusion)], [], "")
+
+    assert result.returncode == 0, result.stderr
+    assert "| Runs succeeded, of finished runs | 1 of 2 | 50% |" in result.stdout
+
+
 def test_a_file_generated_exactly_at_expiry_is_not_stale(tmp_path: Path) -> None:
     weeks = week("2026-10-05T04:30:00Z", "2026-10-15T04:30:00Z") + week("2026-10-15T04:30:00Z", "2026-10-25T04:30:00Z")
 
@@ -96,6 +105,8 @@ def test_a_single_file_has_no_handover(tmp_path: Path) -> None:
     [
         # String comparison orders only the one UTC form compute.py writes, so any other form must fail, not miscount.
         pytest.param("2026-10-15T12:00:00+00:00\t2026-10-25T12:00:00Z\n", id="offset"),
+        # valid_until is the right-hand side of the next comparison, so it must be checked as strictly.
+        pytest.param("2026-10-15T12:00:00Z\t2026-10-25T12:00:00+00:00\n", id="offset in valid_until"),
         pytest.param("2026-10-15T12:00:00.5Z\t2026-10-25T12:00:00Z\n", id="fractional seconds"),
         pytest.param("2026-10-15T12:00:00Z\n", id="no valid_until"),
         pytest.param("null\tnull\n", id="missing fields"),
@@ -134,6 +145,8 @@ def test_input_that_is_not_a_list_fails(tmp_path: Path, runs: object, prs: objec
         pytest.param(["--runs", "runs.json", "--prs", "prs.json", "--weeks", "weeks.tsv", "--repo", "x"], id="unknown"),
         # `shift 2` with one argument left shifts nothing, so an unguarded parser loops on the same flag forever.
         pytest.param(["--runs", "runs.json", "--prs", "prs.json", "--weeks"], id="weeks without a value"),
+        pytest.param(["--prs", "prs.json", "--weeks", "weeks.tsv", "--runs"], id="runs without a value"),
+        pytest.param(["--runs", "runs.json", "--weeks", "weeks.tsv", "--prs"], id="prs without a value"),
     ],
 )
 def test_usage_errors(tmp_path: Path, args: list[str]) -> None:
