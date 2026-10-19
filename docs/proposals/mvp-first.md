@@ -723,10 +723,11 @@ Cartridges/Bazaar use 2 spaces — `flatpak-release-pipeline.md §10.6`).
   Releases feed. A `.flatpakref` + GitHub Pages OSTree remote (signed, `flatter` or the hand-rolled `pages-repo.yml`)
   is roadmap M4, triggered when a third release exists or users ask for updates.
 - Pre-releases: `v0.2.0-beta.1` tags set `prerelease: true`; never published to Flathub.
-- Flathub: submit after ≥ 3 tagged releases and visible users (inclusion policy: "insufficient development history" and
-  "thin wrappers or launchers" are rejection reasons — `flatpak-release-pipeline.md §4.2` **[V]**). The manifest and
-  submission PR must be written by the owner, not an AI tool, per Flathub's Generative-AI policy **[V]**. Target the
-  latest GNOME runtime at that time; bump `runtime-version` every March/September.
+- Flathub: submit once ≥ 3 tagged releases exist (inclusion policy: "insufficient development history" and "thin
+  wrappers or launchers" are rejection reasons — `flatpak-release-pipeline.md §4.2` **[V]**). There is no user-count
+  gate: neither reason is a user count, and Flathub is the channel that would bring users (decided in #190). The
+  manifest and submission PR must be written by the owner, not an AI tool, per Flathub's Generative-AI policy **[V]**.
+  Target the latest GNOME runtime at that time; bump `runtime-version` every March/September.
 
 ---
 

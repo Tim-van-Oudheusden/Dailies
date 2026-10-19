@@ -9,14 +9,16 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-10-18. #182 on `feat/182-dockerfile-sandbox`: can the dev gates run in a restricted agent container? Yes for
-everything but the Flatpak build.
+2026-10-19. #191 (PR #193, `pr-metrics.yml` publishes the popularity report) and #190 on
+`docs/190-drop-visible-users-gate`.
 
-- **Outcome:** `Dockerfile.sandbox` (GNOME 51 SDK as the root filesystem, CI's tool pins), `scripts/sandbox.sh`
-  (host wrapper, rootless podman) and `scripts/sandbox-gates.sh` (every gate but the Flatpak build); the decision and
-  the evidence are in `docs/testing.md#agent-sandbox-what-runs-where`.
-- **Open follow-ups:** nothing builds `Dockerfile.sandbox` in CI, so a broken pin only shows when someone builds it.
+- **Outcome (#190):** the owner chose option A. The Flathub gate is now "≥ 3 tagged releases", with no user count:
+  `docs/proposals/mvp-first.md` §10 and `docs/research/flatpak-release-pipeline.md` §9 item 7 say so, and #72's
+  checklist line was edited to match.
+- **Open follow-ups:** the release/Flathub chain (#71 → #72 → #73, #84) waits on dates and owner-only steps; #137 and
+  #79 wait on owner-created tokens.
 - **Gotchas:**
-  - bubblewrap in an unprivileged container can create a user namespace but not mount `/proc` or devpts, so
-    `flatpak build`, `flatpak-builder` and WebKit's web-process sandbox all fail there; bind mounts still work.
-  - The installed app only finds its GSettings schema when the install prefix's `share/` is on `XDG_DATA_DIRS`.
+  - The host has no GTK development files, so `meson setup` fails there; run the Meson gate with `scripts/sandbox.sh`
+    and the Flatpak gate with `flatpak run org.flatpak.Builder` (no host `flatpak-builder`).
+  - A new `JOB_PERMISSIONS` row fails `test_every_reviewed_job_permission_row_names_an_existing_job` until the job
+    exists, which makes it the failing-first test for a new job.
