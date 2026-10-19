@@ -1,7 +1,8 @@
 # Bad release
 
-Concerns the **release path**: the `Dailies-x86_64.flatpak` and `Dailies-aarch64.flatpak` bundles attached to a
-GitHub Release by the [Release](../../.github/workflows/release.yml) workflow.
+Concerns the **release path**: the `Dailies-x86_64.flatpak` and `Dailies-aarch64.flatpak` bundles and the FlatPark
+payload `Dailies-flatpark.tar.xz` attached to a GitHub Release by the [Release](../../.github/workflows/release.yml)
+workflow.
 
 ## Symptom
 
@@ -38,7 +39,7 @@ or delete the tag as [Releasing](../../CONTRIBUTING.md#releasing) describes.
    ```
 
 2. Check the published files against their checksums (the release has `Dailies-x86_64.flatpak`,
-   `Dailies-aarch64.flatpak` and `SHA256SUMS`):
+   `Dailies-aarch64.flatpak`, `Dailies-flatpark.tar.xz` and `SHA256SUMS`):
 
    ```sh
    gh release download vX.Y.Z --dir /tmp/dailies-vX.Y.Z
@@ -78,8 +79,13 @@ or delete the tag as [Releasing](../../CONTRIBUTING.md#releasing) describes.
    ```sh
    gh release delete-asset vX.Y.Z Dailies-x86_64.flatpak
    gh release delete-asset vX.Y.Z Dailies-aarch64.flatpak
+   gh release delete-asset vX.Y.Z Dailies-flatpark.tar.xz
    gh release delete-asset vX.Y.Z SHA256SUMS
    ```
+
+   A [FlatPark](https://flatpark.org) package pins `Dailies-flatpark.tar.xz` from the release as extra-data
+   ([Releasing](../../CONTRIBUTING.md#releasing)), so removing that asset also stops FlatPark from installing the
+   broken version.
 
    Do not delete the tag: the version stays used. (With immutable releases turned on for the repository, the assets
    cannot be deleted; the pre-release flag and the notes remain editable.)
