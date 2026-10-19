@@ -95,10 +95,14 @@ def build_tree(source: Path, work: Path) -> Path:
 
 
 def source_date_epoch(source: Path) -> int:
-    """$SOURCE_DATE_EPOCH, or the commit time of `source`'s HEAD."""
+    """$SOURCE_DATE_EPOCH, or the commit time of `source`'s HEAD.
+
+    `source` is this script's own checkout, so it is trusted on the command line: in CI's container the checkout
+    belongs to another uid, and actions/checkout adds its safe.directory entry to a temporary HOME only.
+    """
     if epoch := os.environ.get("SOURCE_DATE_EPOCH"):
         return int(epoch)
-    return int(run("git", "-C", source, "log", "-1", "--format=%ct"))
+    return int(run("git", "-c", f"safe.directory={source}", "-C", source, "log", "-1", "--format=%ct"))
 
 
 def main(argv: list[str] | None = None) -> int:
