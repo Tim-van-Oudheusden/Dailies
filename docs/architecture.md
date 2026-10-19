@@ -330,7 +330,7 @@ flowchart TD
   PAGES --> APP["Dailies fetcher"]
   subgraph release["Releases"]
     TAG["git push tag vX.Y.Z"] --> REL["release.yml<br/>verify, build x86_64 and aarch64, publish"]
-    REL --> ASSETS["GitHub Release<br/>Dailies-x86_64.flatpak, Dailies-aarch64.flatpak, SHA256SUMS"]
+    REL --> ASSETS["GitHub Release<br/>Dailies-x86_64.flatpak, Dailies-aarch64.flatpak,<br/>Dailies-flatpark.tar.xz, SHA256SUMS"]
   end
 ```
 
