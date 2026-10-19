@@ -437,8 +437,10 @@ sound server. The socket is used for playback only; Dailies itself makes no soun
 on any runner in seconds, without the GNOME SDK; the GTK layers stay thin and are covered by the build checks and the
 smoke test.
 
-**Decision:** the icon is the "Daily Grid" calendar card with a Blue/Orange solved row ([#8][issue-8]), not the
-genre's green and yellow. Why: the launcher gains nothing from Wordle's trade dress and loses a risk by avoiding it.
+**Decision:** the icon is the "Torn Page", today's page torn off a pad and filled by a Blue/Orange guess grid
+([#209][issue-209]), which replaced the "Daily Grid" calendar card of [#8][issue-8]. Why: binder rings and a header
+band made the old icon read as a calendar app; the grid uses blue and orange, not the genre's green and yellow,
+because the launcher gains nothing from Wordle's trade dress and loses a risk by avoiding it.
 
 **Decision:** game icons are build-time favicons served from GitHub Pages, option (b) of [#17][issue-17], not runtime
 favicons fetched by the app. Why: one origin the app already trusts and caches, no request from the user's machine to
@@ -601,3 +603,4 @@ approximate cold start that left shared libraries in memory; re-measure on a lap
 [issue-103]: https://github.com/Tim-van-Oudheusden/Dailies/issues/103
 [issue-136]: https://github.com/Tim-van-Oudheusden/Dailies/issues/136
 [issue-195]: https://github.com/Tim-van-Oudheusden/Dailies/issues/195
+[issue-209]: https://github.com/Tim-van-Oudheusden/Dailies/issues/209
