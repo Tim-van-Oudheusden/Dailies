@@ -250,13 +250,31 @@ Pushing the tag runs `.github/workflows/release.yml`:
    URLs (so they only resolve once the tag is pushed), rewrites them to `dl.flathub.org/media` and commits them to
    the repo, which the repo lint requires. Until Dailies is on Flathub those media URLs do not resolve, so a software
    centre shows no screenshots for a release bundle.
-3. **Publish** creates the GitHub Release with `Dailies-x86_64.flatpak`, `Dailies-aarch64.flatpak` and `SHA256SUMS`.
-   The body (`scripts/release_check.py notes`) is the newest metainfo release's description and the install
-   instructions, followed by notes generated from the merged PRs (`.github/release.yml` sorts them into categories).
+   The x86_64 job also builds the FlatPark payload, `Dailies-flatpark.tar.xz`, with `scripts/flatpark_payload.py`
+   (see below).
+3. **Publish** creates the GitHub Release with `Dailies-x86_64.flatpak`, `Dailies-aarch64.flatpak`,
+   `Dailies-flatpark.tar.xz` and `SHA256SUMS`. The body (`scripts/release_check.py notes`) is the newest metainfo
+   release's description and the install instructions, followed by notes generated from the merged PRs
+   (`.github/release.yml` sorts them into categories).
 
 A tag with a `-` suffix (`v0.2.0-beta.1`) publishes a pre-release; `meson.build` and the metainfo then carry the same
 `0.2.0-beta.1`. Bundles do not update themselves: users install the next bundle over the old one, and their
 favourites and settings stay.
+
+The FlatPark payload is what [FlatPark](https://flatpark.org) installs. FlatPark builds nothing from source: its
+package pins this asset as Flatpak extra-data and unpacks it into `/app/extra/dailies` on the user's machine, offline,
+inside `org.gnome.Platform`, which has no tool that unpacks a `.flatpak` bundle. The script runs a release-profile
+`meson install` of the checkout with prefix `/app/extra/dailies` inside `org.gnome.Sdk//51` (`flatpak build`), so the
+launcher and `config.py` name the paths the runtime and FlatPark use, and writes the tree as a reproducible tar.xz:
+sorted members owned by root, every mtime the commit time (or `$SOURCE_DATE_EPOCH`). It holds no compiled code, so one
+archive serves both arches. The `Flatpak (x86_64)` CI job builds it on every pull request too: it builds it twice and
+fails unless both archives are byte-identical, then unpacks it with `bsdtar` into `/app/extra/dailies` and runs the e2e
+smoke test (`tests/e2e/test_smoke.py`) against it on `org.gnome.Platform//51`. Build it locally (it needs the GNOME 51
+SDK and Platform; the scratch directory `_flatpark/` is rebuilt each run):
+
+```sh
+python3 scripts/flatpark_payload.py --output Dailies-flatpark.tar.xz
+```
 
 Preview the checks and the release body locally:
 

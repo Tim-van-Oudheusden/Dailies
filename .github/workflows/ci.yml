@@ -131,3 +131,24 @@ jobs:
           arch: x86_64
       - name: Lint exported repo
         run: flatpak-builder-lint --gha-format --exceptions --user-exceptions build-aux/flatpak/lint-exceptions.json repo repo
+      # The FlatPark payload release.yml publishes (#205), built here so a change that breaks it fails on the PR, not on
+      # the tag. The script exits 1 if the tree lacks a file FlatPark's package starts from. It runs twice and cmp
+      # fails the step unless both runs wrote the same bytes, which is what FlatPark's pinned sha256 relies on.
+      - name: Build FlatPark payload
+        run: |
+          python3 -I scripts/flatpark_payload.py --output "$RUNNER_TEMP/first-build.tar.xz"
+          python3 -I scripts/flatpark_payload.py --output "$RUNNER_TEMP/Dailies-flatpark.tar.xz"
+          cmp "$RUNNER_TEMP/first-build.tar.xz" "$RUNNER_TEMP/Dailies-flatpark.tar.xz"
+      # Unpack the payload the way FlatPark's apply_extra does (bsdtar into /app/extra/dailies), then run the e2e smoke
+      # test against it on org.gnome.Platform//51, not the SDK: `flatpak build --runtime` uses the build dir's runtime.
+      - name: Start FlatPark payload on the Platform
+        run: |
+          platform="$RUNNER_TEMP/flatpark-platform"
+          flatpak build-init "$platform" io.github.tim_van_oudheusden.Dailies org.gnome.Sdk org.gnome.Platform 51
+          mkdir -p "$platform/files/extra/dailies"
+          flatpak build --runtime --die-with-parent --filesystem="$RUNNER_TEMP" "$platform" \
+            bsdtar --no-same-owner -xf "$RUNNER_TEMP/Dailies-flatpark.tar.xz" -C /app/extra/dailies
+          flatpak build --runtime --die-with-parent --filesystem="$PWD" \
+            --env=DAILIES_BIN=/app/extra/dailies/bin/dailies \
+            --env=GSETTINGS_SCHEMA_DIR=/app/extra/dailies/share/glib-2.0/schemas \
+            "$platform" python3 tests/e2e/test_smoke.py

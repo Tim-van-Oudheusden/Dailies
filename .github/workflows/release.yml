@@ -96,6 +96,20 @@ jobs:
           mirror-screenshots-url: https://dl.flathub.org/media
       - name: Lint exported repo
         run: flatpak-builder-lint --gha-format repo repo
+      # The FlatPark payload (#205): the release-profile install tree for /app/extra/dailies, which FlatPark's package
+      # pins as extra-data (its apply_extra cannot unpack a .flatpak bundle). It holds no compiled code, so one archive
+      # serves both arches and only the x86_64 job builds it. It builds the checked-out tag, which the verify job
+      # proved has the same files as the commit the bundles build.
+      - name: Build FlatPark payload
+        if: matrix.arch == 'x86_64'
+        run: python3 -I scripts/flatpark_payload.py --output dist/Dailies-flatpark.tar.xz
+      - name: Upload FlatPark payload
+        if: matrix.arch == 'x86_64'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: Dailies-flatpark
+          path: dist/Dailies-flatpark.tar.xz
+          if-no-files-found: error
 
   publish:
     name: Publish GitHub Release
@@ -115,7 +129,7 @@ jobs:
           merge-multiple: true
       - name: Write SHA256SUMS
         working-directory: dist
-        run: sha256sum Dailies-x86_64.flatpak Dailies-aarch64.flatpak > SHA256SUMS
+        run: sha256sum Dailies-x86_64.flatpak Dailies-aarch64.flatpak Dailies-flatpark.tar.xz > SHA256SUMS
       # The newest metainfo release's notes, then the install instructions; GitHub appends the generated notes.
       - name: Write release body
         run: python3 -I scripts/release_check.py notes > "$RUNNER_TEMP/release-body.md"
@@ -131,4 +145,5 @@ jobs:
           files: |
             dist/Dailies-x86_64.flatpak
             dist/Dailies-aarch64.flatpak
+            dist/Dailies-flatpark.tar.xz
             dist/SHA256SUMS
