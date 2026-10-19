@@ -17,6 +17,13 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
   checklist line was edited to match.
 - **Open follow-ups:** the release/Flathub chain (#71 → #72 → #73, #84) waits on dates and owner-only steps; #137 and
   #79 wait on owner-created tokens.
+2026-10-19. #191 on `ci/191-popularity-report-publish`: publish the popularity report weekly.
+
+- **Outcome:** `pr-metrics.yml` gains a `popularity` job (Mon 06:17 UTC, two hours after `popularity.yml`) that runs
+  `scripts/popularity-report.sh` (from #192) and writes the table to its job summary; its token row is in
+  `JOB_PERMISSIONS`; `docs/metrics/README.md` lists it as published.
+- **Open follow-ups:** none for #191. #190 (define "visible users") and the release/Flathub chain (#71 → #72 → #73,
+  #84) wait on owner decisions or dates.
 - **Gotchas:**
   - The host has no GTK development files, so `meson setup` fails there; run the Meson gate with `scripts/sandbox.sh`
     and the Flatpak gate with `flatpak run org.flatpak.Builder` (no host `flatpak-builder`).
