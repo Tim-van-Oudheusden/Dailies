@@ -121,6 +121,8 @@ data instead.
   date) plus the 6-hour refresh window.
 - The weekly check missed a hijack because the new page's title has no blocklisted keyword: add the keyword to
   `scripts/data/title-blocklist.txt` in a pull request, test first, as its header describes.
+- The game's icon was fetched after the domain changed hands (its PNG's `git log` is newer than the takeover): take it
+  down as [Game icon taken down, wrong or inappropriate](game-icon.md) describes. Retiring the entry does not remove it.
 - The same kind of failure keeps coming back: file an issue for it.
 
 ## Prevention
