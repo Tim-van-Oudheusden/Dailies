@@ -58,10 +58,15 @@ clone of any game, and not affiliated with any game's publisher.
   stripes, baked to the icon's outline instead of masked) and libadwaita's striped `.devel` header bar.
 - **Brand colours:** Blue 1 `#99c1f1` (light) and Blue 5 `#1a5fb4` (dark), set in the metainfo's `<branding>`; they are
   lighter and darker versions of the icon's Blue 4 tiles.
-- **Tiles:** each game is a card with its category's symbolic glyph (from the GNOME Icon Development Kit where one
-  exists, otherwise drawn at 16 px with 2 px strokes) in a rounded square tinted per category, the game's name, and its
-  category and difficulty as text. Difficulty also has a small pill, because colour never carries information alone.
-  Dailies ships no third-party logos.
+- **Tiles:** each game is a card with the game's own icon in a rounded square tinted per category, the game's name,
+  and its category and difficulty as text. The category's symbolic glyph (from the GNOME Icon Development Kit where one
+  exists, otherwise drawn at 16 px with 2 px strokes) sits in a badge on the square's corner, which **Preferences**
+  can hide; a game without an icon shows the glyph in the icon's place. Difficulty also has a small pill, because
+  colour never carries information alone.
+- **Game icons:** Dailies publishes third-party logos: each game's icon is its site's own icon, or the one a favicon
+  service shows for it, as a 64×64 PNG in `data/v1/icons/`. They go out with the catalog on GitHub Pages, not in the
+  app, and remain the marks of their owners, shown only to identify each game. An owner who asks gets the icon taken
+  down for good ([Game icons](README.md#game-icons), [runbook](docs/runbooks/game-icon.md)).
 - **Type:** the system interface font, in libadwaita's type styles (`title-1`, `heading`, `caption`); no bundled fonts.
 - **Screenshots:** a window of about 960×640 on a default GNOME session, light style first and one in dark style,
   real content rather than empty states, no edits; Flathub's screenshot rules apply.
