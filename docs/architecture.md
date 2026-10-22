@@ -1,16 +1,9 @@
 # Architecture
 
 How Dailies is put together: the runtime, the data it reads, the pipelines that produce that data and the releases,
-and the decisions behind them. This is the [MVP-first proposal](proposals/mvp-first.md) trimmed to the design being
-built; the proposal keeps the research citations, the alternatives that were weighed and the full roadmap. The JSON
+and the decisions behind them. This is the [MVP-first proposal](proposals/mvp-first.md) trimmed to the design that
+shipped; the proposal keeps the research citations, the alternatives that were weighed and the full roadmap. The JSON
 files are specified in [`data-format.md`](data-format.md).
-
-> **Status (M0).** What exists today: the repository scaffold (`pyproject.toml`, ruff settings, the `tests/` skeleton),
-> the agent and contributor docs, the issue forms (including the **Add a game** form), and the catalog data with its
-> schemas and data tests (`data/v1/`). Everything else on this page, including the `dailies/` application package, the
-> Meson build, the Flatpak manifests, the GSettings schema, `scripts/` and every GitHub Actions workflow, is the design
-> being built and lands with the M1 issues (the submission and popularity automation with M2). Until then this page
-> describes a plan, not shipped code, and the **Measurements** section is empty.
 
 ## Overview
 
