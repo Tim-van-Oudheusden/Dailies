@@ -19,7 +19,7 @@ Play your daily guessing games in one place
 </div>
 
 <p align="center">
-  <img src="data/screenshots/1.png" width="440" alt="The Dailies window showing Favorites: eight starred game tiles, among them Wordle, Connections and Worldle, each with its category and a difficulty badge, beside a sidebar with this week's Popular and Trending shelves and the game categories.">
+  <img src="data/screenshots/1.png" width="440" alt="The Dailies window showing Favorites: eight starred game tiles, among them Wordle, Connections and Worldle, each with the game's own icon, a category badge on it, the category name and a difficulty badge, beside a sidebar with this week's Popular and Trending shelves and the game categories.">
   <img src="data/screenshots/3.png" width="440" alt="Absurdle being played in the built-in browser, with back, forward and reload buttons and the page title and host in the header bar.">
 </p>
 

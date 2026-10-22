@@ -9,18 +9,21 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-10-21. Stale store screenshots (#225) on `docs/225-branding-tiles`.
+2026-10-22. Screenshots to the latest release (#231) on `chore/231-update-screenshots`.
 
-- **Outcome:** `BRANDING.md`'s "Tiles" bullet now describes the tiles since #77: the game's own icon on the category
-  tint, the category glyph as a corner badge that Preferences can hide, the glyph in the icon's place for a game
-  without one. A new "Game icons" bullet replaces "Dailies ships no third-party logos": the 64×64 site icons go out
-  with the catalog on Pages (not in the app), under the takedown process.
-- **Open follow-ups (#225 stays open):** re-take the four `data/screenshots/` PNGs on the current build in a GNOME
-  session (screenshot 1 with game icons on the Favorites tiles); in the v0.3.0 version-bump PR (#71), point the
-  metainfo `<screenshot>` URLs at `v0.3.0` instead of `v0.1.0` and re-check the captions; then update the README hero
-  `alt` text if what it shows changed.
+- **Outcome:** `data/screenshots/1.png`, `2.png` and `4.png` re-rendered on the current `main` (release profile): game
+  icons with category badges on the tiles, week 2026-W43. `3.png` (Absurdle in the built-in browser) re-rendered too
+  but came out the same as before (258 of 693,504 pixels differ), so it is unchanged. README hero `alt` text for
+  screenshot 1 now names the game icons.
+- **How they were made:** the same way as #50/#96: headless in `org.gnome.Sdk//51` (the `gnome-build-meta:sdk-51`
+  image as a bubblewrap root) on a private `gtk4-broadwayd`, with GNOME's default font (`Adwaita Sans 11`), button
+  layout (`appmenu:close`) and slight hinting set in `Gtk.Settings`; the window is 960×640 and is rendered by GTK with
+  its own CSD shadow and corners into a 1008×688 PNG with a transparent margin. The capture script is not committed.
+- **Open follow-ups:** in the v0.3.0 version-bump PR (#71), point the metainfo `<screenshot>` URLs at `v0.3.0`
+  instead of `v0.1.0` and re-check the captions (#225).
 - **Gotchas:**
   - The screenshots resolve from the tag in their URLs, so new PNGs reach software centres only through a new tag;
     changing the URLs before the release PR would point them at a tag that does not exist yet.
-  - The icons are not installed with the app (`data/meson.build` bundles only `games.json` and `popularity.json`), so
-    "bundles" is the wrong word for them in docs; they are published with the catalog.
+  - Inside a bubblewrap root glycin cannot start its own bwrap: decode with `Gly.SandboxSelector.NOT_SANDBOXED` there
+    for the capture only, or every game icon is dropped as undecodable and the tiles fall back to the category glyph.
+  - `Gtk.WidgetPaintable` clips to the window's size; its child node carries the CSD shadow.
