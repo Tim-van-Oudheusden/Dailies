@@ -115,6 +115,8 @@ every file in each group (`core` = `dailies/core`, `scripts` = `scripts`) from t
 exits 1 if a group is below a floor (`::error::<group> <lines|branches> coverage X% is below its floor of Y%`), 2 for a
 usage error, an unreadable or malformed report, or a malformed floors file. A group with no measured lines yet is
 reported as "no code yet" and passes; so does a missing report, but only while neither group folder holds any Python.
+A module that no test imports still counts, at 0 %: the folders under `scripts/` are not packages, and
+`include_namespace_packages` in `pyproject.toml` makes coverage.py list their modules anyway.
 The comparison uses the exact ratio, so 69.999 % does not pass a 70 % floor. `scripts/coverage-check.test.sh` covers
 these cases against the fixtures in `tests/scripts/fixtures/coverage/`, and `pytest` runs it.
 
