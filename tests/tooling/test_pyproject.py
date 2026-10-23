@@ -29,6 +29,13 @@ def test_coverage_measures_core_and_scripts_only() -> None:
     assert load_pyproject()["tool"]["coverage"]["run"]["source"] == ["dailies/core", "scripts"]
 
 
+def test_coverage_reports_modules_that_no_test_imports() -> None:
+    # coverage.py lists a module that was never imported, at 0 %, only at a source root or inside a package, and the
+    # folders under scripts/ have no __init__.py. Without this option a new module there with no tests at all would be
+    # missing from coverage.xml and leave the `scripts` floor untouched.
+    assert load_pyproject()["tool"]["coverage"]["report"]["include_namespace_packages"] is True
+
+
 def test_there_is_no_separate_ruff_config() -> None:
     # Ruff reads pyproject.toml; a ruff.toml would silently take precedence over it.
     assert not (ROOT / "ruff.toml").exists()

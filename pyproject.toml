@@ -85,6 +85,8 @@ branch = true
 [tool.coverage.report]
 show_missing = true
 skip_empty = true
+# scripts/lib, scripts/icons and scripts/popularity are not packages; list their modules even when no test imports them.
+include_namespace_packages = true
 
 [tool.coverage.xml]
 output = "coverage.xml"
