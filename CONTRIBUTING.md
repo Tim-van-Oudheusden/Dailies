@@ -163,7 +163,21 @@ failing Windows build never blocks a merge. It installs with Meson into a prefix
 with `build-aux/windows/bundle.sh`, and starts the result from another directory with `build-aux/windows/smoke.ps1`
 ([`docs/testing.md`](docs/testing.md#test-layers) lists the checks). The tree is uploaded as the
 `Dailies-windows-x86_64-experimental` artifact (unzip it and run `Dailies.cmd`), with screenshots in
-`windows-screenshots`. It is never a GitHub Release asset until someone has tried it on real hardware.
+`windows-screenshots`.
+
+The same tree is also packed into an installer (#242), uploaded as `Dailies-windows-x86_64-experimental-installer`.
+Meson fills in `build-aux/windows/Dailies.iss.in` on Windows, with the version and the install prefix, and the job
+compiles it with Inno Setup's `ISCC`. The `windows-2025` image no longer ships Inno Setup, so the job downloads the
+release named by `INNOSETUP_VERSION` in `windows.yml` and checks it against `INNOSETUP_SHA256`. To bump it, take the
+`sha256:` digest GitHub shows for the new `innosetup-<version>-x64.exe` asset on
+[jrsoftware/issrc's releases](https://github.com/jrsoftware/issrc/releases) and update both. The installer installs
+for the current user by default (no administrator needed), adds a Start-menu entry and starts Dailies when it
+finishes; its icon, `Dailies.ico`, is rendered from the scalable app icon by `bundle.sh` (`rsvg-convert`, then
+`build-aux/windows/make_ico.py`), so no binary icon is committed. `build-aux/windows/install-smoke.ps1` installs it on
+the runner and checks all three, then uninstalls it and checks that no file is left, including the `__pycache__` that
+Python wrote at run time (the script's `[UninstallDelete]` section removes those).
+
+Neither the tree nor the installer is ever a GitHub Release asset until someone has tried them on real hardware.
 
 What differs on Windows:
 

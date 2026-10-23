@@ -52,6 +52,9 @@ subdir('data')
 subdir('dailies')
 subdir('po')
 subdir('tests')
+if host_machine.system() == 'windows'
+  subdir('build-aux/windows')
+endif
 
 gnome.post_install(
   glib_compile_schemas: true,

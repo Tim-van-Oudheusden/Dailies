@@ -9,18 +9,20 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-10-23. Experimental Windows build job (#84) on `ci/84-windows-build`.
+2026-10-23. Inno Setup installer for the experimental Windows build (#242) on `ci/242-inno-setup-installer`, stacked
+on #243 (#84).
 
-- **Outcome:** `.github/workflows/windows.yml` builds with MSYS2 UCRT64 (`continue-on-error`, not in the ruleset),
-  runs the Meson tests that work there, bundles the MSYS2 runtime (`build-aux/windows/bundle.sh`), starts the moved
-  tree with only Windows on `PATH` (`build-aux/windows/smoke.ps1`) and uploads it plus screenshots. App changes:
-  relocatable `PKGDATADIR`/`LOCALEDIR` on Windows, gettext bound through `libintl-8.dll` when `locale` has no
-  `bindtextdomain`, and `Icons` without a decoder when glycin's typelibs are missing.
-- **Open follow-ups:** the optional Inno Setup installer (needs Inno Setup, which the `windows-2025` image no longer
-  ships); someone testing the artifact on real Windows hardware (window snapping, default browser hand-off).
+- **Outcome:** `windows.yml` downloads Inno Setup 7.1.0 (pinned SHA-256, `INNOSETUP_VERSION`/`INNOSETUP_SHA256`),
+  compiles `build-aux/windows/Dailies.iss.in` (filled in by Meson on Windows) over the `bundle.sh` tree, installs it
+  per user on the runner with `build-aux/windows/install-smoke.ps1` (starts the app, Start-menu shortcut, clean
+  uninstall) and uploads `Dailies-windows-x86_64-experimental-installer`. `bundle.sh` renders `Dailies.ico` from the
+  scalable icon with `rsvg-convert` and packs it with `build-aux/windows/make_ico.py` (tests in `tests/tooling`).
+- **Open follow-ups:** the installer is unsigned (SmartScreen warns); nobody has run it on real hardware.
 - **Gotchas:**
-  - MSYS2's `blueprint-compiler` (0.18) is too old and its Python package shadows the wrap's; the wrap's uninstalled
-    script also needs its source tree on `PYTHONPATH`.
-  - Without `PYTHONUTF8=1`, Python reads sources in the runner's ANSI code page and Blueprint's docs step fails.
-  - GLib's registry settings backend takes an `i` key as a DWORD and an `s` key as a plain `REG_SZ`.
+  - PowerShell's `Start-Process -Wait` waits for the whole process tree: on an installer whose last page starts the
+    app it never returns. Wait on the process itself (`WaitForExit()`, after touching `.Handle` so `ExitCode` is set).
+  - ISCC and other Windows programs take `/X` switches, which MSYS2's argument conversion may rewrite as paths; the
+    installer steps run in `pwsh`.
+  - GLib's Windows session bus (`gdbus.exe` from the app's `bin\`) quits 3 s after its last client and holds the GLib
+    DLLs until then; an uninstall started sooner leaves them behind.
   - Iterating on a new workflow: a temporary `push:` trigger on a scratch branch runs it without opening a PR.

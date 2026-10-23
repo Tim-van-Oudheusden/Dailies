@@ -2,7 +2,8 @@ name: Windows (experimental)
 
 # The experimental Windows build (#84): MSYS2 UCRT64, as Cartridges builds it (docs/research/stack-crossplatform.md,
 # Appendix A.3). It never blocks a merge: the job is continue-on-error, and the main ruleset does not require it. The
-# bundled tree is a CI artifact only, never a GitHub Release asset, until someone has tried it on real hardware.
+# bundled tree and its installer are CI artifacts only, never GitHub Release assets, until someone has tried them on
+# real hardware.
 # CONTRIBUTING.md, "Experimental Windows build", says what differs from Linux.
 on:
   push:
@@ -27,6 +28,10 @@ jobs:
     env:
       # Blueprint's and Meson's Python reads the sources as UTF-8, not the runner's ANSI code page.
       PYTHONUTF8: "1"
+      # The windows-2025 image no longer ships Inno Setup (actions/runner-images#11644), so the job downloads it. The
+      # SHA-256 matches the digest GitHub lists for the release asset.
+      INNOSETUP_VERSION: 7.1.0
+      INNOSETUP_SHA256: 0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f
     defaults:
       run:
         shell: msys2 {0}
@@ -90,3 +95,33 @@ jobs:
         with:
           name: Dailies-windows-x86_64-experimental
           path: ${{ env.BUNDLE }}
+      # The installer (#242) packs the same tree; Meson wrote its script, Dailies.iss, into the build directory. Inno
+      # Setup's own installer is a release binary pinned by SHA-256, as Static checks gets shellcheck.
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $name = "innosetup-$env:INNOSETUP_VERSION-x64.exe"
+          $tag = 'is-' + $env:INNOSETUP_VERSION.Replace('.', '_')
+          $installer = Join-Path $env:RUNNER_TEMP $name
+          Invoke-WebRequest -OutFile $installer "https://github.com/jrsoftware/issrc/releases/download/$tag/$name"
+          if ((Get-FileHash -Algorithm SHA256 $installer).Hash -ne $env:INNOSETUP_SHA256) { throw "${name}: SHA-256 mismatch" }
+          $setup = Start-Process -Wait -PassThru -FilePath $installer -ArgumentList @(
+            '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/SP-', '/CURRENTUSER', "/DIR=`"$env:RUNNER_TEMP\InnoSetup`"")
+          if ($setup.ExitCode -ne 0) { throw "$name exited with $($setup.ExitCode)" }
+      - name: Build the installer
+        shell: pwsh
+        run: |
+          & "$env:RUNNER_TEMP\InnoSetup\ISCC.exe" /Q "/O$env:RUNNER_TEMP\installer" _build\build-aux\windows\Dailies.iss
+          if ($LASTEXITCODE -ne 0) { throw "ISCC exited with $LASTEXITCODE" }
+      - name: Install, start and uninstall
+        shell: pwsh
+        run: |
+          $installer = (Get-Item "$env:RUNNER_TEMP\installer\*.exe").FullName
+          build-aux/windows/install-smoke.ps1 -Installer $installer -Dir (Join-Path $env:RUNNER_TEMP 'installed')
+      - name: Upload the installer
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: Dailies-windows-x86_64-experimental-installer
+          path: ${{ runner.temp }}/installer
+          if-no-files-found: error
