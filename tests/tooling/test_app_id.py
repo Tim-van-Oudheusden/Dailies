@@ -8,6 +8,11 @@ release (non-Devel) app id as its own literal instead. The Flatpak manifests and
 and external-data-checker.yml never run on a pull request, so a stale copy there fails only at release or on the next
 scheduled run. A missed copy fails at release or build time (a wrong manifest path, or `flatpak build-init` targeting
 the wrong application id), not on review.
+
+Existence alone is not enough for release.yml's `MANIFEST` and external-data-checker.yml's manifest-path literals:
+both manifest files always exist, so a copy-paste swap onto the `.Devel` manifest passes a check that only asks
+whether the named path is a real file. These two are release-only workflows, so their manifest literal must equal
+the release app id specifically, the same way ci.yml's `DEVEL_ID` and `build-init` ids are checked against theirs.
 """
 
 import json
@@ -25,6 +30,7 @@ _ICONS_BASE_ID = re.compile(r"^base_id = '(?P<value>[^']+)'$", re.MULTILINE)
 _WORKFLOW_MANIFEST = re.compile(r"build-aux/flatpak/[\w.-]+\.json")
 _DEVEL_ID = re.compile(r"^\s+DEVEL_ID:\s*(?P<value>\S+)\s*$", re.MULTILINE)
 _BUILD_INIT = re.compile(r"flatpak build-init \S+ (?P<value>\S+)")
+_MANIFEST_ENV = re.compile(r"^\s+MANIFEST:\s*(?P<value>\S+)\s*$", re.MULTILINE)
 
 
 def _meson_app_ids() -> list[str]:
@@ -111,3 +117,19 @@ def test_workflow_build_init_names_the_meson_release_app_id() -> None:
     ids = _BUILD_INIT.findall((WORKFLOWS / "ci.yml").read_text(encoding="utf-8"))
     assert ids, "ci.yml no longer runs flatpak build-init"
     assert set(ids) == {meson_release_app_id()}
+
+
+def test_release_workflows_name_the_meson_release_manifest() -> None:
+    # Unlike test_every_manifest_a_workflow_names_exists, this ties each literal to the release id specifically:
+    # both manifest files always exist, so a copy-paste swap onto the .Devel manifest here would otherwise pass.
+    release_manifest = f"build-aux/flatpak/{meson_release_app_id()}.json"
+
+    text = (WORKFLOWS / "release.yml").read_text(encoding="utf-8")
+    match = _MANIFEST_ENV.search(text)
+    assert match is not None, "release.yml no longer declares MANIFEST: ..."
+    assert match.group("value") == release_manifest
+
+    text = (WORKFLOWS / "external-data-checker.yml").read_text(encoding="utf-8")
+    paths = _WORKFLOW_MANIFEST.findall(text)
+    assert paths, "external-data-checker.yml no longer names a build-aux/flatpak manifest"
+    assert set(paths) == {release_manifest}
