@@ -39,3 +39,5 @@ Every runbook here should say which of the two paths it concerns.
   move it by hand without waiting for the weekly link check.
 - [Game icon taken down, wrong or inappropriate](game-icon.md): a site asks for its icon to be removed, or a tile shows
   an icon it should not; take it down or replace it by hand.
+- [Published data not reaching users](pages.md): a merged data change is missing from GitHub Pages, or Pages no longer
+  serves `data/v1/`; publish `main` again or turn Pages back on.

@@ -105,6 +105,9 @@ gh run list --workflow pages.yml --limit 1
 curl -sS https://tim-van-oudheusden.github.io/Dailies/v1/games.json | jq '.games[] | select(.id == "<id>") | .status'
 ```
 
+If the run failed or Pages still serves the old status after 10 minutes, follow
+[Published data not reaching users](pages.md).
+
 ### Tell users
 
 Reply on the issue once Pages serves the change. Apps pick it up within 6 hours of being opened; users who want it

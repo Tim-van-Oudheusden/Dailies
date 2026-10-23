@@ -108,6 +108,9 @@ curl -sS https://tim-van-oudheusden.github.io/Dailies/v1/games.json \
   | jq '.games[] | select(.id == "<id>") | {icon, icon_source}'
 ```
 
+If the run failed or Pages still serves the old entry after 10 minutes, follow
+[Published data not reaching users](pages.md).
+
 ### Tell users
 
 Reply on the issue once Pages serves the change. A taken-down icon disappears within 6 hours of the app being opened,
