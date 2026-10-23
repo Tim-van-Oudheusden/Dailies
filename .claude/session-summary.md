@@ -9,21 +9,18 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-10-22. Screenshots to the latest release (#231) on `chore/231-update-screenshots`.
+2026-10-23. Experimental Windows build job (#84) on `ci/84-windows-build`.
 
-- **Outcome:** `data/screenshots/1.png`, `2.png` and `4.png` re-rendered on the current `main` (release profile): game
-  icons with category badges on the tiles, week 2026-W43. `3.png` (Absurdle in the built-in browser) re-rendered too
-  but came out the same as before (258 of 693,504 pixels differ), so it is unchanged. README hero `alt` text for
-  screenshot 1 now names the game icons.
-- **How they were made:** the same way as #50/#96: headless in `org.gnome.Sdk//51` (the `gnome-build-meta:sdk-51`
-  image as a bubblewrap root) on a private `gtk4-broadwayd`, with GNOME's default font (`Adwaita Sans 11`), button
-  layout (`appmenu:close`) and slight hinting set in `Gtk.Settings`; the window is 960×640 and is rendered by GTK with
-  its own CSD shadow and corners into a 1008×688 PNG with a transparent margin. The capture script is not committed.
-- **Open follow-ups:** in the v0.3.0 version-bump PR (#71), point the metainfo `<screenshot>` URLs at `v0.3.0`
-  instead of `v0.1.0` and re-check the captions (#225).
+- **Outcome:** `.github/workflows/windows.yml` builds with MSYS2 UCRT64 (`continue-on-error`, not in the ruleset),
+  runs the Meson tests that work there, bundles the MSYS2 runtime (`build-aux/windows/bundle.sh`), starts the moved
+  tree with only Windows on `PATH` (`build-aux/windows/smoke.ps1`) and uploads it plus screenshots. App changes:
+  relocatable `PKGDATADIR`/`LOCALEDIR` on Windows, gettext bound through `libintl-8.dll` when `locale` has no
+  `bindtextdomain`, and `Icons` without a decoder when glycin's typelibs are missing.
+- **Open follow-ups:** the optional Inno Setup installer (needs Inno Setup, which the `windows-2025` image no longer
+  ships); someone testing the artifact on real Windows hardware (window snapping, default browser hand-off).
 - **Gotchas:**
-  - The screenshots resolve from the tag in their URLs, so new PNGs reach software centres only through a new tag;
-    changing the URLs before the release PR would point them at a tag that does not exist yet.
-  - Inside a bubblewrap root glycin cannot start its own bwrap: decode with `Gly.SandboxSelector.NOT_SANDBOXED` there
-    for the capture only, or every game icon is dropped as undecodable and the tiles fall back to the category glyph.
-  - `Gtk.WidgetPaintable` clips to the window's size; its child node carries the CSD shadow.
+  - MSYS2's `blueprint-compiler` (0.18) is too old and its Python package shadows the wrap's; the wrap's uninstalled
+    script also needs its source tree on `PYTHONPATH`.
+  - Without `PYTHONUTF8=1`, Python reads sources in the runner's ANSI code page and Blueprint's docs step fails.
+  - GLib's registry settings backend takes an `i` key as a DWORD and an `s` key as a plain `REG_SZ`.
+  - Iterating on a new workflow: a temporary `push:` trigger on a scratch branch runs it without opening a PR.

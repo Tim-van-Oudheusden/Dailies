@@ -1,3 +1,4 @@
+import ctypes
 import gettext
 import locale
 import logging
@@ -177,6 +178,28 @@ def _data_urls() -> list[str]:
     return config.DATA_URLS
 
 
+def _install_gettext(localedir: str) -> None:
+    """Install _() and ngettext() for the Python strings, and bind the C gettext GtkBuilder translates the UI with."""
+    if hasattr(locale, "bindtextdomain"):
+        locale.bindtextdomain("dailies", localedir)
+        locale.textdomain("dailies")
+        gettext.install("dailies", localedir, names=["ngettext"])
+        return
+    # MSYS2's Python, the Windows build's (#84), has no locale.bindtextdomain: bind GLib's libintl directly. Its
+    # translations come in the ANSI code page unless asked for UTF-8, which GTK expects.
+    libintl = ctypes.CDLL("libintl-8.dll")
+    libintl.libintl_wbindtextdomain.argtypes = [ctypes.c_char_p, ctypes.c_wchar_p]
+    libintl.libintl_wbindtextdomain(b"dailies", localedir)
+    libintl.libintl_bind_textdomain_codeset.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
+    libintl.libintl_bind_textdomain_codeset(b"dailies", b"UTF-8")
+    libintl.libintl_textdomain.argtypes = [ctypes.c_char_p]
+    libintl.libintl_textdomain(b"dailies")
+    # Windows sets no LANGUAGE or LANG for Python's gettext to read; GLib asks Windows for the user's languages.
+    gettext.translation("dailies", localedir, languages=GLib.get_language_names(), fallback=True).install(
+        names=["ngettext"]
+    )
+
+
 def main() -> int:
     """Set up gettext and resources, then run the application."""
     signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -184,8 +207,6 @@ def main() -> int:
         format="%(name)s: %(message)s",
         level=logging.DEBUG if os.environ.get("G_MESSAGES_DEBUG") else logging.WARNING,
     )
-    locale.bindtextdomain("dailies", config.LOCALEDIR)
-    locale.textdomain("dailies")
-    gettext.install("dailies", config.LOCALEDIR, names=["ngettext"])
+    _install_gettext(config.LOCALEDIR)
     Gio.resources_register(Gio.Resource.load(str(Path(config.PKGDATADIR) / "dailies.gresource")))
     return Application().run(sys.argv)

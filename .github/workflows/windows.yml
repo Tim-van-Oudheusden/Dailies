@@ -1,0 +1,92 @@
+name: Windows (experimental)
+
+# The experimental Windows build (#84): MSYS2 UCRT64, as Cartridges builds it (docs/research/stack-crossplatform.md,
+# Appendix A.3). It never blocks a merge: the job is continue-on-error, and the main ruleset does not require it. The
+# bundled tree is a CI artifact only, never a GitHub Release asset, until someone has tried it on real hardware.
+# CONTRIBUTING.md, "Experimental Windows build", says what differs from Linux.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # One live run per PR: a new push cancels the superseded run. Pushes to main get a per-commit group.
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    name: Windows (experimental)
+    runs-on: windows-2025
+    timeout-minutes: 30
+    continue-on-error: true
+    env:
+      # Blueprint's and Meson's Python reads the sources as UTF-8, not the runner's ANSI code page.
+      PYTHONUTF8: "1"
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # MSYS2's blueprint-compiler is older than meson.build asks for, and its Python package shadows the wrap's, so
+      # it stays uninstalled; git fetches the wrap.
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e # v2.33.0
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            git
+            mingw-w64-ucrt-x86_64-ca-certificates
+            mingw-w64-ucrt-x86_64-desktop-file-utils
+            mingw-w64-ucrt-x86_64-gettext-tools
+            mingw-w64-ucrt-x86_64-glib-networking
+            mingw-w64-ucrt-x86_64-gtk4
+            mingw-w64-ucrt-x86_64-libadwaita
+            mingw-w64-ucrt-x86_64-libsoup3
+            mingw-w64-ucrt-x86_64-meson
+            mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-pkgconf
+            mingw-w64-ucrt-x86_64-python
+            mingw-w64-ucrt-x86_64-python-gobject
+      # The wrap's uninstalled blueprint-compiler imports its package from the source tree, which is not on sys.path.
+      - name: Build and install
+        run: |
+          pacman -Q mingw-w64-ucrt-x86_64-{gtk4,libadwaita,python,python-gobject}
+          echo "BUNDLE=$(cygpath -m "$RUNNER_TEMP/Dailies")" >> "$GITHUB_ENV"
+          meson setup _build --prefix="$(cygpath -m "$RUNNER_TEMP/Dailies")"
+          PYTHONPATH=$(cygpath -m "$PWD/subprojects/blueprint-compiler") meson install -C _build
+      # Not run here: icons and fetcher decode with glycin, which MSYS2 ships without typelibs or loaders (the app shows
+      # no icons on Windows); dialogs and the e2e smoke test need gtk4-broadwayd and dbus-run-session, which MSYS2 does
+      # not have. smoke.ps1 below starts the app instead.
+      - name: Meson tests
+        run: >-
+          meson test -C _build --print-errorlogs
+          "Validate desktop file" "Validate schema file" "Template is up to date" "Bundled icons resolve"
+          favorites done_today store filters translations
+      - name: Bundle the runtime
+        run: build-aux/windows/bundle.sh "$BUNDLE"
+      # Moved first, so a path the build baked in fails here instead of on a user's machine.
+      - name: Start the moved bundle without MSYS2
+        shell: pwsh
+        run: |
+          Copy-Item -Recurse $env:BUNDLE (Join-Path $env:RUNNER_TEMP 'moved')
+          build-aux/windows/smoke.ps1 -App (Join-Path $env:RUNNER_TEMP 'moved') -Screenshots (Join-Path $env:RUNNER_TEMP 'screenshots')
+      - name: Upload the screenshots
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: windows-screenshots
+          path: ${{ runner.temp }}/screenshots
+          if-no-files-found: ignore
+      - name: Upload the build
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: Dailies-windows-x86_64-experimental
+          path: ${{ env.BUNDLE }}

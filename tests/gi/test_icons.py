@@ -256,6 +256,19 @@ class IconsTest(unittest.TestCase):
 
         assert self.paths() == ["/v1/icons/worldle.png", "/v1/icons/worldle.png"]
 
+    def test_without_a_decoder_no_icon_is_fetched_or_shown_and_the_cache_stays(self) -> None:
+        # The Windows build: MSYS2's glycin has no typelibs and no loaders.
+        self.cache.store("icons/worldle.png", WORLDLE, '"abc"', datetime.now(UTC) - timedelta(days=30))
+        icons = Icons(self.cache, [self.server.url], new_session("1.2.3"), decode=None, metered=lambda: False)
+        item = GameObject(worldle())
+
+        icons.load(item)
+        settle()
+
+        assert item.props.icon is None
+        assert self.server.requests == []
+        assert self.cache.read("icons/worldle.png") == WORLDLE
+
 
 class DecodeTest(unittest.TestCase):
     def decode(self, data: bytes) -> list[Gdk.Texture | None]:
