@@ -2,12 +2,12 @@
   "margin": 2,
   "floors": {
     "core": {
-      "lines": 70,
-      "branches": 50
+      "lines": 97,
+      "branches": 98
     },
     "scripts": {
-      "lines": 70,
-      "branches": 50
+      "lines": 96,
+      "branches": 92
     }
   }
 }
