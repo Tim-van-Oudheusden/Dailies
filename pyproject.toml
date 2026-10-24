@@ -56,8 +56,9 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 # Tests: plain asserts, literal expected values, no docstrings, no packages.
 "tests/**" = ["D", "INP001", "PLR2004", "S101"]
-# Standalone CI scripts are not part of a package.
+# Standalone CI and build scripts are not part of a package.
 "scripts/**" = ["INP001"]
+"build-aux/**" = ["INP001"]
 
 [tool.ruff.lint.flake8-annotations]
 allow-star-arg-any = true

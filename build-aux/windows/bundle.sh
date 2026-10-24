@@ -37,3 +37,15 @@ cp "$src"/share/glib-2.0/schemas/*.xml "$dest/share/glib-2.0/schemas/"
 glib-compile-schemas "$dest/share/glib-2.0/schemas"
 
 cp "$here/Dailies.cmd" "$here/README.txt" "$dest/"
+
+# The icon the installer and its Start-menu shortcut show, rendered from the scalable app icon at the sizes Windows
+# picks from (rsvg-convert comes with librsvg, which GTK's icon theme pulls in).
+renders=$(mktemp -d)
+trap 'rm -rf "$renders"' EXIT
+pngs=()
+for size in 16 20 24 32 40 48 64 256; do
+    rsvg-convert --width "$size" --height "$size" --output "$renders/$size.png" \
+        "$here/../../data/icons/hicolor/scalable/apps/io.github.tim_van_oudheusden.Dailies.svg"
+    pngs+=("$renders/$size.png")
+done
+python3 "$here/make_ico.py" "$dest/Dailies.ico" "${pngs[@]}"

@@ -1,0 +1,59 @@
+; Inno Setup script for the experimental Windows installer (#242), after Cartridges' Cartridges.iss.in
+; (docs/research/stack-crossplatform.md, Appendix A.4). Meson fills it in on Windows (build-aux/windows/meson.build);
+; ISCC then packs the tree build-aux/windows/bundle.sh made in the install prefix, as it is: the MSYS2 runtime is
+; already in it, so [Files] copies one directory instead of listing the MSYS2 pieces.
+#define AppName "Dailies"
+#define AppVersion "@VERSION@"
+#define AppURL "https://github.com/Tim-van-Oudheusden/Dailies"
+#define Bundle "@BUNDLE@"
+
+[Setup]
+; Never change the AppId: Windows finds an installed Dailies, to upgrade or uninstall it, by this GUID.
+AppId={{0B888CAF-789E-4B98-B878-489F0F7215E3}
+AppName={#AppName}
+AppVersion={#AppVersion}
+AppVerName={#AppName} {#AppVersion} (experimental)
+AppPublisher=Tim van Oudheusden
+AppPublisherURL={#AppURL}
+AppSupportURL={#AppURL}/issues
+AppUpdatesURL={#AppURL}
+; Per user by default, so installing needs no administrator; the dialog offers an install for all users.
+PrivilegesRequired=lowest
+PrivilegesRequiredOverridesAllowed=dialog
+ArchitecturesAllowed=x64compatible
+ArchitecturesInstallIn64BitMode=x64compatible
+DefaultDirName={autopf}\{#AppName}
+DisableProgramGroupPage=yes
+LicenseFile=@LICENSE@
+SetupIconFile={#Bundle}\Dailies.ico
+UninstallDisplayIcon={app}\Dailies.ico
+OutputBaseFilename=Dailies-{#AppVersion}-windows-x86_64-experimental-setup
+Compression=lzma2
+SolidCompression=yes
+WizardStyle=modern
+
+[Languages]
+Name: "english"; MessagesFile: "compiler:Default.isl"
+Name: "dutch"; MessagesFile: "compiler:Languages\Dutch.isl"
+
+[Tasks]
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+
+[Files]
+Source: "{#Bundle}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion
+Source: "@LICENSE@"; DestDir: "{app}"; DestName: "LICENSE.txt"; Flags: ignoreversion
+
+; pythonw.exe, as Dailies.cmd starts it: no console window.
+[Icons]
+Name: "{autoprograms}\{#AppName}"; Filename: "{app}\bin\pythonw.exe"; Parameters: """{app}\bin\dailies"""; WorkingDir: "{app}"; IconFilename: "{app}\Dailies.ico"
+Name: "{autodesktop}\{#AppName}"; Filename: "{app}\bin\pythonw.exe"; Parameters: """{app}\bin\dailies"""; WorkingDir: "{app}"; IconFilename: "{app}\Dailies.ico"; Tasks: desktopicon
+
+; A box on the last page, ticked; a silent install starts Dailies too.
+[Run]
+Filename: "{app}\bin\pythonw.exe"; Parameters: """{app}\bin\dailies"""; WorkingDir: "{app}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall
+
+; Python writes __pycache__ next to the modules at run time, which the uninstaller would leave: both trees are Dailies'
+; own (the Python bundle.sh copied, and the app's package).
+[UninstallDelete]
+Type: filesandordirs; Name: "{app}\lib\python@PYTHON_VERSION@"
+Type: filesandordirs; Name: "{app}\share\dailies"
