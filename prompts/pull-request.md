@@ -27,7 +27,7 @@ commits, body says `Fixes #<number>`. Fill in `.github/pull_request_template.md`
   meson setup _build -Dprofile=development && meson test -C _build
   flatpak-builder --user --install --force-clean _flatpak build-aux/flatpak/io.github.tim_van_oudheusden.Dailies.Devel.json
   ```
-  plus `shellcheck -x scripts/*.sh scripts/lib/*.sh` and `actionlint` after
+  plus `shellcheck -x scripts/*.sh scripts/lib/*.sh build-aux/windows/*.sh` and `actionlint` after
   touching `scripts/` or `.github/workflows/`.
 
 ## Notes for the reviewer

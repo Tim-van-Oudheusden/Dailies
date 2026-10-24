@@ -33,7 +33,7 @@ when this file conflicts with AGENTS.md, AGENTS.md wins.**
   flatpak-builder --user --install --force-clean _flatpak build-aux/flatpak/io.github.tim_van_oudheusden.Dailies.Devel.json
   ```
   After touching `scripts/` or `.github/workflows/`, also run
-  `shellcheck -x scripts/*.sh scripts/lib/*.sh` and `actionlint`.
+  `shellcheck -x scripts/*.sh scripts/lib/*.sh build-aux/windows/*.sh` and `actionlint`.
 - No new dependencies without explicit approval. Zero third-party Python
   runtime dependencies; script dependencies are pinned with hashes in
   `scripts/requirements.txt`; no new Flatpak modules.

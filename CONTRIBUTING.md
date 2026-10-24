@@ -190,7 +190,7 @@ SHA-256 checksums in the job's `env:`) and runs `shellcheck -x` on every tracked
 same locally, with both tools at the versions in `ci.yml` on your `PATH`:
 
 ```sh
-shellcheck -x scripts/*.sh scripts/lib/*.sh
+shellcheck -x scripts/*.sh scripts/lib/*.sh build-aux/windows/*.sh
 actionlint
 ```
 

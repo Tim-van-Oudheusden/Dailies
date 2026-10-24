@@ -63,8 +63,8 @@ begin "check-jsonschema data/v1/popularity.json"
 check-jsonschema --schemafile data/v1/schema/popularity.schema.json data/v1/popularity.json
 end "$?"
 
-begin "shellcheck -x scripts/*.sh scripts/lib/*.sh"
-shellcheck -x scripts/*.sh scripts/lib/*.sh
+begin "shellcheck -x scripts/*.sh scripts/lib/*.sh build-aux/windows/*.sh"
+shellcheck -x scripts/*.sh scripts/lib/*.sh build-aux/windows/*.sh
 end "$?"
 
 begin "actionlint"
