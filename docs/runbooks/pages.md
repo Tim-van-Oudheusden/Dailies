@@ -55,8 +55,10 @@ This runbook covers a merged data change that never reaches Pages, and Pages no 
 
    - No run for the merge: the push changed nothing under `data/v1/` or `docs/popularity/`, so it was not meant to
      publish anything. Or the Actions tab shows the workflow as disabled (`gh workflow view pages.yml`).
-   - **Assemble _site** failed with `_site contains symlinks`: a symbolic link under `data/v1/` or `docs/popularity/`
-     points outside the tree or nowhere. Fix it in a pull request.
+   - **Assemble _site** failed with `cp: cannot stat '…': No such file or directory`: a symbolic link under `data/v1/`
+     or `docs/popularity/` points nowhere. Fix or remove it in a pull request. The step copies with `cp -rL`, which
+     follows every link, so a link to a file that exists, even outside the tree, does not fail: the file it points to
+     is published in its place.
    - **Deploy** failed with a 404 asking to make sure GitHub Pages is enabled: the Pages site is gone or no longer
      built by Actions. Go to step 3.
    - **Deploy** was refused by the `github-pages` environment: the run was not on `main`. The environment deploys only
@@ -112,8 +114,8 @@ Users need to do nothing. Apps pick up the files within 6 hours of being opened,
 
 ## Prevention
 
-- `pages.yml` refuses a `_site` with symbolic links before uploading, and the `github-pages` environment deploys only
-  from `main`.
+- `pages.yml` follows every symbolic link when it copies the tree, fails on one that points nowhere, and fails if a
+  link survives the copy; the `github-pages` environment deploys only from `main`.
 - The app checks every download before replacing its cached copy and keeps the last good one, so a broken deployment
   never empties the game list.
 - Not covered: nothing compares what Pages serves with `main`, and nothing alerts when a **Pages** run fails apart
