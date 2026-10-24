@@ -36,8 +36,15 @@ conf.set('PREFIX_PATH', prefix_path)
 conf.set('VERSION', meson.project_version())
 conf.set('PROFILE', profile)
 conf.set('BINDIR', bindir)
-conf.set('PKGDATADIR', pkgdatadir)
-conf.set('LOCALEDIR', localedir)
+# The Windows build is unzipped anywhere (build-aux/windows/bundle.sh), so the launcher and config.py get these two
+# relative to the prefix and resolve them where they run. Elsewhere they are absolute, and resolving keeps them as is.
+if host_machine.system() == 'windows'
+  conf.set('PKGDATADIR', get_option('datadir') / meson.project_name())
+  conf.set('LOCALEDIR', get_option('localedir'))
+else
+  conf.set('PKGDATADIR', pkgdatadir)
+  conf.set('LOCALEDIR', localedir)
+endif
 conf.set('PYTHON', py.full_path())
 conf.set('HAVE_WEBKIT', webkit.found() ? 'True' : 'False')
 

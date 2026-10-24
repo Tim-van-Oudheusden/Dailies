@@ -23,7 +23,7 @@ Check two axes and report them separately:
 - No new or widened `finish-args` in `build-aux/flatpak/*.json`.
 - `data/v1/schema/**` and `.github/workflows/**` changed only when the issue
   asks for it, flagged for high-tier review.
-- Gates green (plus `shellcheck -x scripts/*.sh scripts/lib/*.sh` and
+- Gates green (plus `shellcheck -x scripts/*.sh scripts/lib/*.sh build-aux/windows/*.sh` and
   `actionlint` when `scripts/` or `.github/workflows/` changed):
   ```sh
   ruff check . && ruff format --check .

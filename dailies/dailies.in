@@ -1,7 +1,10 @@
 #!@PYTHON@
+import os
 import sys
 
-sys.path.insert(1, "@PKGDATADIR@")
+# PKGDATADIR is absolute, except in the Windows build, where it is relative to the prefix, the directory above bin/
+# (see meson.build). join() drops the prefix for an absolute path.
+sys.path.insert(1, os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, "@PKGDATADIR@"))
 
 from dailies.application import main
 

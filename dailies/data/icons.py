@@ -6,11 +6,17 @@ from datetime import UTC, datetime
 import gi
 
 gi.require_version("Gdk", "4.0")
-gi.require_version("Gly", "2")
-gi.require_version("GlyGtk4", "2")
 gi.require_version("Soup", "3.0")
 
-from gi.repository import Gdk, Gio, GLib, Gly, GlyGtk4, Soup
+from gi.repository import Gdk, Gio, GLib, Soup
+
+try:
+    gi.require_version("Gly", "2")
+    gi.require_version("GlyGtk4", "2")
+    from gi.repository import Gly, GlyGtk4
+except (ValueError, ImportError):
+    # MSYS2 packages glycin without its typelibs and loaders, so the Windows build has no decoder (#84).
+    Gly = GlyGtk4 = None
 
 from dailies.core import icons
 from dailies.core.cache import Outcome, Request, Response
@@ -26,15 +32,16 @@ def decode(
     data: bytes,
     callback: Callable[[Gdk.Texture | None], None],
     *,
-    sandbox: Gly.SandboxSelector = Gly.SandboxSelector.AUTO,
+    sandbox: "Gly.SandboxSelector | None" = None,
 ) -> None:
     """Decode the image `data` with glycin and call `callback` with its first frame, or with None when it fails.
 
     The icons come from the network, so they are untrusted: glycin decodes them in a separate, sandboxed process
-    (`sandbox` picks how; inside the Flatpak, AUTO is `flatpak-spawn --sandbox`), never GdkPixbuf in the app.
+    (`sandbox` picks how, AUTO by default; inside the Flatpak, AUTO is `flatpak-spawn --sandbox`), never GdkPixbuf in
+    the app.
     """
     loader = Gly.Loader.new_for_bytes(GLib.Bytes.new(data))
-    loader.set_sandbox_selector(sandbox)
+    loader.set_sandbox_selector(Gly.SandboxSelector.AUTO if sandbox is None else sandbox)
 
     def on_frame(image: Gly.Image, result: Gio.AsyncResult) -> None:
         try:
@@ -62,14 +69,15 @@ class Icons:
 
     `load` runs whenever a tile shows a game, so only the icons on screen are read. Each icon is fetched at most once
     per run, only when the cached copy is a week old, and never on a metered network (`dailies.core.icons.IconFetch`).
-    A game without an icon, or whose icon cannot be fetched or decoded, keeps its category glyph. `forget` drops the
-    icons the catalog stopped naming.
+    A game without an icon, or whose icon cannot be fetched or decoded, keeps its category glyph; so does every game
+    when there is no decoder. `forget` drops the icons the catalog stopped naming.
 
     Args:
         cache: Where the PNGs are kept.
         urls: The data URLs, tried in order; an icon's URL is a data URL followed by the catalog's `icon` path.
         session: The libsoup session to fetch with.
-        decode: Turns PNG bytes into a texture; `decode` with glycin's sandbox by default.
+        decode: Turns PNG bytes into a texture; `decode` with glycin's sandbox by default. None, the default without
+            glycin, shows no icons and fetches none.
         metered: Says whether the network is metered; `Gio.NetworkMonitor` by default.
     """
 
@@ -79,7 +87,7 @@ class Icons:
         urls: list[str],
         session: Soup.Session,
         *,
-        decode: Decoder = decode,
+        decode: Decoder | None = decode if Gly is not None else None,
         metered: Callable[[], bool] | None = None,
     ) -> None:
         self._cache = cache
@@ -96,7 +104,7 @@ class Icons:
     def load(self, item: GameObject) -> None:
         """Show the icon of `item`'s game on it as soon as there is one; a game without an icon gets None."""
         icon = item.props.game.icon
-        if icon is None:
+        if icon is None or self._decode is None:
             _show(item, None)
             return
         self._items.setdefault(icon, weakref.WeakSet()).add(item)

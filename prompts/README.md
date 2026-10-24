@@ -20,7 +20,7 @@ meson setup _build -Dprofile=development && meson test -C _build
 flatpak-builder --user --install --force-clean _flatpak build-aux/flatpak/io.github.tim_van_oudheusden.Dailies.Devel.json
 ```
 
-After touching `scripts/` or `.github/workflows/`, also `shellcheck -x scripts/*.sh scripts/lib/*.sh` and `actionlint`.
+After touching `scripts/` or `.github/workflows/`, also `shellcheck -x scripts/*.sh scripts/lib/*.sh build-aux/windows/*.sh` and `actionlint`.
 
 Usage: copy a template into your prompt, fill the bracketed fields, and follow
 `AGENTS.md` for issue tracking and the session-completion workflow. On a pull

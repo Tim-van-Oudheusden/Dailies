@@ -154,6 +154,33 @@ runs `pytest --cov=dailies/core --cov=scripts --cov-report=xml` and fails the PR
 `core` or `scripts` drops below its floor in `.github/auto-qa-tuning.json`. See
 [`docs/testing.md`](docs/testing.md#coverage-floors) to run it locally.
 
+### Experimental Windows build
+
+`.github/workflows/windows.yml` (#84) builds Dailies on Windows with MSYS2 UCRT64, the way Cartridges does
+([`docs/research/stack-crossplatform.md`](docs/research/stack-crossplatform.md), Appendix A.3), on every pull request
+and push to `main`. It is experimental: the job is `continue-on-error` and the `main` ruleset does not require it, so a
+failing Windows build never blocks a merge. It installs with Meson into a prefix, copies the MSYS2 runtime next to it
+with `build-aux/windows/bundle.sh`, and starts the result from another directory with `build-aux/windows/smoke.ps1`
+([`docs/testing.md`](docs/testing.md#test-layers) lists the checks). The tree is uploaded as the
+`Dailies-windows-x86_64-experimental` artifact (unzip it and run `Dailies.cmd`), with screenshots in
+`windows-screenshots`. It is never a GitHub Release asset until someone has tried it on real hardware.
+
+What differs on Windows:
+
+- **No built-in browser.** WebKitGTK does not exist on Windows, so Meson builds without it (`HAVE_WEBKIT` is false),
+  Preferences hides the option, and games open in the default browser.
+- **No game icons.** MSYS2's glycin has no typelibs and no loaders, and the app only decodes the downloaded icons in
+  glycin's sandbox, so without it `Icons` fetches none and the tiles keep their category glyphs.
+- **Relocatable paths.** Meson writes `PKGDATADIR` and `LOCALEDIR` relative to the prefix, and the launcher and
+  `config.py` resolve them where they run, so the unzipped tree can live anywhere.
+- **Translations work.** MSYS2's Python has no `locale.bindtextdomain`, so `main()` binds GLib's `libintl-8.dll`
+  through `ctypes` and asks GLib for the user's languages; the gresource loads as on Linux. This is what broke i18n for
+  Cartridges 2.13.1, which disables it on Windows.
+- **Blueprint from the wrap.** MSYS2's `blueprint-compiler` is older than 0.22 and its Python package shadows the
+  wrap's, so the job leaves it uninstalled and puts the wrap's source tree on `PYTHONPATH`.
+- **Client-side decorations stay on.** GTK 4.24's window on the runner shows no black border or oversized shadow (see
+  the screenshots), so there is no `-Ddecorations=no-csd` build. Window snapping still needs checking on real hardware.
+
 ### Shell scripts and workflows
 
 The `main` ruleset also requires the **Static checks** job in `.github/workflows/ci.yml`. It downloads pinned
@@ -163,7 +190,7 @@ SHA-256 checksums in the job's `env:`) and runs `shellcheck -x` on every tracked
 same locally, with both tools at the versions in `ci.yml` on your `PATH`:
 
 ```sh
-shellcheck -x scripts/*.sh scripts/lib/*.sh
+shellcheck -x scripts/*.sh scripts/lib/*.sh build-aux/windows/*.sh
 actionlint
 ```
 

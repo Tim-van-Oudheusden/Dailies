@@ -1,9 +1,14 @@
+from os import path as _path
+
 APP_ID = "@APP_ID@"
 VERSION = "@VERSION@"
 PREFIX = "@PREFIX_PATH@"
 PROFILE = "@PROFILE@"
-PKGDATADIR = "@PKGDATADIR@"
-LOCALEDIR = "@LOCALEDIR@"
+# Absolute, except in the Windows build, where they are relative to the install prefix (see meson.build): three
+# directories above this file, <prefix>/share/dailies/dailies/config.py. join() drops the prefix for an absolute path.
+_INSTALL_PREFIX = _path.join(_path.dirname(_path.abspath(__file__)), _path.pardir, _path.pardir, _path.pardir)
+PKGDATADIR = _path.normpath(_path.join(_INSTALL_PREFIX, "@PKGDATADIR@"))
+LOCALEDIR = _path.normpath(_path.join(_INSTALL_PREFIX, "@LOCALEDIR@"))
 HAVE_WEBKIT = @HAVE_WEBKIT@
 # Tried in order: GitHub Pages (pages.yml), then raw.githubusercontent.com as the fallback.
 DATA_URLS = [
