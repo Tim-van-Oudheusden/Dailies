@@ -110,11 +110,11 @@ If the run failed or Pages still serves the old status after 10 minutes, follow
 
 ### Tell users
 
-Reply on the issue once Pages serves the change. Apps pick it up within 6 hours of being opened; users who want it
-now can choose **Refresh Game List** (Ctrl+R). After a hijack, users who opened the game in the built-in browser may
-have the new site's cookies and storage. **Preferences → Clear website data…** removes them, but it also signs them
-out of every game and loses saved progress, so say so. If the game opened in their own browser, that browser holds the
-data instead.
+Reply on the issue once Pages serves the change. Apps pick it up within 6 hours of being opened; users who want it now,
+or who are on a metered connection where the app skips the automatic refresh, can choose **Refresh Game List** (Ctrl+R).
+After a hijack, users who opened the game in the built-in browser may have the new site's cookies and storage.
+**Preferences → Clear website data…** removes them, but it also signs them out of every game and loses saved progress,
+so say so. If the game opened in their own browser, that browser holds the data instead.
 
 ### Follow up
 

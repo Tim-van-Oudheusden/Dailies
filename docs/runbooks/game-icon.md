@@ -113,10 +113,10 @@ If the run failed or Pages still serves the old entry after 10 minutes, follow
 
 ### Tell users
 
-Reply on the issue once Pages serves the change. A taken-down icon disappears within 6 hours of the app being opened,
-or at once with **Refresh Game List** (Ctrl+R). A replaced icon appears within 7 days of the app last asking for it,
-later on a metered network. Tell an owner who asked for removal that the PNG is gone from the published data and will
-not be fetched again, but remains in the repository's history.
+Reply on the issue once Pages serves the change. A taken-down icon disappears within 6 hours of the app being opened, or
+at once with **Refresh Game List** (Ctrl+R), which on a metered connection is the only way. A replaced icon appears
+within 7 days of the app last asking for it, later on a metered network. Tell an owner who asked for removal that the
+PNG is gone from the published data and will not be fetched again, but remains in the repository's history.
 
 ### Follow up
 
