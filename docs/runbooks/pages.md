@@ -100,8 +100,10 @@ Then run the comparison from Diagnose step 1 again until both checksums match an
 
 ### Tell users
 
-Users need to do nothing. Apps pick up the files within 6 hours of being opened, or at once with **Refresh Game List**
-(Ctrl+R). If the outage held back a hijack or takedown fix, reply on that issue once Pages serves it, as
+Most users need to do nothing. Apps pick up the game list within 6 hours of being opened and the popularity numbers
+within 24 hours (`MAX_AGE` in `dailies/core/cache.py`), or both at once with **Refresh Game List** (Ctrl+R). On a
+metered connection the app skips the automatic refresh, so there only Refresh Game List gets them. If the outage held
+back a hijack or takedown fix, reply on that issue once Pages serves it, as
 [Game link hijacked, moved or dead](catalog-link.md) and [Game icon taken down](game-icon.md) describe.
 
 ### Follow up
