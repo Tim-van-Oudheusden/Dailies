@@ -28,19 +28,22 @@
       "name": "dailies",
       "buildsystem": "meson",
       "builddir": true,
-      "config-opts": ["-Dprofile=release"],
+      "config-opts": [
+        "-Dprofile=release"
+      ],
       "sources": [
         {
           "type": "git",
           "url": "https://github.com/Tim-van-Oudheusden/Dailies.git",
-          "commit": "d8aeaa2fc5709cd38648035c5aa809583005d103",
+          "commit": "ca4b14111cd1c930a672b92ab5ffb39b21ba4dfb",
           "x-checker-data": {
             "type": "git",
             "tag-pattern": "^v([\\d.]+)$",
             "version-scheme": "semantic",
             "is-main-source": true,
             "is-important": true
-          }
+          },
+          "tag": "v0.2.2"
         }
       ]
     }
