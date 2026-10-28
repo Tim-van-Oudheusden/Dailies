@@ -22,6 +22,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOWS = ROOT / ".github" / "workflows"
 MANIFESTS = ROOT / "build-aux" / "flatpak"
+WINDOWS = ROOT / "build-aux" / "windows"
 
 _MESON_APP_ID = re.compile(r"^\s*app_id = '(?P<value>[^']+)'$", re.MULTILINE)
 _DEV_SH_APP_ID = re.compile(r"^readonly APP_ID=(?P<value>\S+)$", re.MULTILINE)
@@ -31,6 +32,8 @@ _WORKFLOW_MANIFEST = re.compile(r"build-aux/flatpak/[\w.-]+\.json")
 _DEVEL_ID = re.compile(r"^\s+DEVEL_ID:\s*(?P<value>\S+)\s*$", re.MULTILINE)
 _BUILD_INIT = re.compile(r"flatpak build-init \S+ (?P<value>\S+)")
 _MANIFEST_ENV = re.compile(r"^\s+MANIFEST:\s*(?P<value>\S+)\s*$", re.MULTILINE)
+_BUNDLE_ICON = re.compile(r"data/icons/hicolor/scalable/apps/(?P<value>[\w.]+)\.svg")
+_SMOKE_REGISTRY = re.compile(r"HKCU:\\Software\\GSettings\\(?P<value>[\w\\]+)\\State")
 
 
 def _meson_app_ids() -> list[str]:
@@ -133,3 +136,21 @@ def test_release_workflows_name_the_meson_release_manifest() -> None:
     paths = _WORKFLOW_MANIFEST.findall(text)
     assert paths, "external-data-checker.yml no longer names a build-aux/flatpak manifest"
     assert set(paths) == {release_manifest}
+
+
+def test_bundle_icon_source_names_the_meson_release_app_id() -> None:
+    # bundle.sh rasterizes the scalable app icon by this literal path; a stale copy fails rsvg-convert inside the
+    # Windows (experimental) job, which is continue-on-error and not a required check, so nothing else would catch it.
+    text = (WINDOWS / "bundle.sh").read_text(encoding="utf-8")
+    match = _BUNDLE_ICON.search(text)
+    assert match is not None, "bundle.sh no longer renders the scalable app icon from data/icons/hicolor/..."
+    assert match.group("value") == meson_release_app_id()
+
+
+def test_smoke_registry_path_names_the_meson_release_app_id() -> None:
+    # smoke.ps1 hand-encodes the app id as a GLib GSettings registry-backend path to seed window State; a stale copy
+    # sets the wrong key, so the smoke test would still pass while checking nothing.
+    text = (WINDOWS / "smoke.ps1").read_text(encoding="utf-8")
+    match = _SMOKE_REGISTRY.search(text)
+    assert match is not None, "smoke.ps1 no longer sets the GSettings registry State key"
+    assert match.group("value").replace("\\", ".") == meson_release_app_id()
