@@ -201,11 +201,3 @@ def test_broken_and_retired_games_are_kept_but_not_active() -> None:
     retired = parsed.get("gone")
     assert retired is not None
     assert retired.status is Status.RETIRED
-
-
-def test_a_later_generated_at_is_newer() -> None:
-    older = catalog.parse(catalog_bytes(generated_at="2026-10-15T12:00:00Z"))
-    newer = catalog.parse(catalog_bytes(generated_at="2026-10-15T14:00:00+01:00"))
-    assert catalog.is_newer(newer, older)
-    assert not catalog.is_newer(older, newer)
-    assert not catalog.is_newer(older, older)

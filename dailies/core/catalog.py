@@ -62,11 +62,6 @@ def parse(data: bytes) -> Catalog:
     )
 
 
-def is_newer(a: Catalog, b: Catalog) -> bool:
-    """Return whether catalog `a` was generated after catalog `b`."""
-    return a.generated_at > b.generated_at
-
-
 def _parse_game(record: Fields) -> Game:
     return Game(
         id=record.required("id", str),

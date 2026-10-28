@@ -9,20 +9,15 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-10-23. Inno Setup installer for the experimental Windows build (#242) on `ci/242-inno-setup-installer`, stacked
-on #243 (#84).
+2026-10-28. Dead `catalog.is_newer` (#262) on `refactor/262-drop-is-newer`.
 
-- **Outcome:** `windows.yml` downloads Inno Setup 7.1.0 (pinned SHA-256, `INNOSETUP_VERSION`/`INNOSETUP_SHA256`),
-  compiles `build-aux/windows/Dailies.iss.in` (filled in by Meson on Windows) over the `bundle.sh` tree, installs it
-  per user on the runner with `build-aux/windows/install-smoke.ps1` (starts the app, Start-menu shortcut, clean
-  uninstall) and uploads `Dailies-windows-x86_64-experimental-installer`. `bundle.sh` renders `Dailies.ico` from the
-  scalable icon with `rsvg-convert` and packs it with `build-aux/windows/make_ico.py` (tests in `tests/tooling`).
-- **Open follow-ups:** the installer is unsigned (SmartScreen warns); nobody has run it on real hardware.
+- **Outcome:** deleted `catalog.is_newer` and its only caller, `test_a_later_generated_at_is_newer`. The
+  `core/catalog.py` row of `docs/architecture.md` no longer names it; the `data/store.py` row now says where the
+  bundle-vs-cache rule lives (`Store._load`: the cache wins unless the bundled copy has a later `generated_at`, so a
+  tie keeps the cache). No behaviour change: nothing in `dailies/` called it.
+- **Open follow-ups:** none. Moving that rule into `dailies/core` as a pure function is a separate change the issue
+  does not ask for.
 - **Gotchas:**
-  - PowerShell's `Start-Process -Wait` waits for the whole process tree: on an installer whose last page starts the
-    app it never returns. Wait on the process itself (`WaitForExit()`, after touching `.Handle` so `ExitCode` is set).
-  - ISCC and other Windows programs take `/X` switches, which MSYS2's argument conversion may rewrite as paths; the
-    installer steps run in `pwsh`.
-  - GLib's Windows session bus (`gdbus.exe` from the app's `bin\`) quits 3 s after its last client and holds the GLib
-    DLLs until then; an uninstall started sooner leaves them behind.
-  - Iterating on a new workflow: a temporary `push:` trigger on a scratch branch runs it without opening a PR.
+  - No gate finds unused public functions (ruff `ALL` has no such rule, no vulture); grep `dailies/` before trusting
+    `docs/architecture.md` about where a rule lives.
+  - `docs/proposals/mvp-first.md` still mentions `is_newer`: it is the historical proposal, not the current layout.
