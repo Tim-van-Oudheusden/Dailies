@@ -149,7 +149,7 @@ def _on_download_started(_session: WebKit.NetworkSession, download: WebKit.Downl
 def _game_dirs_on_disk() -> set[str]:
     names: set[str] = set()
     for root in _web_dirs():
-        games = root / "games"
+        games = root / web.GAMES
         if games.is_dir():
             names.update(child.name for child in games.iterdir() if child.is_dir())
     return names
