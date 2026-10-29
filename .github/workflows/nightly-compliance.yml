@@ -6,7 +6,8 @@ name: Nightly compliance
 # flatpak-external-data-checker :latest that has stayed unpinned for 10 days
 # and, on Sundays (or when a manual run sets force_links), every active catalog
 # link. scripts/nightly-compliance.sh lists the checks; results land in the
-# run's job summary and as the nightly-compliance artifact.
+# run's job summary and as the nightly-compliance artifact, from which
+# auto-issues.yml opens, updates or closes the nightly compliance issue (#274).
 #
 # On main the link check keeps its weekly streaks in the link-check-state
 # artifact (90 days; each weekly run uploads a fresh one) and, when a game

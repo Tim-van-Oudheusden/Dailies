@@ -29,7 +29,7 @@ To add a metric:
 | [Unit-test coverage](#unit-test-coverage) | Line and branch coverage of `core` and `scripts` | `scripts/quality-report.sh` via `quality-report.yml` | Same as above | Job summary + `quality-report` artifact |
 | [Coverage floors](#coverage-floors) | Minimum coverage each module must keep | `.github/auto-qa-tuning.json`, enforced by `coverage-gate.yml` | Every PR and push to `main` | `Unit-test coverage floors` check; proposed floors as `auto-qa-tuning` artifact |
 | [PR acceptance rate](#pr-acceptance-rate) | Merged vs. closed-unmerged PRs, agent vs. other | `scripts/pr-metrics.sh` via `pr-metrics.yml` | Weekly (Mon 06:17 UTC), manual | Job summary |
-| [Nightly compliance](#nightly-compliance) | Checks that can go stale without a code change | `scripts/nightly-compliance.sh` via `nightly-compliance.yml` | Nightly (03:23 UTC), manual | Job summary + `nightly-compliance` artifact |
+| [Nightly compliance](#nightly-compliance) | Checks that can go stale without a code change | `scripts/nightly-compliance.sh` via `nightly-compliance.yml` | Nightly (03:23 UTC), manual | Job summary + `nightly-compliance` artifact; failing checks open the `ci: nightly compliance` issue (`auto-issues.yml`) |
 | [Risk tier](#risk-tier) | Review risk of each PR from the paths it changes | `scripts/tier-classify.sh` via `tier-classifier.yml` | Every PR | `Risk tier` job summary |
 | [Popularity report](#popularity-report) | Weekly popularity run success, stale weeks, data PRs merged unchanged vs edited | `scripts/popularity-report.sh` via `pr-metrics.yml`, over `popularity.yml` runs, `data/popularity` PRs and `data/v1/popularity.json` history | Weekly (Mon 06:17 UTC), manual | Job summary |
 
@@ -91,7 +91,9 @@ Checks that can go stale without a code change, run every night so drift shows u
 Dependabot alerts, advisories in the CI tools, the GNOME runtime's end of life, the ACMM self-check, a newer
 `flatpak-external-data-checker` image than the pinned one, and on Sundays the liveness of every game link. The checks
 and when each fails are listed in
-[`docs/testing.md`](../testing.md#nightly-compliance).
+[`docs/testing.md`](../testing.md#nightly-compliance). A failing check also opens, or updates, the one
+`ci: nightly compliance: N failing checks` issue, and the first passing run closes it
+([`docs/testing.md`](../testing.md#the-nightly-compliance-issue)).
 
 ```sh
 scripts/nightly-compliance.sh > nightly-compliance.md
