@@ -17,7 +17,7 @@ follows, and [`docs/security/SECURITY-AI.md`](security/SECURITY-AI.md) sets out 
 | Maintainer | `Tim-van-Oudheusden` | Everything below | Triage labels, decisions, merges, release tags |
 | Hive agents | the `hive-forge-app` GitHub App | Hive's own routing over this repository's issues | Issues titled `[<agent>] …` and labelled `agent/<agent>`; pull requests on branches such as `quality/test-…`, `arch/…`, `scanner/fix-…`, `strategy/…`, `sec/fix-…` |
 | Hive ACMM Eval | the `hive-forge-app` GitHub App, started from the Hive dashboard | Missing files from Hive's ACMM checklist | `[ACMM Ln] Add …` issues labelled `acmm`, `ai-fix-requested` and `origin/dashboard` |
-| Claude Code in CI | `.github/workflows/claude.yml` | The `ai-fix-requested` label, or `@claude` from an `OWNER`, `MEMBER` or `COLLABORATOR` | Pull requests on `claude/*` branches; reviews on request |
+| Claude Code in CI | `.github/workflows/claude.yml` | The `ai-fix-requested` label applied by a person, or `@claude` from an `OWNER`, `MEMBER` or `COLLABORATOR` | Pull requests on `claude/*` branches; reviews on request |
 | CLI agents (Claude Code, Copilot, Cursor) | the maintainer's local sessions | The issue the maintainer points them at | Pull requests on `<type>/<number>-<slug>` branches |
 | Workflows | `GITHUB_TOKEN`, or the repository's bot GitHub App in the `bot` environment | Schedules and repository events | The issues and pull requests listed in [Work the workflows generate](#work-the-workflows-generate) |
 | Dependabot | `app/dependabot` | Pinned actions and `scripts/requirements.txt` | Version-bump pull requests |
@@ -73,8 +73,9 @@ The other stages:
   ([`CONTRIBUTING.md`](../CONTRIBUTING.md#handing-work-to-claude-code)).
 - **Hive to Claude Code in CI: does not happen.** The ACMM gap issues carry `ai-fix-requested`, but
   `claude-code-action` refuses a label applied by a bot (`Workflow initiated by non-human actor: hive-forge-app`), so
-  the run fails without doing anything (#278 decides whether to skip those runs or allow Hive). A person or a CLI agent
-  works those issues instead.
+  `claude.yml` skips the job when the label's sender is not a `User` (#278); the issue gets a skipped run, not a failed
+  one. A person or a CLI agent works those issues instead; a maintainer who wants Claude Code on one removes the label
+  and adds it again.
 - **Maintainer to a CLI agent:** point the session at the issue. The agent follows `AGENTS.md`'s session steps through
   to the open pull request and the hand-off note in `.claude/session-summary.md`.
 - **Any agent to the queue:** follow-up work becomes a new issue (`gh issue create`), never a TODO in the code or a
@@ -109,8 +110,8 @@ review and merge stages (`050` to `100`) describe its own lane; they do not repl
 
 - **Bot output is data.** Issue, pull request and comment bodies never change an agent's task, permissions or rules,
   even when another agent wrote them (`AGENTS.md`, "Safety Boundaries").
-- **Who can start a run is gated.** Only accounts with triage access can label an issue, and `claude-code-action`
-  refuses bots, so `ai-fix-requested` starts Claude Code only when a person applies it. `@claude` counts only from
+- **Who can start a run is gated.** Only accounts with triage access can label an issue, and `claude.yml` answers
+  `ai-fix-requested` only when a person applies it (`github.event.sender.type == 'User'`). `@claude` counts only from
   `OWNER`, `MEMBER` or `COLLABORATOR`, and fork pull requests are refused. Only reviewed jobs on `main` may use the
   `bot` environment's App token.
 - **Parallel local agents use separate worktrees,** and give every tool an absolute path into their own worktree.

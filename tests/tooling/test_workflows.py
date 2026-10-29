@@ -293,6 +293,27 @@ def gated_concurrency_violations(name: str, workflow: dict) -> list[str]:
     ]
 
 
+LABEL_GATE = re.compile(r"\bgithub\.event\.label\.name\b")
+HUMAN_SENDER = re.compile(r"\bgithub\.event\.sender\.type\s*==\s*'User'")
+
+
+def bot_label_violations(name: str, workflow: dict) -> list[str]:
+    """A GitHub App can apply labels too (hive-forge-app files `ai-fix-requested` issues, #278). A label gate also
+    checks that a person applied it; a workflow-level group that queues on the label does the same, or a bot's label
+    would replace the pending run a person asked for."""
+    concurrency = workflow.get("concurrency")
+    group = str(concurrency.get("group", "") if isinstance(concurrency, dict) else concurrency or "")
+    violations = []
+    if LABEL_GATE.search(group) and not HUMAN_SENDER.search(group):
+        violations.append(f"{name}: the concurrency group queues a label without checking that a person applied it")
+    violations.extend(
+        f"{name}: job {job_id} gates on a label without checking that a person applied it"
+        for job_id, job in jobs_of(workflow).items()
+        if LABEL_GATE.search(str(job.get("if", ""))) and not HUMAN_SENDER.search(str(job.get("if", "")))
+    )
+    return violations
+
+
 def pull_request_target_violations(name: str, workflow: dict) -> list[str]:
     if "pull_request_target" not in triggers_of(workflow):
         return []
@@ -674,6 +695,11 @@ def test_a_per_event_gate_does_not_share_a_workflow_level_group(path: Path) -> N
 
 
 @pytest.mark.parametrize("path", FILES, ids=IDS)
+def test_a_label_gate_only_answers_a_person(path: Path) -> None:
+    assert bot_label_violations(path.name, load(path)) == []
+
+
+@pytest.mark.parametrize("path", FILES, ids=IDS)
 def test_pull_request_target_only_in_labeler_without_checkout(path: Path) -> None:
     assert pull_request_target_violations(path.name, load(path)) == []
 
@@ -971,6 +997,35 @@ jobs:
 )
 def test_fixture_gate_with_its_own_group_passes(workflow: str) -> None:
     assert gated_concurrency_violations("x.yml", load_yaml(workflow)) == []
+
+
+def test_fixture_label_gate_that_a_bot_can_pass_fails() -> None:
+    workflow = load_yaml("""
+concurrency:
+  group: c-${{ github.event.label.name == 'x' && 'queue' || github.run_id }}
+jobs:
+  run:
+    if: github.event.label.name == 'x'
+""")
+    assert bot_label_violations("x.yml", workflow) == [
+        "x.yml: the concurrency group queues a label without checking that a person applied it",
+        "x.yml: job run gates on a label without checking that a person applied it",
+    ]
+
+
+def test_fixture_label_gate_for_a_person_passes() -> None:
+    workflow = load_yaml("""
+concurrency:
+  group: c-${{ github.event.label.name == 'x' && github.event.sender.type == 'User' && 'queue' || github.run_id }}
+jobs:
+  run:
+    if: >-
+      github.event.label.name == 'x'
+      && github.event.sender.type == 'User'
+  other:
+    if: contains(github.event.issue.labels.*.name, 'x')
+""")
+    assert bot_label_violations("x.yml", workflow) == []
 
 
 def test_fixture_pull_request_target_outside_labeler_fails() -> None:
