@@ -91,6 +91,15 @@ def test_screenshot_urls_are_on_one_released_tag() -> None:
     assert versions <= released, (versions, sorted(released))
 
 
+def test_screenshot_urls_are_not_on_the_newest_release() -> None:
+    # The newest release's tag is pushed only after its version-bump and pin pull requests merge, and the Flatpak CI
+    # job's repo lint fetches every screenshot URL on those pull requests (appstream-missing-screenshots).
+    newest = RELEASE.search(METAINFO.read_text(encoding="utf-8"))
+    assert newest, "the metainfo lists no release"
+    versions = {match["version"] for match in image_urls()}
+    assert newest["version"] not in versions, (versions, newest["version"])
+
+
 def test_every_screenshot_file_is_listed_once_in_the_metainfo() -> None:
     names = [match["name"] for match in image_urls()]
     assert len(names) == len(set(names)), names
