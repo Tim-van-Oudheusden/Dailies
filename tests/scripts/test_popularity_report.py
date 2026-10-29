@@ -67,7 +67,7 @@ def test_reports_runs_stale_weeks_and_edited_pull_requests(tmp_path: Path) -> No
 
 @pytest.mark.parametrize("conclusion", ["timed_out", "startup_failure", "action_required"])
 def test_a_finished_run_that_did_not_succeed_counts_against_the_rate(tmp_path: Path, conclusion: str) -> None:
-    # Both jobs of popularity.yml have a timeout-minutes, so a slow Tranco ends as timed_out rather than failure.
+    # Every job of popularity.yml has a timeout-minutes, so a slow Tranco ends as timed_out rather than failure.
     result = report(tmp_path, [run("success"), run(conclusion)], [], "")
 
     assert result.returncode == 0, result.stderr

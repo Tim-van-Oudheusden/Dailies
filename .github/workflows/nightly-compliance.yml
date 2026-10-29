@@ -141,11 +141,13 @@ jobs:
     if: ${{ !cancelled() && github.ref == 'refs/heads/main' && needs.compliance.outputs.status-changes == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    permissions:
-      contents: write
-      pull-requests: write
+    # The bot App's token opens the pull request so CI runs on it (#79); the
+    # GITHUB_TOKEN stays read-only. A maintainer still merges it.
+    environment:
+      name: bot
+      deployment: false
     steps:
-      # create-pull-request configures its own token for the push.
+      # create-pull-request pushes with the bot App's token.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -178,10 +180,20 @@ jobs:
             esac
           done < <(git status --porcelain --untracked-files=all)
           exit "$status"
+      # A one-hour installation token with only the permissions the pull request needs.
+      - name: Create the bot token
+        id: bot
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.BOT_APP_ID }}
+          private-key: ${{ secrets.BOT_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
       # The week comes from changes.json, which pins it to the ISO week format.
       - name: Create pull request
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         with:
+          token: ${{ steps.bot.outputs.token }}
           branch: data/link-status
           delete-branch: true
           add-paths: data/v1/games.json

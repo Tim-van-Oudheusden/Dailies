@@ -30,9 +30,11 @@ maintainer-approved game names, never issue text or fetched web pages
 ([`SECURITY-AI.md`](../security/SECURITY-AI.md#the-popularity-report)).
 
 After the model, `scripts/popularity/report_guard.py` fails the job unless the only changes are
-`data/v1/popularity.json`, byte-identical to the `compute` job's artifact, and the week's report. Only then does it set
-`report` in `popularity.json`. A failed or skipped report never blocks the numbers: the pull request then carries the
-shelves alone. A maintainer reviews and merges the pull request, report included.
+`data/v1/popularity.json`, byte-identical to the `compute` job's artifact, and the week's report. The `pull-request`
+job then starts from the `compute` artifact and this report file alone, runs the guard again, which sets `report` in
+`popularity.json`, and opens the pull request with the bot GitHub App token. A failed or skipped report never blocks
+the numbers: the pull request then carries the shelves alone. The pull request, report included, merges itself once
+the required checks pass (#79); no person reads the report before it is published.
 
 ## Index
 
