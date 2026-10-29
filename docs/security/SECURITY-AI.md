@@ -151,7 +151,9 @@ Agent changes go through the same gates as human ones, with no shortcuts:
   - `.github/workflows/`: keep `permissions:` least-privilege (the reviewed scopes are listed in
     `tests/tooling/test_workflows.py`). Don't add `pull_request_target` to a job that checks out or runs PR code, and
     don't interpolate event fields into `run:` (pass them through `env:`). `labeler.yml` is the sanctioned
-    `pull_request_target` exception: it checks out nothing and runs only `actions/labeler`.
+    `pull_request_target` exception: it checks out nothing and runs only `actions/labeler`. `auto-issues.yml` is the
+    only `workflow_run` workflow: it runs from `main` with an `issues: write` token, so it takes only Nightly compliance
+    runs of `main` in this repository and uses their report artifact as issue text, never as code.
   - `.claude/settings.json`, `AGENTS.md`, `CLAUDE.md`, `prompts/`, and this file: any change that loosens agent
     boundaries needs explicit maintainer approval.
   - `build-aux/flatpak/*.json`: any new `finish-args` entry changes what the app can reach outside its sandbox.

@@ -1,3 +1,4 @@
+import importlib.util
 import json
 import os
 import shutil
@@ -245,3 +246,22 @@ def test_link_status_tracking_is_off_by_default(tmp_path: Path) -> None:
     run(tmp_path, [], FAKE_WEEKDAY="7")
 
     assert "state" not in (links_args(tmp_path) or "")
+
+
+def test_the_compliance_issue_script_reads_the_failing_rows_of_this_report(tmp_path: Path) -> None:
+    # .github/workflows/auto-issues.yml feeds this report to scripts/compliance_issue.py, which must keep reading it.
+    spec = importlib.util.spec_from_file_location("compliance_issue", ROOT / "scripts" / "compliance_issue.py")
+    assert spec is not None
+    assert spec.loader is not None
+    compliance_issue = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(compliance_issue)
+
+    failing = run(tmp_path, [HIGH_ALERT], FAKE_WEEKDAY="7", FAKE_LINKS_RC="1", FAKE_DIGEST_RC="1")
+    passing = run(tmp_path, [], FAKE_WEEKDAY="7")
+
+    # Catalog links are left out: the link check opens its own `data` issue.
+    assert compliance_issue.failing_checks(failing.stdout) == [
+        "Dependabot alerts (high+)",
+        "External data checker image is :latest",
+    ]
+    assert compliance_issue.failing_checks(passing.stdout) == []

@@ -191,6 +191,18 @@ check even when an earlier one fails, and exits non-zero if any failed:
 The alerts come from `gh api repos/$GITHUB_REPOSITORY/dependabot/alerts?state=open`, read with the job's `GITHUB_TOKEN`
 through the `vulnerability-alerts: read` permission, so no secret is needed.
 
+### The nightly compliance issue
+
+After each Nightly compliance run on `main`, `.github/workflows/auto-issues.yml` (`workflow_run`) downloads the run's
+`nightly-compliance` artifact and runs `scripts/compliance_issue.py --report nightly-compliance.md --run-url URL`
+with its `issues: write` token (#274). A failing check opens one issue `ci: nightly compliance: N failing checks`,
+labelled `ci` and `automated`, listing the failing checks and the run with the full report folded below them (cut to
+fit GitHub's 65536-character body limit), or updates the open one. The open issue is found by its body marker or that
+title. The first run where every check passes comments on it and closes it. A run that left no report (it failed before
+the upload) opens or updates it as `ci: nightly compliance: no report`. The `Catalog links (weekly)` row is left out:
+broken links have their own `data` issue (below). The script exits 0 once the issue matches the report and 2 on a usage
+error or when GitHub refuses a request. Cancelled runs and runs of other branches are ignored.
+
 ### Broken game links
 
 `scripts/check_links.py --catalog data/v1/games.json --out links.md` checks every `status: active` entry with the
