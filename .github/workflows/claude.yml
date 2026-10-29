@@ -1,8 +1,9 @@
 name: Claude Code
 
-# Hands an issue to Claude Code when a maintainer labels it `ai-fix-requested`,
-# or when a trusted collaborator mentions @claude on an issue or PR. Claude
-# works on a `claude/*` branch and opens a PR; it never pushes to main.
+# Hands an issue to Claude Code when a maintainer labels it `ai-fix-requested`
+# (a label applied by a bot or GitHub App is skipped, #278), or when a trusted
+# collaborator mentions @claude on an issue or PR. Claude works on a `claude/*`
+# branch and opens a PR; it never pushes to main.
 # Needs the CLAUDE_CODE_OAUTH_TOKEN repo secret and the Claude GitHub App.
 # See CONTRIBUTING.md "Handing work to Claude Code" and docs/security/SECURITY-AI.md.
 
@@ -27,7 +28,7 @@ concurrency:
   # own, so it cannot cancel a pending run that was really asked for.
   group: >-
     claude-${{ github.event.issue.number || github.event.pull_request.number }}-${{
-    (github.event.label.name == 'ai-fix-requested'
+    ((github.event.label.name == 'ai-fix-requested' && github.event.sender.type == 'User')
     || (contains(format('{0}{1}', github.event.comment.body, github.event.review.body), '@claude')
     && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association || github.event.review.author_association)))
     && 'queue' || github.run_id }}
@@ -36,11 +37,15 @@ concurrency:
 jobs:
   claude:
     name: Claude Code
-    # Labels can only be applied by triagers; mentions are limited to people
-    # with write access so outside commenters cannot spend runs or steer them.
+    # Labels can only be applied by triagers, and only a person's label counts:
+    # claude-code-action refuses a bot sender (hive-forge-app files issues with
+    # `ai-fix-requested`), so that run would only fail (#278). Mentions are
+    # limited to people with write access so outside commenters cannot spend
+    # runs or steer them.
     if: >-
       (github.event_name == 'issues'
-        && github.event.label.name == 'ai-fix-requested')
+        && github.event.label.name == 'ai-fix-requested'
+        && github.event.sender.type == 'User')
       || (github.event_name == 'issue_comment'
         && contains(github.event.comment.body, '@claude')
         && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
