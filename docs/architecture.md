@@ -338,11 +338,12 @@ request. Otherwise `scripts/add_game.py` inserts the entry sorted by id, bumps `
 formatting, so the diff is the new entry plus that one line; `scripts/icons/fetch_icon.py --id <slug>` then fetches the
 game's icon (see **Game icons** below); the whole catalog is checked with `check-jsonschema` and `pytest tests/data`,
 and `data/add-<slug>` becomes a pull request `data(games): add <name>` that closes the issue.
-Pull requests opened with `GITHUB_TOKEN` start no CI, so the required checks never appear and the maintainer merges
-with the ruleset's admin bypass, on the strength of stage B's checks. A weekly link check (Sundays, in the nightly
+Stage B's `add` job, which reads the issue and fetches the icon, holds no write token; its `pull-request` job applies
+the change on a fresh runner and opens the pull request with the repository's bot GitHub App token (#79), so the
+required checks run on it, and the maintainer reviews and merges it. A weekly link check (Sundays, in the nightly
 compliance workflow) opens one issue listing broken entries, and a `data/link-status` pull request with the `status`
 change once a game failed the same check two weeks in a row (or passed again two weeks in a row, or was hijacked to a
-gambling page), never a deletion; the maintainer merges it.
+gambling page), never a deletion; it is opened with the same token and the maintainer merges it.
 
 **Popularity.** Numbers are computed by deterministic Python; a language model may only write prose. The main source
 is the Tranco rank of each game's registrable domain, smoothed over seven days and log-scaled; every game on a
@@ -369,9 +370,12 @@ first and falls back to `raw.githubusercontent.com` on a server error, a 429 or 
 **Weekly report.** In the `publish` job of `popularity.yml`, `anthropics/claude-code-action` writes
 `docs/popularity/<week>.md` from `summary.json` and `popularity.json`; it may write that one file and nothing else.
 `scripts/popularity/report_guard.py` then fails the job unless `git status` shows only that report and a
-`popularity.json` byte-identical to the `compute` artifact, and only then sets `report` to `../popularity/<week>.md`.
-The step has `continue-on-error`, so a failed report still leaves the numbers-only pull request
-([`docs/popularity/`](popularity/README.md), [`SECURITY-AI.md`](security/SECURITY-AI.md#the-popularity-report)).
+`popularity.json` byte-identical to the `compute` artifact. The `pull-request` job, on a fresh runner without the
+model, takes the shelves from the `compute` artifact and only the report file from `publish`, runs the guard again,
+which sets `report` to `../popularity/<week>.md`, and opens the pull request with the bot GitHub App token. It merges
+itself once the required checks pass (#79). The report step has `continue-on-error`, so a failed report still leaves
+the numbers-only pull request ([`docs/popularity/`](popularity/README.md),
+[`SECURITY-AI.md`](security/SECURITY-AI.md#the-popularity-report)).
 
 **Releases.** See [Releasing in `CONTRIBUTING.md`](../CONTRIBUTING.md#releasing). The tag, `version:` in `meson.build`
 and the newest metainfo `<release>` must agree, which the `verify` job checks before anything is built. Bundles do not

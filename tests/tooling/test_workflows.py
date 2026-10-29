@@ -42,8 +42,10 @@ JOB_PERMISSIONS: dict[tuple[str, str], dict[str, str]] = {
     },
     # Comment the validation report on the submission issue and set its labels.
     ("game-submission-check.yml", "check"): {"contents": "read", "issues": "write"},
-    # Stage B: push data/add-<slug> and open the PR; comment on the submission issue.
-    ("game-submission-approve.yml", "add"): {"contents": "write", "pull-requests": "write", "issues": "write"},
+    # Stage B: comment on an invalid submission. The pull request job opens the PR with the bot App's token.
+    ("game-submission-approve.yml", "add"): {"contents": "read", "issues": "write"},
+    # Link the pull request, opened with the bot App's token, on the submission issue.
+    ("game-submission-approve.yml", "pull-request"): {"contents": "read", "issues": "write"},
     # actions/labeler reads .github/labeler.yml and labels the PR.
     ("labeler.yml", "label"): {"contents": "read", "pull-requests": "write"},
     # List Dependabot alerts; open or update the broken-links `data` issue; download last week's link-check state
@@ -54,12 +56,8 @@ JOB_PERMISSIONS: dict[tuple[str, str], dict[str, str]] = {
         "issues": "write",
         "vulnerability-alerts": "read",
     },
-    # create-pull-request pushes data/link-status and opens the status-change PR.
-    ("nightly-compliance.yml", "link-status"): {"contents": "write", "pull-requests": "write"},
     # actions/deploy-pages: deploy the artifact, authenticated through OIDC.
     ("pages.yml", "deploy"): {"pages": "write", "id-token": "write"},
-    # create-pull-request pushes data/popularity and opens the numbers-only PR.
-    ("popularity.yml", "publish"): {"contents": "write", "pull-requests": "write"},
     # Check out scripts/ and list closed PRs.
     ("pr-metrics.yml", "acceptance"): {"contents": "read", "pull-requests": "read"},
     # Check out scripts/ and the popularity.json history, list popularity.yml runs and merged data/popularity PRs.
@@ -78,10 +76,26 @@ CONTAINER_TAG_ALLOWLIST: dict[str, str] = {}
 
 # Jobs reviewed to use the `bot` environment, by (workflow file, job id). It holds the self-created GitHub App's key
 # (BOT_APP_ID, BOT_APP_PRIVATE_KEY; #269), whose tokens can push workflow changes and open pull requests that start CI.
-# Only main may use the environment, and a job that uses it may run no docker:// image.
+# Only main may use the environment. A job that uses it starts on a fresh runner from artifacts and our own scripts:
+# it may run no docker:// image and no model step, and it never processes issue text or fetched pages itself (#79).
 BOT_ENVIRONMENT_JOBS: dict[tuple[str, str], str] = {
     # Moves the flatpak-external-data-checker pin and opens the ci/checker-pin pull request.
     ("nightly-compliance.yml", "checker-pin"): "check_checker_digest.py --bump, then create-pull-request",
+    # Applies the link check's changes.json to the newest main and opens data/link-status.
+    (
+        "nightly-compliance.yml",
+        "link-status",
+    ): "apply_link_status.py on the compliance artifact, then create-pull-request",
+    # Puts the compute job's shelves and the report file in place, guards them and opens data/popularity.
+    ("popularity.yml", "pull-request"): "report_guard.py on the compute and report artifacts, then create-pull-request",
+    # Applies the add job's catalog patch and opens data/add-<slug>.
+    ("game-submission-approve.yml", "pull-request"): "git apply of the add job's patch, then create-pull-request",
+}
+
+# Jobs reviewed to merge pull requests (`gh pr merge`), by (workflow file, job id). Only the weekly popularity numbers
+# merge themselves once the required checks pass (#79); catalog and link-status changes stay human-merged.
+AUTO_MERGE_JOBS: dict[tuple[str, str], str] = {
+    ("popularity.yml", "pull-request"): "gh pr merge --auto --merge on the data/popularity pull request",
 }
 
 # The labels documented in #18, which the owner created by hand; actions/labeler cannot create them.
@@ -472,32 +486,53 @@ FETCH_ICON = "scripts/icons/fetch_icon.py"
 CREATE_PULL_REQUEST = "peter-evans/create-pull-request@"
 
 
+def needs_of(job: dict) -> set[str]:
+    """The job ids a job `needs`; `needs:` is one id or a list."""
+    needs = job.get("needs") or []
+    return {needs} if isinstance(needs, str) else set(needs)
+
+
 def icon_fetch_violations(name: str, workflow: dict) -> list[str]:
     """A job that adds a game with scripts/add_game.py and opens a pull request must fetch the game's icon (#148).
 
     The fetch goes between the new entry and the catalog check, so `check-jsonschema` sees the `icon` and
     `icon_source` fields it writes, and the pull request commits its `--out` directory; otherwise a game approved
-    through the Add a game form gets no icon until someone runs the fetcher by hand.
+    through the Add a game form gets no icon until someone runs the fetcher by hand. The pull request is opened in the
+    same job or, from that job's artifact, in a job that needs it (#79: only that job holds the bot App's token).
     """
+    jobs = jobs_of(workflow)
     violations = []
-    for job_id, job in jobs_of(workflow).items():
+    for job_id, job in jobs.items():
         steps = job.get("steps") or []
         runs = [str(step.get("run", "")) for step in steps]
         adds = [i for i, run in enumerate(runs) if ADD_GAME in run]
-        prs = [i for i, step in enumerate(steps) if str(step.get("uses", "")).startswith(CREATE_PULL_REQUEST)]
-        if not adds or not prs:
+        if not adds:
             continue
-        add, pr = adds[0], prs[0]
-        fetches = [i for i, run in enumerate(runs) if FETCH_ICON in run and add < i < pr]
+        prs = [i for i, step in enumerate(steps) if str(step.get("uses", "")).startswith(CREATE_PULL_REQUEST)]
+        later = [
+            step
+            for other in jobs.values()
+            if job_id in needs_of(other)
+            for step in other.get("steps") or []
+            if str(step.get("uses", "")).startswith(CREATE_PULL_REQUEST)
+        ]
+        if prs:
+            end, pr_step = prs[0], steps[prs[0]]
+        elif later:
+            end, pr_step = len(steps), later[0]
+        else:
+            continue
+        add = adds[0]
+        fetches = [i for i, run in enumerate(runs) if FETCH_ICON in run and add < i < end]
         if not fetches:
             violations.append(f"{name}: job {job_id} adds a game but does not fetch its icon")
             continue
         fetch = fetches[0]
-        if not any("check-jsonschema" in run for run in runs[fetch + 1 : pr]):
+        if not any("check-jsonschema" in run for run in runs[fetch + 1 : end]):
             violations.append(f"{name}: job {job_id} does not check the catalog after fetching the icon")
         args = shlex.split(runs[fetch].replace("\\\n", " "))
         out = args[args.index("--out") + 1].rstrip("/") if "--out" in args[:-1] else None
-        add_paths = re.split(r"[\s,]+", str((steps[pr].get("with") or {}).get("add-paths", "")).strip())
+        add_paths = re.split(r"[\s,]+", str((pr_step.get("with") or {}).get("add-paths", "")).strip())
         if out is None or not any(within(out, path.rstrip("/")) for path in add_paths if path):
             violations.append(f"{name}: job {job_id} fetches icons into {out} but its pull request does not add them")
     return violations
@@ -534,6 +569,9 @@ def environment_of(job: dict) -> str | None:
     return str(environment.get("name")) if isinstance(environment, dict) else environment
 
 
+CLAUDE_ACTION = "anthropics/claude-code-action@"
+
+
 def bot_environment_violations(
     name: str, workflow: dict, reviewed: dict[tuple[str, str], str] = BOT_ENVIRONMENT_JOBS
 ) -> list[str]:
@@ -546,9 +584,22 @@ def bot_environment_violations(
         violations.extend(
             f"{name}: job {job_id} uses the bot environment and runs {step['uses']}"
             for step in job.get("steps") or []
-            if str(step.get("uses", "")).startswith("docker://")
+            if str(step.get("uses", "")).startswith(("docker://", CLAUDE_ACTION))
         )
     return violations
+
+
+GH_PR_MERGE = re.compile(r"\bgh\s+pr\s+merge\b")
+
+
+def merge_violations(name: str, workflow: dict, reviewed: dict[tuple[str, str], str] = AUTO_MERGE_JOBS) -> list[str]:
+    """Only reviewed jobs merge pull requests; every other bot pull request waits for a maintainer (#79)."""
+    return [
+        f"{name}: job {job_id} merges pull requests without a reviewed row"
+        for job_id, job in jobs_of(workflow).items()
+        if (name, job_id) not in reviewed
+        and any(GH_PR_MERGE.search(str(step.get("run", ""))) for step in job.get("steps") or [])
+    ]
 
 
 # --- the repository's files -------------------------------------------------------------------------------------------
@@ -672,6 +723,21 @@ def test_every_reviewed_bot_environment_row_names_a_job_that_uses_it() -> None:
         if environment_of(job) == "bot"
     }
     assert sorted(set(BOT_ENVIRONMENT_JOBS) - using) == []
+
+
+@pytest.mark.parametrize("path", FILES, ids=IDS)
+def test_only_reviewed_jobs_merge_pull_requests(path: Path) -> None:
+    assert merge_violations(path.name, load(path)) == []
+
+
+def test_every_reviewed_merge_row_names_a_job_that_merges() -> None:
+    merging = {
+        (path.name, job_id)
+        for path in FILES
+        for job_id, job in jobs_of(load(path)).items()
+        if any(GH_PR_MERGE.search(str(step.get("run", ""))) for step in job.get("steps") or [])
+    }
+    assert sorted(set(AUTO_MERGE_JOBS) - merging) == []
 
 
 # --- each check catches a broken fixture ------------------------------------------------------------------------------
@@ -1133,6 +1199,42 @@ jobs:
     assert icon_fetch_violations("links.yml", workflow) == []
 
 
+def split_submission_fixture(add_paths: str) -> dict:
+    """The add job prepares the change; the pull-request job, which needs it, opens the PR from its artifact."""
+    return load_yaml(f"""
+jobs:
+  add:
+    steps:
+      - id: add
+        run: python -I scripts/add_game.py --entry result.json --catalog data/v1/games.json{FETCH_STEP}{CHECK_STEP}
+  pull-request:
+    needs: add
+    steps:
+      - run: git apply "$RUNNER_TEMP/change/catalog.patch"
+      - uses: {CREATE_PULL_REQUEST}5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          add-paths: {add_paths}
+""")
+
+
+def test_fixture_icon_committed_by_the_job_that_needs_the_add_job_passes() -> None:
+    assert icon_fetch_violations("approve.yml", split_submission_fixture(ICON_ADD_PATHS)) == []
+
+
+def test_fixture_icon_left_out_by_the_job_that_needs_the_add_job_fails() -> None:
+    assert icon_fetch_violations("approve.yml", split_submission_fixture("data/v1/games.json")) == [
+        "approve.yml: job add fetches icons into data/v1/icons but its pull request does not add them"
+    ]
+
+
+def test_fixture_added_game_without_an_icon_fetch_before_a_dependent_pull_request_fails() -> None:
+    workflow = split_submission_fixture(ICON_ADD_PATHS)
+    workflow["jobs"]["add"]["steps"] = workflow["jobs"]["add"]["steps"][:1]
+    assert icon_fetch_violations("approve.yml", workflow) == [
+        "approve.yml: job add adds a game but does not fetch its icon"
+    ]
+
+
 def checker_fixture(args: str, then: str = "") -> dict:
     return load_yaml(f"""
 jobs:
@@ -1193,6 +1295,20 @@ jobs:
     ]
 
 
+def test_fixture_bot_environment_job_with_a_model_step_fails() -> None:
+    claude = "anthropics/claude-code-action@db77d4d3c98f3f6380e7cd45ffba2342a3dbde3c"
+    workflow = load_yaml(f"""
+jobs:
+  publish:
+    environment: bot
+    steps:
+      - uses: {claude} # v1.0.254
+""")
+    assert bot_environment_violations("x.yml", workflow, reviewed={("x.yml", "publish"): "fixture"}) == [
+        f"x.yml: job publish uses the bot environment and runs {claude}"
+    ]
+
+
 def test_fixture_reviewed_bot_environment_job_and_other_environments_pass() -> None:
     workflow = load_yaml(f"""
 jobs:
@@ -1207,3 +1323,28 @@ jobs:
       - uses: {CHECKER}@sha256:{"a" * 64}
 """)
     assert bot_environment_violations("x.yml", workflow, reviewed={("x.yml", "pin"): "fixture"}) == []
+
+
+@pytest.mark.parametrize(
+    "run",
+    ['gh pr merge --auto --merge "$PR_URL"', "gh  pr merge 12", "set -e\nGH_TOKEN=x gh pr merge --squash 3"],
+    ids=["auto", "spaced", "later-line"],
+)
+def test_fixture_unreviewed_job_that_merges_pull_requests_fails(run: str) -> None:
+    workflow = load_yaml("jobs:\n  links:\n    steps:\n      - run: |\n          " + run.replace("\n", "\n          "))
+    assert merge_violations("x.yml", workflow, reviewed={}) == [
+        "x.yml: job links merges pull requests without a reviewed row"
+    ]
+
+
+def test_fixture_reviewed_merge_and_other_gh_pr_commands_pass() -> None:
+    workflow = load_yaml("""
+jobs:
+  publish:
+    steps:
+      - run: gh pr merge --auto --merge "$PR_URL"
+  links:
+    steps:
+      - run: gh pr view 12 --json mergedAt && gh pr list --state merged
+""")
+    assert merge_violations("x.yml", workflow, reviewed={("x.yml", "publish"): "fixture"}) == []

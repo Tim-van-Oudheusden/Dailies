@@ -171,7 +171,7 @@ week's trend.
 | `scores` | object: game `id` → [score](#score) | no | Per-game detail behind the shelves |
 | `sources` | object: source name → [source health](#source-health) | yes | One entry per signal collected this week; `{}` when hand-curated |
 | `attribution` | array of strings | yes | Credit lines for every external source used, including its licence; `[]` when none was used |
-| `report` | string | no | URL of the week's human-readable report relative to `popularity.json` on GitHub Pages, e.g. `../popularity/2026-W42.md` (`docs/popularity/2026-W42.md` in the repository). Set by the publish job only when a report was written; see [`docs/popularity/`](popularity/README.md) |
+| `report` | string | no | URL of the week's human-readable report relative to `popularity.json` on GitHub Pages, e.g. `../popularity/2026-W42.md` (`docs/popularity/2026-W42.md` in the repository). Set by `scripts/popularity/report_guard.py` only when a report was written; see [`docs/popularity/`](popularity/README.md) |
 
 ### Ranked item
 

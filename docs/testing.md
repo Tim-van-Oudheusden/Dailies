@@ -220,8 +220,8 @@ A second run in the same week (a manual run) is not a second week. When a status
 `scripts/apply_link_status.py` (sets `status`, appends the `history` event, updates `generated_at`, writes the file
 in its committed format, never removes an entry), and opens or updates the pull request on branch `data/link-status`
 with `peter-evans/create-pull-request`, labelled `data` and `automated`. A maintainer reviews and merges it; a game
-that only moved needs its `url` and `domain` changed by hand instead. Pull requests opened with `GITHUB_TOKEN` start no
-CI, as with the popularity pull request.
+that only moved needs its `url` and `domain` changed by hand instead. The pull request is opened with the bot GitHub App
+token (#79), so CI runs on it, as on the popularity pull request.
 
 The streaks live in the `link-check-state` workflow artifact (90-day retention; each weekly run on `main` downloads the
 newest one with the job's `actions: read` permission and uploads a fresh one), not in a committed file: `main` is
@@ -242,8 +242,8 @@ and a link to the upstream commits between them.
 The `GITHUB_TOKEN` cannot push a change to a workflow file, so the job uses a one-hour token of the repository's own
 GitHub App (`actions/create-github-app-token`, with `contents`, `pull-requests` and `workflows` write). Its key lives in
 the `bot` environment, which only `main` may use; `tests/tooling/test_workflows.py` allows only reviewed jobs in that
-environment, none of which may run a `docker://` image. Pull requests opened with that token start CI. A maintainer
-reviews and merges.
+environment, none of which may run a `docker://` image or a model step. Pull requests opened with that token start CI.
+A maintainer reviews and merges.
 
 | Newest `:latest` built | Nightly row | `checker-pin` job |
 | --- | --- | --- |

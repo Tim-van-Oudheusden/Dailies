@@ -97,9 +97,9 @@ We favour small, focused changes tied to a tracked issue.
 force-pushes or deletion; changes land only through pull requests whose `PR review rubric`, `Build, lint, test`,
 `Unit-test coverage floors`, `Static checks` and `Flatpak (x86_64)` checks pass. Pull requests merge with a merge
 commit only (no squash or rebase), so each issue's single commit lands on `main` unchanged, and the head branch is
-deleted on merge. Repository admins can bypass the ruleset when merging a pull request (bot data pull requests opened
-with `GITHUB_TOKEN` run no checks), never to push directly. The file is the source of truth: a change to it lands by
-PR, then a maintainer applies it with
+deleted on merge. Repository admins can bypass the ruleset when merging a pull request (the release-manifest pin pull
+request, opened with `GITHUB_TOKEN`, runs no checks), never to push directly. The file is the source of truth: a
+change to it lands by PR, then a maintainer applies it with
 `gh api -X PUT repos/Tim-van-Oudheusden/Dailies/rulesets/<id> --input .github/rulesets/main.json` (the first time,
 when no ruleset exists yet:
 `gh api -X POST repos/Tim-van-Oudheusden/Dailies/rulesets --input .github/rulesets/main.json`).
@@ -265,11 +265,11 @@ id, fetches the game's icon with `scripts/icons/fetch_icon.py --id <slug>`, chec
 `check-jsonschema` and `pytest tests/data`, and opens a pull request `data(games): add <name>` from `data/add-<slug>`
 with `Closes #<issue>`. The label only counts when a person with write access to the repository adds it; from anyone
 else, or from a bot, stage B stops before it opens anything. If the submission no longer passes, stage B comments on
-the issue and opens no pull request; once it passes again, remove and re-add `approved`. The workflow opens the pull
-request with `GITHUB_TOKEN`, which starts no CI, so its required checks never appear: review the diff (the new entry
-with its `icon` and `icon_source`, `generated_at`, and `data/v1/icons/<slug>.png`, or only `icon_source: "none"` when
-the site has no usable icon) and merge with the ruleset's admin bypass. It needs "Allow GitHub Actions to create and
-approve pull requests" under Settings > Actions > General.
+the issue and opens no pull request; once it passes again, remove and re-add `approved`. The workflow's `add` job, which
+reads the issue and fetches the icon, hands a patch to its `pull-request` job, which opens the pull request with the
+repository's bot GitHub App token (#79), so the required checks run on it: review the diff (the new entry with its
+`icon` and `icon_source`, `generated_at`, and `data/v1/icons/<slug>.png`, or only `icon_source: "none"` when the site
+has no usable icon) and merge it once they pass. Catalog pull requests never merge themselves.
 
 ## Releasing
 

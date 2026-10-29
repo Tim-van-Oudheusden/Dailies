@@ -82,15 +82,19 @@ The step is boxed in by Claude Code's permissions and checked afterwards:
   the branch a maintainer dispatched), whose files went through review; the only write allowed is the week's report,
   granted as an `Edit(/docs/popularity/<week>.md)` rule (Claude Code ignores path rules written for `Write`, and a bare
   `Write` would allow writes anywhere on the runner). A headless session cannot ask, so everything else is denied. At
-  most six turns. The action is given the job's own token, not the Claude GitHub App's, and without a shell the model
-  cannot use it.
+  most six turns. The action is given the job's own token, which is read-only (the `publish` job opens no pull
+  request), not the Claude GitHub App's, and without a shell the model cannot use it.
 - Guard: `scripts/popularity/report_guard.py` runs from a copy taken before the model starts. It fails the job with an
   `::error::` if `git status` shows any change besides `data/v1/popularity.json` and the week's report, if
   `popularity.json` is not byte-identical to a fresh download of the `compute` artifact, if the report is not a
   regular file, or if `.git/config` differs from its copy (the workflow restores it first, removing the token the
   action writes into the remote URL). `tests/scripts/test_report_guard.py` includes a tampered `games.json`.
-- Review: only after the guard passes is the report linked from `popularity.json` and the pull request opened; a
-  maintainer reviews and merges it. A failed report step (`continue-on-error`) leaves the numbers-only pull request.
+- Pull request: the `pull-request` job runs on a fresh runner without the model. It takes the shelves from the
+  `compute` artifact and only the week's report file from `publish`, runs the guard again from its own checkout, which
+  links the report from `popularity.json`, and opens the pull request with the bot GitHub App token. The pull request
+  merges itself once the required checks pass (#79), so no person reads the report before GitHub Pages publishes it;
+  the guard, the read-only inputs above and CI are the controls. A failed report step (`continue-on-error`) leaves
+  the numbers-only pull request.
 
 ## Secrets
 
@@ -99,11 +103,14 @@ The step is boxed in by Claude Code's permissions and checked afterwards:
 - Tokens such as `GITHUB_TOKEN` exist only in the shell environment (`export GITHUB_TOKEN="$(gh auth token)"`); CI
   secrets such as `CLAUDE_CODE_OAUTH_TOKEN` exist only in GitHub Actions. Never echo, log, commit, or paste them into a
   prompt, issue, PR, or comment.
-- The `bot` environment holds the key of the repository's own GitHub App (`BOT_APP_ID`, `BOT_APP_PRIVATE_KEY`; #269).
-  Its tokens can push workflow changes and open pull requests that start CI, so only `main` may use the environment,
-  only the jobs reviewed in `BOT_ENVIRONMENT_JOBS` (`tests/tooling/test_workflows.py`) may name it, and none of them
-  may run a `docker://` image or a model step. Each run mints a one-hour token with only the permissions it needs. To
-  revoke, delete the key under the App's settings, **Private keys**, then generate a new one and replace the secret.
+- The `bot` environment holds the key of the repository's own GitHub App (`BOT_APP_ID`, `BOT_APP_PRIVATE_KEY`; #269,
+  #79). Its tokens can push workflow changes and open and merge pull requests that start CI, so only `main` may use the
+  environment and only the jobs reviewed in `BOT_ENVIRONMENT_JOBS` (`tests/tooling/test_workflows.py`) may name it:
+  the pull-request jobs of `popularity.yml` and `game-submission-approve.yml`, and `link-status` and `checker-pin` in
+  `nightly-compliance.yml`. Each starts on a fresh runner from artifacts and the repository's own scripts; none may
+  run a `docker://` image or a model step, or read issue text or fetched pages itself. Only the popularity job may
+  merge (`AUTO_MERGE_JOBS`). Each run mints a one-hour token with only the permissions it needs. To revoke, delete the
+  key under the App's settings, **Private keys**, then generate a new one and replace the secret.
 - If an agent exposes a secret, rotate it right away, then record what happened (see [Reporting](#reporting)).
 
 ## Supply chain

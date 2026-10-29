@@ -28,17 +28,16 @@ one before that, and what to do once the change is merged.
   [nightly compliance](../../.github/workflows/nightly-compliance.yml) workflow. A game becomes `broken` only after it
   fails the same check in two consecutive ISO weeks, and a manual run in the same week does not count as a second
   week. Only a redirect to another site whose page title holds a blocklisted gambling keyword (`hijacked`) is retired
-  at once. Its pull request is opened with `GITHUB_TOKEN`, so it starts no CI and waits for a maintainer's merge. A
-  hijack reported on a Monday can stay live for up to two weeks unless someone acts on it by hand, as below. See
-  [Broken game links](../testing.md#broken-game-links) for the full rules.
+  at once. Its pull request is opened with the bot GitHub App token, so its checks run, and it waits for a maintainer's
+  merge. A hijack reported on a Monday can stay live for up to two weeks unless someone acts on it by hand, as below.
+  See [Broken game links](../testing.md#broken-game-links) for the full rules.
 
 ## Response
 
 ### Diagnose
 
-1. If a `data/link-status` pull request already proposes the change for this game, review it and merge it, using the
-   ruleset's admin bypass because its checks never start. That is the fix: go to [Confirm it is
-   published](#confirm-it-is-published).
+1. If a `data/link-status` pull request already proposes the change for this game, review it and merge it once its
+   checks pass. That is the fix: go to [Confirm it is published](#confirm-it-is-published).
 2. Check the link from outside the app. Do not open a suspected hijack in your everyday browser; follow the redirects
    from the command line instead:
 

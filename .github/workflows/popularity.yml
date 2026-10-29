@@ -2,10 +2,11 @@ name: Weekly popularity
 
 # Every Monday: collect the Tranco ranks of every active game's domain and the Wikipedia pageviews of the games with an
 # article (method_version 4), compute the Popular and Trending shelves deterministically, validate them against the
-# schema, let Claude write the weekly report (issue #66) and open a pull request. Fails closed: when Tranco failed for
-# too many domains, compute.py exits non-zero, nothing is published and data/v1/popularity.json stays as it is. The
-# model writes prose only: a guard fails the job if it changed anything but docs/popularity/<week>.md, and a failed
-# report never blocks the numbers. A maintainer merges the PR; main is protected.
+# schema, let Claude write the weekly report (issue #66) and open a pull request that merges itself once the required
+# checks pass (#79). Fails closed: when Tranco failed for too many domains, compute.py exits non-zero, nothing is
+# published and data/v1/popularity.json stays as it is. The model writes prose only: a guard fails the job if it changed
+# anything but docs/popularity/<week>.md, and a failed report never blocks the numbers. The pull request is opened in
+# its own job, from the compute job's shelves and the report file, with the bot App's token, so CI runs on it.
 # Scheduled workflows in public repositories are disabled after 60 days without activity; re-enable this one from
 # the Actions tab (docs/runbooks/re-enable-cron.md).
 
@@ -81,7 +82,7 @@ jobs:
             ${{ runner.temp }}/raw/
             ${{ runner.temp }}/result/summary.json
           retention-days: 90
-      - name: Upload the result for the publish job
+      - name: Upload the result for the publish and pull-request jobs
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: popularity-result
@@ -90,17 +91,14 @@ jobs:
           retention-days: 7
 
   publish:
-    name: Write the report and open the data pull request
+    name: Write the report
     needs: compute
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    permissions:
-      contents: write
-      pull-requests: write
     env:
       WEEK: ${{ needs.compute.outputs.week }}
     steps:
-      # create-pull-request configures its own token for the push.
+      # The job token is read-only: the model's job holds no write access (#79).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -153,15 +151,73 @@ jobs:
         with:
           name: popularity-result
           path: ${{ runner.temp }}/reference
-      # Only the shelves (byte-identical to the compute artifact) and the week's report may change; on success the
-      # report, if written, is linked from popularity.json.
+      # Only the shelves (byte-identical to the compute artifact) and the week's report may change.
       - name: Guard the changed paths and link the report
         run: >-
           python3 -I "$RUNNER_TEMP/trusted/report_guard.py" --week "$WEEK"
           --reference "$RUNNER_TEMP/reference/popularity.json" --git-config "$RUNNER_TEMP/trusted/config"
+      # docs/popularity/ always holds README.md, so the artifact exists even in a week without a report. The
+      # pull-request job takes only <week>.md from it.
+      - name: Upload the report for the pull-request job
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: popularity-report
+          path: docs/popularity/
+          if-no-files-found: error
+          retention-days: 7
+
+  pull-request:
+    name: Open and auto-merge the data pull request
+    needs: [compute, publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # A fresh runner with no model step: the shelves come from the compute artifact and only the report file from the
+    # publish job. The bot App's token opens the pull request, so CI runs on it, and turns on auto-merge (#79).
+    environment:
+      name: bot
+      deployment: false
+    env:
+      WEEK: ${{ needs.compute.outputs.week }}
+    steps:
+      # create-pull-request pushes with the bot App's token.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: popularity-result
+          path: ${{ runner.temp }}/result
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: popularity-report
+          path: ${{ runner.temp }}/report
+      # The schema pins WEEK to ^\d{4}-W\d{2}$, so it is safe in a path.
+      - name: Put the shelves and the report in place
+        run: |
+          set -euo pipefail
+          cp "$RUNNER_TEMP/result/popularity.json" data/v1/popularity.json
+          if [ -f "$RUNNER_TEMP/report/$WEEK.md" ]; then
+            cp "$RUNNER_TEMP/report/$WEEK.md" "docs/popularity/$WEEK.md"
+          fi
+      # Again, from this job's own checkout: only the shelves and the week's report may change; the report is linked.
+      - name: Guard the changed paths and link the report
+        run: >-
+          python3 -I scripts/popularity/report_guard.py --week "$WEEK"
+          --reference "$RUNNER_TEMP/result/popularity.json"
+      # A one-hour installation token with only the permissions the pull request and its auto-merge need.
+      - name: Create the bot token
+        id: bot
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.BOT_APP_ID }}
+          private-key: ${{ secrets.BOT_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
       - name: Create pull request
+        id: cpr
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         with:
+          token: ${{ steps.bot.outputs.token }}
           branch: data/popularity
           delete-branch: true
           # docs/popularity/ always exists (README.md), so the pathspec matches even in a week without a report.
@@ -170,7 +226,14 @@ jobs:
             docs/popularity/
           commit-message: "data(popularity): week ${{ needs.compute.outputs.week }}"
           title: "data(popularity): week ${{ needs.compute.outputs.week }}"
-          body-path: ${{ runner.temp }}/reference/pr-body.md
+          body-path: ${{ runner.temp }}/result/pr-body.md
           labels: |
             data
             automated
+      # The ruleset merges it once the required checks pass; a failed check leaves it open for a maintainer.
+      - name: Merge once the required checks pass
+        if: steps.cpr.outputs.pull-request-url && steps.cpr.outputs.pull-request-operation != 'closed'
+        env:
+          GH_TOKEN: ${{ steps.bot.outputs.token }}
+          PR_URL: ${{ steps.cpr.outputs.pull-request-url }}
+        run: gh pr merge --auto --merge "$PR_URL"
