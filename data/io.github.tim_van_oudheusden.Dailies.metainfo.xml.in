@@ -63,24 +63,33 @@
 
   <screenshots>
     <screenshot type="default">
-      <image>https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/v0.1.0/data/screenshots/1.png</image>
+      <image>https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/v0.3.0/data/screenshots/1.png</image>
       <caption>Your favorite daily games together in one place</caption>
     </screenshot>
     <screenshot>
-      <image>https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/v0.1.0/data/screenshots/2.png</image>
+      <image>https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/v0.3.0/data/screenshots/2.png</image>
       <caption>The games that are popular this week</caption>
     </screenshot>
     <screenshot>
-      <image>https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/v0.1.0/data/screenshots/3.png</image>
+      <image>https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/v0.3.0/data/screenshots/3.png</image>
       <caption>Playing a game in the built-in browser</caption>
     </screenshot>
     <screenshot>
-      <image>https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/v0.1.0/data/screenshots/4.png</image>
+      <image>https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/v0.3.0/data/screenshots/4.png</image>
       <caption>Word games in the dark style</caption>
     </screenshot>
   </screenshots>
 
   <releases>
+    <release version="0.3.0" date="2026-10-29">
+      <description translate="no">
+        <p>Dailies is ready for FlatPark.</p>
+        <ul>
+          <li>Every release now also comes with a download that FlatPark installs, so Dailies can be listed there</li>
+          <li>New screenshots that show the games’ icons on their tiles</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.2.2" date="2026-10-19">
       <description translate="no">
         <p>A new app icon: today’s page torn off a pad, filled with a grid of guesses, so Dailies no longer looks like a calendar app.</p>

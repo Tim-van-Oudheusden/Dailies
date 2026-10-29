@@ -9,20 +9,15 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-10-23. Inno Setup installer for the experimental Windows build (#242) on `ci/242-inno-setup-installer`, stacked
-on #243 (#84).
+2026-10-29. Release v0.3.0, step 1 (#71) on `chore/71-release-0.3.0`.
 
-- **Outcome:** `windows.yml` downloads Inno Setup 7.1.0 (pinned SHA-256, `INNOSETUP_VERSION`/`INNOSETUP_SHA256`),
-  compiles `build-aux/windows/Dailies.iss.in` (filled in by Meson on Windows) over the `bundle.sh` tree, installs it
-  per user on the runner with `build-aux/windows/install-smoke.ps1` (starts the app, Start-menu shortcut, clean
-  uninstall) and uploads `Dailies-windows-x86_64-experimental-installer`. `bundle.sh` renders `Dailies.ico` from the
-  scalable icon with `rsvg-convert` and packs it with `build-aux/windows/make_ico.py` (tests in `tests/tooling`).
-- **Open follow-ups:** the installer is unsigned (SmartScreen warns); nobody has run it on real hardware.
+- **Outcome:** `meson.build` and a new metainfo `<release version="0.3.0" date="2026-10-29">` (the FlatPark download
+  and the new screenshots); the four screenshot URLs move from the `v0.1.0` tag to `v0.3.0`, so stores show #231's
+  screenshots. The owner waived #5's two-week `nightly-compliance` gate (comments on #71 and #5); 10-29's red run was
+  the checker-digest row, already handled by #267 and #269.
+- **Open follow-ups:** after merge, the pin PR (`build(flatpak): pin release manifest to 0.3.0 (#71)`) with this
+  PR's merge commit, nothing merged in between; then the owner's manual checklist and the `v0.3.0` tag; then #206.
 - **Gotchas:**
-  - PowerShell's `Start-Process -Wait` waits for the whole process tree: on an installer whose last page starts the
-    app it never returns. Wait on the process itself (`WaitForExit()`, after touching `.Handle` so `ExitCode` is set).
-  - ISCC and other Windows programs take `/X` switches, which MSYS2's argument conversion may rewrite as paths; the
-    installer steps run in `pwsh`.
-  - GLib's Windows session bus (`gdbus.exe` from the app's `bin\`) quits 3 s after its last client and holds the GLib
-    DLLs until then; an uninstall started sooner leaves them behind.
-  - Iterating on a new workflow: a temporary `push:` trigger on a scratch branch runs it without opening a PR.
+  - Metainfo screenshot URLs on `v0.3.0` 404 until the tag is pushed. That is by design: `appstreamcli` runs with
+    `--no-net`, the link checker skips the metainfo, and `release.yml` downloads them only after the tag exists.
+  - If the tag slips past 2026-10-29, the date can stay: Verify only rejects a future date.
