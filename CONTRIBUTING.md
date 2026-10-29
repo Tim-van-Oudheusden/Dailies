@@ -520,7 +520,8 @@ AI agents working in this repo are bounded by several layers:
 4. **Structural gates** — the ruleset on `main` and CI must pass before merge, regardless of who wrote the change.
 
 The security side of these layers (trust boundaries, secrets, supply chain, review focus, reporting) is set out in
-[`docs/security/SECURITY-AI.md`](docs/security/SECURITY-AI.md).
+[`docs/security/SECURITY-AI.md`](docs/security/SECURITY-AI.md). How the agents share the issue queue without stepping on
+each other (claim and stage labels, hand-offs, what the workflows open) is in [`docs/multi-agent.md`](docs/multi-agent.md).
 
 How agent work fares is measured, not guessed: the weekly `PR metrics` workflow reports how many agent-authored PRs
 (`claude/*` branches and the `hive-forge-app` GitHub App) were merged vs. closed unmerged. Every metric, its cadence,
