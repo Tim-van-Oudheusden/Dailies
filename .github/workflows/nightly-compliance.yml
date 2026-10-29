@@ -2,17 +2,20 @@ name: Nightly compliance
 
 # Checks that can go stale without a code change: new Dependabot alerts, new
 # advisories against the CI scripts' pinned Python packages, the GNOME runtime
-# reaching end-of-life on Flathub, the ACMM file layout Hive evaluates, a newer
-# flatpak-external-data-checker image than the pinned digest and, on Sundays (or
-# when a manual run sets force_links), every active catalog link.
-# scripts/nightly-compliance.sh lists the checks; results land in the run's job
-# summary and as the nightly-compliance artifact.
+# reaching end-of-life on Flathub, the ACMM file layout Hive evaluates, a
+# flatpak-external-data-checker :latest that has stayed unpinned for 10 days
+# and, on Sundays (or when a manual run sets force_links), every active catalog
+# link. scripts/nightly-compliance.sh lists the checks; results land in the
+# run's job summary and as the nightly-compliance artifact.
 #
 # On main the link check keeps its weekly streaks in the link-check-state
 # artifact (90 days; each weekly run uploads a fresh one) and, when a game
 # should become broken, active again or retired, the link-status job opens a
 # data/link-status pull request (issue #81). A lost or expired artifact only
 # restarts the streaks; it never changes a status. A maintainer merges.
+#
+# On main the checker-pin job moves the flatpak-external-data-checker pin once
+# its :latest is 3 days old and opens the ci/checker-pin pull request (#269).
 
 on:
   schedule:
@@ -189,3 +192,67 @@ jobs:
             data
             automated
             ${{ needs.compliance.outputs.priority }}
+
+  checker-pin:
+    name: Open the checker pin pull request
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # The bot environment holds the self-created GitHub App's ID and key and only
+    # main may use it (#269). Its token can push the workflow change, which the
+    # GITHUB_TOKEN cannot, and its pull requests start CI. deployment: false keeps
+    # the daily run out of the deployment history. The GITHUB_TOKEN stays read-only.
+    environment:
+      name: bot
+      deployment: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Stdlib only. Does nothing until :latest is 3 days old, so a burst of
+      # upstream pushes gives one pull request.
+      - name: Move the pin once :latest has settled
+        run: python3 -I scripts/check_checker_digest.py --bump --pr-body "$RUNNER_TEMP/checker-pin.md"
+      # Only the pinned workflow may change.
+      - name: Guard the changed paths
+        id: changed
+        run: |
+          set -euo pipefail
+          changed=false
+          while IFS= read -r line; do
+            path=${line:3}
+            case "$path" in
+              .github/workflows/external-data-checker.yml) changed=true ;;
+              *)
+                echo "::error::Unexpected change: $path"
+                exit 1
+                ;;
+            esac
+          done < <(git status --porcelain --untracked-files=all)
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+      # A one-hour installation token with only the permissions the pull request
+      # needs. client-id takes the App ID as well as the Client ID.
+      - name: Create the bot token
+        id: bot
+        if: steps.changed.outputs.changed == 'true'
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.BOT_APP_ID }}
+          private-key: ${{ secrets.BOT_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-workflows: write
+      - name: Create pull request
+        if: steps.changed.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ steps.bot.outputs.token }}
+          branch: ci/checker-pin
+          delete-branch: true
+          add-paths: .github/workflows/external-data-checker.yml
+          commit-message: "ci(flatpak): bump the flatpak-external-data-checker digest"
+          title: "ci(flatpak): bump the flatpak-external-data-checker digest"
+          body-path: ${{ runner.temp }}/checker-pin.md
+          labels: |
+            ci
+            automated
