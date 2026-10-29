@@ -13,7 +13,7 @@ from urllib.parse import urlsplit
 #: The session directory of all games while they share one, relative to the web data and cache directories (v0.1).
 SHARED_SESSION = PurePosixPath("shared")
 #: Per-game session directories live in here, one per game id, so no game id can collide with `shared`.
-_GAMES = PurePosixPath("games")
+GAMES = PurePosixPath("games")
 #: A catalog id (`data/v1/schema/catalog.schema.json`); only these ever name a directory or a settings path.
 _GAME_ID = re.compile(r"[a-z0-9][a-z0-9-]{1,48}")
 
@@ -45,7 +45,7 @@ def session_dir(isolation: SessionIsolation, game_id: str | None, *, isolated: b
     gets `games/<id>`. An id that is not a catalog id never names a directory: that game shares.
     """
     if (isolation is SessionIsolation.PER_GAME or isolated) and is_game_id(game_id):
-        return _GAMES / game_id
+        return GAMES / game_id
     return SHARED_SESSION
 
 
@@ -65,7 +65,7 @@ def all_sessions(game_dirs: Iterable[str]) -> list[PurePosixPath]:
     Clearing website data must reach per-game sessions this run has not opened yet; names that are not game ids are
     not sessions Dailies made, and are left alone.
     """
-    return [SHARED_SESSION, *(_GAMES / name for name in sorted(set(game_dirs)) if is_game_id(name))]
+    return [SHARED_SESSION, *(GAMES / name for name in sorted(set(game_dirs)) if is_game_id(name))]
 
 
 def game_settings_path(prefix: str, game_id: str | None) -> str | None:
