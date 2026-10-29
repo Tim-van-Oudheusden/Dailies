@@ -501,9 +501,9 @@ CHECKER = "docker://ghcr.io/flathub/flatpak-external-data-checker"
 def checker_push_violations(name: str, workflow: dict) -> list[str]:
     """flatpak-external-data-checker only edits the manifest; create-pull-request pushes and opens the PR (#200).
 
-    The checker's own pull request step pushes to https://TOKEN:x-oauth-basic@github.com/..., which works with
-    Flathub's bot PAT but which GitHub refuses for the workflow's GITHUB_TOKEN ("Invalid username or token"), so a
-    run with a new tag fails instead of opening the pin PR.
+    The checker's step is never given the GITHUB_TOKEN and checkout keeps no credentials, so the image cannot push.
+    Images before 2026-10-29 also pushed to https://TOKEN:x-oauth-basic@github.com/..., which GitHub refuses for the
+    workflow's GITHUB_TOKEN ("Invalid username or token"), so a run with a new tag failed instead of opening the pin PR.
     """
     violations = []
     for job_id, job in jobs_of(workflow).items():

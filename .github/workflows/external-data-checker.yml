@@ -38,15 +38,15 @@ jobs:
         with:
           ref: main
           persist-credentials: false
-      # Pinned by digest: ghcr.io/flathub/flatpak-external-data-checker:latest as of 2026-10-16.
+      # Pinned by digest: ghcr.io/flathub/flatpak-external-data-checker:latest as of 2026-10-29.
       # Dependabot does not update docker:// references; the nightly compliance row
       # "External data checker image is :latest" reports a newer :latest, and
       # CONTRIBUTING.md, "Dependencies", describes the bump.
-      # --edit-only: the checker's own pull request step pushes to
-      # https://TOKEN:x-oauth-basic@github.com/..., which GitHub refuses for the
-      # GITHUB_TOKEN installation token ("Invalid username or token", #200), so it
-      # only edits the manifest and create-pull-request does the rest.
-      - uses: docker://ghcr.io/flathub/flatpak-external-data-checker@sha256:58cbad601261c2ebaae2e18b6f639c09aa5809ef941dcff7284f68928ebb790d
+      # --edit-only: the checker only edits the manifest and is never given the
+      # GITHUB_TOKEN; create-pull-request pushes the branch and opens the pull request (#200).
+      # Images before 2026-10-29 pushed to https://TOKEN:x-oauth-basic@github.com/...,
+      # which GitHub refuses for the GITHUB_TOKEN installation token.
+      - uses: docker://ghcr.io/flathub/flatpak-external-data-checker@sha256:f362ad088473d2c791e8b51185d30b806b962a98a4ee1bbf5b59cf242130728a
         with:
           args: --edit-only --require-important-update build-aux/flatpak/io.github.tim_van_oudheusden.Dailies.json
       - name: Read the proposed tag
