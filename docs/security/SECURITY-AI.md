@@ -99,6 +99,11 @@ The step is boxed in by Claude Code's permissions and checked afterwards:
 - Tokens such as `GITHUB_TOKEN` exist only in the shell environment (`export GITHUB_TOKEN="$(gh auth token)"`); CI
   secrets such as `CLAUDE_CODE_OAUTH_TOKEN` exist only in GitHub Actions. Never echo, log, commit, or paste them into a
   prompt, issue, PR, or comment.
+- The `bot` environment holds the key of the repository's own GitHub App (`BOT_APP_ID`, `BOT_APP_PRIVATE_KEY`; #269).
+  Its tokens can push workflow changes and open pull requests that start CI, so only `main` may use the environment,
+  only the jobs reviewed in `BOT_ENVIRONMENT_JOBS` (`tests/tooling/test_workflows.py`) may name it, and none of them
+  may run a `docker://` image or a model step. Each run mints a one-hour token with only the permissions it needs. To
+  revoke, delete the key under the App's settings, **Private keys**, then generate a new one and replace the secret.
 - If an agent exposes a secret, rotate it right away, then record what happened (see [Reporting](#reporting)).
 
 ## Supply chain

@@ -185,7 +185,7 @@ check even when an earlier one fails, and exits non-zero if any failed:
 | CI tool advisories | `pip-audit` finds a known vulnerability in `scripts/requirements.txt` that is not on the ignore list |
 | GNOME runtime | `flatpak remote-info flathub org.gnome.Platform//51` reports the runtime as end-of-life |
 | ACMM self-check | `scripts/acmm-self-check.py` finds that a file a Hive ACMM criterion looks for has gone missing |
-| External data checker image | `scripts/check_checker_digest.py` finds that the `flatpak-external-data-checker` digest pinned in `.github/workflows/external-data-checker.yml` is no longer the image's `:latest` on ghcr.io, or cannot read ghcr.io. To bump the pin, see CONTRIBUTING.md, "Dependencies" |
+| External data checker image | `scripts/check_checker_digest.py` finds that the `flatpak-external-data-checker` digest pinned in `.github/workflows/external-data-checker.yml` is not the image's `:latest` on ghcr.io, and that `:latest` was built 10 or more days ago (see [The checker pin](#the-checker-pin)), or cannot read ghcr.io |
 | Catalog links (weekly) | Sundays (UTC) only, or with `--force-links` / `DAILIES_FORCE_LINKS=1` (the manual run's `force_links` input): `scripts/check_links.py` finds an active catalog entry that is `redirected-cross-domain`, `blocked-title`, `hijacked`, `http-<code>`, `timeout` or `unreachable`. A `bot-walled` entry (a Cloudflare challenge, or a 403 or timeout on an entry tagged `bot-walled`) is a warning, not a failure |
 
 The alerts come from `gh api repos/$GITHUB_REPOSITORY/dependabot/alerts?state=open`, read with the job's `GITHUB_TOKEN`
@@ -228,6 +228,32 @@ newest one with the job's `actions: read` permission and uploads a fresh one), n
 protected, so a committed state would need a merged pull request every week. Losing the artifact (it expired after
 the workflow was disabled, or a download failed) only restarts the streaks, so it can delay a change by a week but
 never make a wrong one. Runs on other branches start from no state and open no pull request.
+
+### The checker pin
+
+On `main` the `checker-pin` job runs `scripts/check_checker_digest.py --bump` every night (issue #269). The script
+reads each image's build time from ghcr.io (index → linux/amd64 manifest → config blob, the config's `created` field)
+and moves the pin and its `:latest as of <date>` comment only once the newest `:latest` was built 3 or more days ago,
+so a burst of upstream pushes gives one pull request. The job then checks that only
+`.github/workflows/external-data-checker.yml` changed and opens or updates the pull request on branch `ci/checker-pin`
+with `peter-evans/create-pull-request`, labelled `ci` and `automated`. The body lists both digests, both build times
+and a link to the upstream commits between them.
+
+The `GITHUB_TOKEN` cannot push a change to a workflow file, so the job uses a one-hour token of the repository's own
+GitHub App (`actions/create-github-app-token`, with `contents`, `pull-requests` and `workflows` write). Its key lives in
+the `bot` environment, which only `main` may use; `tests/tooling/test_workflows.py` allows only reviewed jobs in that
+environment, none of which may run a `docker://` image. Pull requests opened with that token start CI. A maintainer
+reviews and merges.
+
+| Newest `:latest` built | Nightly row | `checker-pin` job |
+| --- | --- | --- |
+| It is the pin | pass | nothing |
+| Under 3 days ago | pass | nothing |
+| 3 to 10 days ago | pass | opens or updates the pull request |
+| 10 or more days ago | fail | opens or updates the pull request |
+
+If Flathub publishes more often than every 3 days for a long time, no pull request opens and the row stays green: the
+pin waits until upstream settles.
 
 ### Accepting an advisory
 

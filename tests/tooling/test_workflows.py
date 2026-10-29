@@ -76,6 +76,14 @@ DOCKER_TAG_ALLOWLIST: dict[str, str] = {}
 # (`image@sha256:<64 hex>`, with a `# <tag> as of <date>` comment); CONTRIBUTING.md says how to bump one.
 CONTAINER_TAG_ALLOWLIST: dict[str, str] = {}
 
+# Jobs reviewed to use the `bot` environment, by (workflow file, job id). It holds the self-created GitHub App's key
+# (BOT_APP_ID, BOT_APP_PRIVATE_KEY; #269), whose tokens can push workflow changes and open pull requests that start CI.
+# Only main may use the environment, and a job that uses it may run no docker:// image.
+BOT_ENVIRONMENT_JOBS: dict[tuple[str, str], str] = {
+    # Moves the flatpak-external-data-checker pin and opens the ci/checker-pin pull request.
+    ("nightly-compliance.yml", "checker-pin"): "check_checker_digest.py --bump, then create-pull-request",
+}
+
 # The labels documented in #18, which the owner created by hand; actions/labeler cannot create them.
 LABELS = frozenset(
     {
@@ -520,6 +528,29 @@ def checker_push_violations(name: str, workflow: dict) -> list[str]:
     return violations
 
 
+def environment_of(job: dict) -> str | None:
+    """The job's environment name; `environment:` is a name or a mapping with `name`."""
+    environment = job.get("environment")
+    return str(environment.get("name")) if isinstance(environment, dict) else environment
+
+
+def bot_environment_violations(
+    name: str, workflow: dict, reviewed: dict[tuple[str, str], str] = BOT_ENVIRONMENT_JOBS
+) -> list[str]:
+    violations = []
+    for job_id, job in jobs_of(workflow).items():
+        if environment_of(job) != "bot":
+            continue
+        if (name, job_id) not in reviewed:
+            violations.append(f"{name}: job {job_id} uses the bot environment without a reviewed row")
+        violations.extend(
+            f"{name}: job {job_id} uses the bot environment and runs {step['uses']}"
+            for step in job.get("steps") or []
+            if str(step.get("uses", "")).startswith("docker://")
+        )
+    return violations
+
+
 # --- the repository's files -------------------------------------------------------------------------------------------
 
 FILES = workflow_files()
@@ -626,6 +657,21 @@ def test_a_game_added_for_a_pull_request_gets_its_icon(path: Path) -> None:
 @pytest.mark.parametrize("path", FILES, ids=IDS)
 def test_the_external_data_checker_leaves_the_push_to_create_pull_request(path: Path) -> None:
     assert checker_push_violations(path.name, load(path)) == []
+
+
+@pytest.mark.parametrize("path", FILES, ids=IDS)
+def test_only_reviewed_jobs_use_the_bot_environment(path: Path) -> None:
+    assert bot_environment_violations(path.name, load(path)) == []
+
+
+def test_every_reviewed_bot_environment_row_names_a_job_that_uses_it() -> None:
+    using = {
+        (path.name, job_id)
+        for path in FILES
+        for job_id, job in jobs_of(load(path)).items()
+        if environment_of(job) == "bot"
+    }
+    assert sorted(set(BOT_ENVIRONMENT_JOBS) - using) == []
 
 
 # --- each check catches a broken fixture ------------------------------------------------------------------------------
@@ -1120,3 +1166,44 @@ def test_fixture_checker_edit_without_a_pull_request_fails() -> None:
 def test_fixture_checker_edit_then_create_pull_request_passes() -> None:
     workflow = checker_fixture("--edit-only --require-important-update", CHECKER_PR_STEP)
     assert checker_push_violations("checker.yml", workflow) == []
+
+
+@pytest.mark.parametrize(
+    "environment",
+    ["bot", "\n      name: bot\n      deployment: false"],
+    ids=["name", "mapping"],
+)
+def test_fixture_unreviewed_job_in_the_bot_environment_fails(environment: str) -> None:
+    workflow = load_yaml(f"jobs:\n  ask:\n    environment: {environment}\n    runs-on: ubuntu-latest\n")
+    assert bot_environment_violations("x.yml", workflow, reviewed={}) == [
+        "x.yml: job ask uses the bot environment without a reviewed row"
+    ]
+
+
+def test_fixture_bot_environment_job_that_runs_a_docker_image_fails() -> None:
+    workflow = load_yaml(f"""
+jobs:
+  pin:
+    environment: bot
+    steps:
+      - uses: {CHECKER}@sha256:{"a" * 64}
+""")
+    assert bot_environment_violations("x.yml", workflow, reviewed={("x.yml", "pin"): "fixture"}) == [
+        f"x.yml: job pin uses the bot environment and runs {CHECKER}@sha256:{'a' * 64}"
+    ]
+
+
+def test_fixture_reviewed_bot_environment_job_and_other_environments_pass() -> None:
+    workflow = load_yaml(f"""
+jobs:
+  pin:
+    environment:
+      name: bot
+    steps:
+      - uses: {PIN} # v7.0.1
+  deploy:
+    environment: github-pages
+    steps:
+      - uses: {CHECKER}@sha256:{"a" * 64}
+""")
+    assert bot_environment_violations("x.yml", workflow, reviewed={("x.yml", "pin"): "fixture"}) == []

@@ -23,8 +23,9 @@
 #   5. External data checker image: scripts/check_checker_digest.py compares
 #      the flatpak-external-data-checker digest pinned in
 #      .github/workflows/external-data-checker.yml with the image's current
-#      :latest on ghcr.io (anonymous). Dependabot does not update docker://
-#      references, so drift fails this row; so does an unreachable ghcr.io.
+#      :latest on ghcr.io (anonymous). A newer :latest fails this row once it
+#      was built 10 days ago and is still not pinned (the checker-pin job opens
+#      its pull request after 3 days); so does an unreachable ghcr.io.
 #      CHECKER_DIGEST replaces the script; the tests use it.
 #   6. Catalog links, Sundays (UTC) only, or any day with --force-links or
 #      DAILIES_FORCE_LINKS=1: scripts/check_links.py checks every active

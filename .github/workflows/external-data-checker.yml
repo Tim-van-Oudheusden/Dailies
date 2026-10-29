@@ -39,9 +39,10 @@ jobs:
           ref: main
           persist-credentials: false
       # Pinned by digest: ghcr.io/flathub/flatpak-external-data-checker:latest as of 2026-10-29.
-      # Dependabot does not update docker:// references; the nightly compliance row
-      # "External data checker image is :latest" reports a newer :latest, and
-      # CONTRIBUTING.md, "Dependencies", describes the bump.
+      # Dependabot does not update docker:// references. The checker-pin job of
+      # nightly-compliance.yml moves this pin and its date once a newer :latest
+      # is 3 days old and opens the ci/checker-pin pull request (#269);
+      # CONTRIBUTING.md, "Dependencies", describes the review and a bump by hand.
       # --edit-only: the checker only edits the manifest and is never given the
       # GITHUB_TOKEN; create-pull-request pushes the branch and opens the pull request (#200).
       # Images before 2026-10-29 pushed to https://TOKEN:x-oauth-basic@github.com/...,

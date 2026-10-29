@@ -479,13 +479,16 @@ the maintainer and has not been done yet; until then, send translations as ordin
 - Docker images, `docker://` actions and job `container:` images alike, are pinned by digest, and
   `tests/tooling/test_workflows.py` fails on a tag that is not on its reviewed allow-list. Dependabot does not update
   `docker://` references, so each pin below has its own bump procedure.
-- `ghcr.io/flathub/flatpak-external-data-checker` in `.github/workflows/external-data-checker.yml`: the nightly
-  compliance row "External data checker image is :latest" (`scripts/check_checker_digest.py`) fails once Flathub
-  publishes a newer `:latest`; its report shows the pinned and the latest digest. To bump it, open a `ci:` pull request
-  that replaces the `sha256:…` after `@` with the reported latest digest and updates the date in the comment above it.
-  `python3 -I scripts/check_checker_digest.py` checks the result locally (exit 0 when the pin is the current
-  `:latest`). Skim the checker's changes since the old digest first, as the image runs with `contents: write` and
-  `pull-requests: write`.
+- `ghcr.io/flathub/flatpak-external-data-checker` in `.github/workflows/external-data-checker.yml`: Flathub publishes
+  `:latest` in bursts, so the `checker-pin` job of `.github/workflows/nightly-compliance.yml` waits until the newest
+  `:latest` was built 3 days ago, then moves the pin and its `as of` date and opens the `ci/checker-pin` pull request
+  with the bot GitHub App's token (#269), so CI runs on it. Its body lists both digests, both build times and a link to
+  the upstream commits in between. Skim those before you merge, as the image runs with `contents: write` and
+  `pull-requests: write`. The nightly compliance row "External data checker image is :latest"
+  (`scripts/check_checker_digest.py`) fails once a newer `:latest` is 10 days old and still not pinned. To bump by
+  hand, run `python3 -I scripts/check_checker_digest.py --bump` (it moves the pin only once `:latest` is 3 days old),
+  or replace the `sha256:…` after `@` and the date above it yourself; without `--bump` the script exits 0 while the
+  pin is current or `:latest` is younger than 10 days.
 - `ghcr.io/flathub-infra/flatpak-github-actions` (the `gnome-51` build image) in the `flatpak` job of
   `.github/workflows/ci.yml` and the `build` job of `.github/workflows/release.yml`. Flathub rebuilds the tag twice a
   week, so no nightly row tracks it (it would fail every few days); bump it by hand before cutting a release, when the
