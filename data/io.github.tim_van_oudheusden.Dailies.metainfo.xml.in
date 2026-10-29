@@ -81,6 +81,11 @@
   </screenshots>
 
   <releases>
+    <release version="0.3.0" date="2026-10-29">
+      <description translate="no">
+        <p>Dailies is ready for FlatPark: every release now also comes with a download that FlatPark installs, so Dailies can be listed there.</p>
+      </description>
+    </release>
     <release version="0.2.2" date="2026-10-19">
       <description translate="no">
         <p>A new app icon: today’s page torn off a pad, filled with a grid of guesses, so Dailies no longer looks like a calendar app.</p>
