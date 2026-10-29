@@ -8,5 +8,6 @@
 | [`plans/design-judge-plan.md`](plans/design-judge-plan.md) | How to finish the Design and Judge phases and produce `ARCHITECTURE.md` | pending |
 | [`architecture.md`](architecture.md) | The architecture as shipped: runtime data flow, modules, caching, link opening, data and release pipelines, decisions, measurements | current |
 | [`data-format.md`](data-format.md) | Reference for `data/v1/games.json` and `popularity.json`: fields, categories, tags, difficulty rubric, submission rules, licences | current for `data/v1` |
+| [`multi-agent.md`](multi-agent.md) | How Hive's agents, Claude Code, CLI agents and the workflows share the issue queue: who does what, claim and stage labels, hand-offs, merging | current |
 
 Workflow: Research (done) → Design (3 proposals) → Judge (3 lenses) → Draft `architecture.md` → Adversarial verify → Revise.
