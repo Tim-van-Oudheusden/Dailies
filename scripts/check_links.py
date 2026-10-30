@@ -124,12 +124,12 @@ class LinkResult:
     @property
     def warning(self) -> bool:
         """Whether the result is worth a look but is not a failure."""
-        return self.outcome == "bot-walled"
+        return self.outcome == linkstatus.WARNING
 
     @property
     def failed(self) -> bool:
         """Whether the entry's link is broken."""
-        return self.outcome not in {"ok", "bot-walled"}
+        return self.outcome not in {linkstatus.OK, linkstatus.WARNING}
 
     @property
     def suggested_status(self) -> str | None:
@@ -147,7 +147,7 @@ def _classify(error: urlcheck.CheckError, entry: dict[str, Any]) -> LinkResult:
         )
     tagged = "bot-walled" in entry.get("tags", [])
     if error.bot_wall or (tagged and (error.timed_out or error.status in urlcheck.BOT_WALL_STATUSES)):
-        return LinkResult(entry, "bot-walled", reason)
+        return LinkResult(entry, linkstatus.WARNING, reason)
     if error.timed_out:
         return LinkResult(entry, "timeout", reason)
     if error.status is not None:
@@ -183,7 +183,7 @@ def check_entry(
         return LinkResult(entry, "redirected-cross-domain", site.other_site)
     if site.keyword is not None:
         return LinkResult(entry, "blocked-title", f'title "{site.title}" contains "{site.keyword}"')
-    return LinkResult(entry, "ok")
+    return LinkResult(entry, linkstatus.OK)
 
 
 def _host(entry: dict[str, Any]) -> str:
