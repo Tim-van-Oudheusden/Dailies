@@ -31,7 +31,11 @@ class Category(Enum):
 
     @property
     def label(self) -> str:
-        """The English display name; the UI layer translates it with `_()`."""
+        """The English name.
+
+        The UI does not show it: `dailies.ui.library.category_title` spells out each translated title so that xgettext
+        finds the strings, and has to be kept in step with this by hand.
+        """
         return _CATEGORY_LABELS[self]
 
     @property
