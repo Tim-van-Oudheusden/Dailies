@@ -9,17 +9,14 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-10-29. #278 on `ci/278-skip-bot-labels`, stacked on #279 (#277, `docs/multi-agent.md`).
+2026-10-30. #289 on `fix/289-screenshots-previous-release`.
 
-- **Outcome:** `claude.yml` skips `ai-fix-requested` unless `github.event.sender.type == 'User'`, in the job `if` and
-  in the workflow-level concurrency group, so `hive-forge-app`'s labels give a skipped run instead of a red one and
-  cannot replace a pending run a person asked for. `tests/tooling/test_workflows.py` `bot_label_violations` holds
-  every label gate and label-queued group to the same check. Option 1 of #278 (keep today's trust boundary); allowing
-  Hive in `allowed_bots` stays open as a separate, SECURITY-AI.md-level decision.
-- **Open follow-ups:** merge #279 first; this branch carries its commit. #206 (after the release) is still open.
+- **Outcome:** `tests/data/test_screenshots.py` requires every metainfo screenshot URL to name the second-newest
+  `<release>`, next to the existing "not the newest" guard; the URLs move from `v0.1.0` to `v0.2.2` (same PNGs, so no
+  store-visible change yet). CONTRIBUTING "Cutting a release" step 1 says the version-bump PR moves them to the
+  previous release's tag.
+- **Open follow-ups:** the next version-bump PR moves the URLs to `v0.3.0` (the #231 re-takes); the FlatPark package
+  (#206 step 2) should name `v0.3.0` in its own metainfo copy.
 - **Gotchas:**
-  - A workflow-level concurrency group is resolved before the job's `if`, so a new skip condition has to be added to
-    the group expression as well, or the skipped event still takes the `queue` group.
-  - A host whose `jq` is `jaq` fails the `pr-metrics.sh` and `auto-qa-tuner.sh` tests (`$label`/`$module` are
-    keywords there); CI's jq passes them.
-  - Without the GNOME 51 SDK on the host, `scripts/sandbox.sh` runs every gate but the Flatpak build.
+  - Every tag from `v0.1.0` to `v0.2.2` holds the same four PNGs; only `v0.3.0` has the re-takes (1, 2 and 4).
+  - A host with Python 3.11 fails collection on `type` statements and lacks `ruamel`; the project needs 3.12+.
