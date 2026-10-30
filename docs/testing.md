@@ -199,9 +199,12 @@ with its `issues: write` token (#274). A failing check opens one issue `ci: nigh
 labelled `ci` and `automated`, listing the failing checks and the run with the full report folded below them (cut to
 fit GitHub's 65536-character body limit), or updates the open one. The open issue is found by its body marker or that
 title. The first run where every check passes comments on it and closes it. A run that left no report (it failed before
-the upload) opens or updates it as `ci: nightly compliance: no report`. The `Catalog links (weekly)` row is left out:
-broken links have their own `data` issue (below). The script exits 0 once the issue matches the report and 2 on a usage
-error or when GitHub refuses a request. Cancelled runs and runs of other branches are ignored.
+the upload) opens or updates it as `ci: nightly compliance: no report`, and so does a report cut short (the job timed
+out or the script exited before every check had its row): `scripts/nightly-compliance.sh` ends every report with
+`<!-- nightly-compliance: end -->`, and a report without that last line never closes the issue. The
+`Catalog links (weekly)` row is left out: broken links have their own `data` issue (below). The script exits 0 once the
+issue matches the report and 2 on a usage error or when GitHub refuses a request. Cancelled runs and runs of other
+branches are ignored.
 
 ### Broken game links
 

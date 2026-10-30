@@ -27,11 +27,12 @@ ci = load_script()
 
 
 def report(*rows: tuple[str, bool], failures: str = "") -> str:
-    """A report in scripts/nightly-compliance.sh's format: one `| check | result |` row per (check, passed)."""
+    """A report as scripts/nightly-compliance.sh prints it: a `| check | result |` row per check, then the end line."""
     lines = ["# Nightly compliance", "", "Commit: `0123abc`", "", "| Check | Result |", "| ----- | ------ |"]
     lines += [f"| {check} | {'✅ pass' if passed else '❌ fail'} |" for check, passed in rows]
     if failures:
         lines += ["", "## Failures", "", failures]
+    lines += ["", "<!-- nightly-compliance: end -->"]
     return "\n".join(lines) + "\n"
 
 
@@ -212,6 +213,22 @@ def test_a_run_without_a_report_opens_the_issue_saying_so(
     assert payload["title"] == "ci: nightly compliance: no report"
     assert RUN_URL in payload["body"]
     assert "nightly-compliance" in payload["body"]
+
+
+@pytest.mark.parametrize("rows", [1, 0], ids=["some-rows", "no-rows"])
+def test_a_report_cut_short_updates_the_open_issue_instead_of_closing_it(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, rows: int
+) -> None:
+    # A run that timed out or exited early still uploads what it printed; the rows it never reached are not passes.
+    api = FakeGitHub([compliance_issue()])
+    cut_short = PASSING.split("\n| Script dependencies")[0] + "\n" if rows else PASSING.split("| Dependabot")[0]
+
+    assert run(tmp_path, cut_short, api, monkeypatch) == 0
+
+    [(method, path, payload)] = api.writes()
+    assert (method, path) == ("PATCH", f"{ISSUES}/7")
+    assert payload is not None
+    assert payload["title"] == "ci: nightly compliance: no report"
 
 
 def test_a_long_report_is_cut_to_fit_an_issue_body(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
