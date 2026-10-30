@@ -9,17 +9,17 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-10-29. #278 on `ci/278-skip-bot-labels`, stacked on #279 (#277, `docs/multi-agent.md`).
+2026-10-29. #283 on `fix/283-trending-carried-forward-reason`.
 
-- **Outcome:** `claude.yml` skips `ai-fix-requested` unless `github.event.sender.type == 'User'`, in the job `if` and
-  in the workflow-level concurrency group, so `hive-forge-app`'s labels give a skipped run instead of a red one and
-  cannot replace a pending run a person asked for. `tests/tooling/test_workflows.py` `bot_label_violations` holds
-  every label gate and label-queued group to the same check. Option 1 of #278 (keep today's trust boundary); allowing
-  Hive in `allowed_bots` stays open as a separate, SECURITY-AI.md-level decision.
-- **Open follow-ups:** merge #279 first; this branch carries its commit. #206 (after the release) is still open.
+- **Outcome:** `compute.py` `_shelves` labels a Trending riser with its `reasons` entry, as Popular does, so a game
+  whose Tranco fetch failed and that rises on last week's carried-forward popularity shows `carried_forward`, not
+  `score`. New test `test_failed_domain_that_rises_is_carried_forward_on_trending`. The popularity runbook now says
+  the reason is on the `popular[]` / `trending[]` item, not in `scores`.
+- **Open follow-ups:** whether a carried-forward game may trend at all is a method question for the maintainer (#283
+  leaves it open on purpose).
 - **Gotchas:**
-  - A workflow-level concurrency group is resolved before the job's `if`, so a new skip condition has to be added to
-    the group expression as well, or the skipped event still takes the `queue` group.
+  - Host Python 3.11 cannot import `dailies/core` (PEP 695 generics); run `pytest` under 3.12+ (`uv venv -p 3.13`
+    plus `scripts/requirements.txt` and `pytest==9.1.1`).
   - A host whose `jq` is `jaq` fails the `pr-metrics.sh` and `auto-qa-tuner.sh` tests (`$label`/`$module` are
     keywords there); CI's jq passes them.
   - Without the GNOME 51 SDK on the host, `scripts/sandbox.sh` runs every gate but the Flatpak build.
