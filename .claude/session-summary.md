@@ -20,3 +20,6 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 - **Gotchas:**
   - Every tag from `v0.1.0` to `v0.2.2` holds the same four PNGs; only `v0.3.0` has the re-takes (1, 2 and 4).
   - A host with Python 3.11 fails collection on `type` statements and lacks `ruamel`; the project needs 3.12+.
+  - A host whose `jq` is `jaq` fails the `pr-metrics.sh` and `auto-qa-tuner.sh` tests (`$label`/`$module` are
+    keywords there); CI's jq passes them.
+  - Without the GNOME 51 SDK on the host, `scripts/sandbox.sh` runs every gate but the Flatpak build.
