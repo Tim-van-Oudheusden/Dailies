@@ -1,12 +1,13 @@
 # shellcheck shell=bash
 # Coverage report helpers, sourced by scripts/coverage-check.sh (and the quality report).
 #
-# Report contract: `pytest --cov=dailies/core --cov=scripts --cov-report=xml` writes coverage.py's Cobertura XML to
-# coverage.xml. Its <sources> lists every measured root that exists (absolute paths, or relative to the repository
-# root with `relative_files`), and each <class filename="…"> is a file relative to *one* of those roots, with
-# <package name="…"> its directory in dots. Files from different roots share packages (both roots' top-level files
-# land in package "."), so neither the package name nor the filename says which root a file came from. A file is
-# therefore attributed to the root it exists under on disk; with a single <source> no lookup is needed.
+# Report contract: `pytest --cov --cov-report=xml` writes coverage.py's Cobertura XML to coverage.xml, measuring the
+# roots in [tool.coverage.run] source (pyproject.toml). Its <sources> lists every measured root that exists (absolute
+# paths, or relative to the repository root with `relative_files`), and each <class filename="…"> is a file relative
+# to *one* of those roots, with <package name="…"> its directory in dots. Files from different roots share packages
+# (both roots' top-level files land in package "."), so neither the package name nor the filename says which root a
+# file came from. A file is therefore attributed to the root it exists under on disk; with a single <source> no lookup
+# is needed.
 #
 # Floor groups: each group in .github/auto-qa-tuning.json names one measured root (coverage_group_dir). A group's
 # counts are summed over the <line> elements of all its files, across every package, rather than averaging the
@@ -25,10 +26,18 @@ coverage_group_dir() {
   esac
 }
 
+# coverage_groups: every floor group's name, one per line.
+coverage_groups() {
+  echo core
+  echo scripts
+}
+
 # coverage_group_dirs: every group's measured root, one per line.
 coverage_group_dirs() {
-  coverage_group_dir core
-  coverage_group_dir scripts
+  local group
+  for group in $(coverage_groups); do
+    coverage_group_dir "$group"
+  done
 }
 
 # coverage_counters <report> <group>: prints "<lines-missed> <lines-covered> <branches-missed> <branches-covered>"

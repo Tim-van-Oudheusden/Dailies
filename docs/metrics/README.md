@@ -45,8 +45,9 @@ scripts/quality-report.sh > quality-report.md
 
 ## Unit-test coverage
 
-Part of the same report: pytest-cov runs the unit tests with `--cov=dailies/core --cov=scripts --cov-report=xml`, and
-the report records each group's line and branch percentages from the Cobertura file. A failing test run reports `n/a` rather than
+Part of the same report: pytest-cov runs the unit tests with `--cov --cov-report=xml` (the roots in
+`[tool.coverage.run] source` in `pyproject.toml`), and the report records each group's line and branch percentages from
+the Cobertura file. A failing test run reports `n/a` rather than
 a misleading number. See [`docs/testing.md`](../testing.md#coverage-floors) for the coverage tooling.
 
 ## Coverage floors
@@ -57,7 +58,7 @@ and `scripts`. The `Unit-test coverage floors` job of `coverage-gate.yml` fails 
 that drops a module below its floor:
 
 ```sh
-pytest --cov=dailies/core --cov=scripts --cov-report=xml
+pytest --cov --cov-report=xml
 scripts/coverage-check.sh coverage.xml .github/auto-qa-tuning.json
 ```
 

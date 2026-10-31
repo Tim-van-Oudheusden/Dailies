@@ -92,6 +92,9 @@ shell_only="$tmp/shell-only"
 mkdir -p "$shell_only/scripts/lib"
 touch "$shell_only/scripts/coverage-check.sh" "$shell_only/scripts/lib/coverage.sh"
 expect 0 'no report and only shell scripts' "$shell_only" 'Coverage (core): no code yet' "$tmp/missing.xml" "$config"
+expect 2 'Python under a root but no measured lines (a root missing from coverage source)' "$tree" \
+  'scripts has Python files but no measured lines; is it in [tool.coverage.run] source in pyproject.toml?' \
+  "$fixtures/core-only.xml" "$config"
 
 # Fail: below a floor, naming the group and the floor.
 expect 1 'scripts lines below the floor' "$tree" '::error::scripts lines coverage 50.00% is below its floor of 70%' \
@@ -133,8 +136,8 @@ expect 2 'floor without branches (functions/lines contract)' "$tree" 'Malformed'
 expect 2 'negative margin' "$tree" 'Malformed' "$fixtures/pass.xml" \
   "$(floors margin '{"margin": -1, "floors": {"core": {"lines": 70, "branches": 50}}}')"
 expect 2 'no groups' "$tree" 'Malformed' "$fixtures/pass.xml" "$(floors none '{"margin": 2, "floors": {}}')"
-expect 2 'unknown group' "$tree" "Unknown coverage group 'app'" "$fixtures/pass.xml" \
-  "$(floors app '{"margin": 2, "floors": {"app": {"lines": 70, "branches": 50}}}')"
+expect 2 'unknown group' "$tree" "Unknown coverage group 'app' in $tmp/app.json; known groups: core, scripts" \
+  "$fixtures/pass.xml" "$(floors app '{"margin": 2, "floors": {"app": {"lines": 70, "branches": 50}}}')"
 
 # The repository's own config is valid and every group in it is known (whatever the tuner has raised the floors to).
 expect 0 'repository config is valid' "$empty" 'no code yet' "$tmp/no-files.xml" "$ROOT/.github/auto-qa-tuning.json"
