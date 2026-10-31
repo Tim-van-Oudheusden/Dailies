@@ -51,7 +51,7 @@ ruff format --check .
 end "$?"
 
 begin "pytest with coverage floors"
-pytest --cov=dailies/core --cov=scripts "--cov-report=xml:$work/coverage.xml" &&
+pytest --cov "--cov-report=xml:$work/coverage.xml" &&
   "${COVERAGE_CHECK:-$ROOT/scripts/coverage-check.sh}" "$work/coverage.xml" "$ROOT/.github/auto-qa-tuning.json"
 end "$?"
 

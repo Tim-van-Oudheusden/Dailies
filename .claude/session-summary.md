@@ -9,17 +9,18 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-10-30. #289 on `fix/289-screenshots-previous-release`.
+2026-10-31. #296 on `refactor/296-coverage-roots-single-source`.
 
-- **Outcome:** `tests/data/test_screenshots.py` requires every metainfo screenshot URL to name the second-newest
-  `<release>`, next to the existing "not the newest" guard; the URLs move from `v0.1.0` to `v0.2.2` (same PNGs, so no
-  store-visible change yet). CONTRIBUTING "Cutting a release" step 1 says the version-bump PR moves them to the
-  previous release's tag.
-- **Open follow-ups:** the next version-bump PR moves the URLs to `v0.3.0` (the #231 re-takes); the FlatPark package
-  (#206 step 2) should name `v0.3.0` in its own metainfo copy.
+- **Outcome:** `[tool.coverage.run] source` in `pyproject.toml` is the one list of measured roots: `coverage-gate.yml`,
+  `quality-report.sh` and `sandbox-gates.sh` run a bare `pytest --cov`. `coverage-check.sh` exits 2 when a group has
+  no measured lines but its root holds Python (an unmeasured root used to pass as "no code yet"), and builds its
+  "known groups" list from the new `coverage_groups` in `scripts/lib/coverage.sh`. Same totals as the old `--cov`
+  lists (3143/3188 lines).
+- **Open follow-ups:** none. `quality-report.sh` still prints "no code yet" for an unmeasured root; it is a report,
+  not a gate, and the gate now fails for it.
 - **Gotchas:**
-  - Every tag from `v0.1.0` to `v0.2.2` holds the same four PNGs; only `v0.3.0` has the re-takes (1, 2 and 4).
-  - A host with Python 3.11 fails collection on `type` statements and lacks `ruamel`; the project needs 3.12+.
-  - A host whose `jq` is `jaq` fails the `pr-metrics.sh` and `auto-qa-tuner.sh` tests (`$label`/`$module` are
-    keywords there); CI's jq passes them.
+  - Host Python 3.11 cannot import `dailies/core` (PEP 695 generics); run `pytest` under 3.12+ (`uv venv -p 3.13`
+    plus `scripts/requirements.txt` and `pytest==9.1.1`).
+  - A host jq older than 1.7 (or `jaq`) fails the `pr-metrics.sh` and `auto-qa-tuner.sh` tests (`$label`/`$module`
+    are keywords there); CI's jq passes them.
   - Without the GNOME 51 SDK on the host, `scripts/sandbox.sh` runs every gate but the Flatpak build.

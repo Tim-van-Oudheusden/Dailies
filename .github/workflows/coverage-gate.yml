@@ -20,7 +20,8 @@ jobs:
     name: Unit-test coverage floors
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # Coverage covers dailies/core and scripts only; the floors per group live in .github/auto-qa-tuning.json.
+    # Measures the roots in [tool.coverage.run] source (pyproject.toml); the floors per group live in
+    # .github/auto-qa-tuning.json.
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -35,7 +36,7 @@ jobs:
           python -m pip install --require-hashes -r scripts/requirements.txt
           python -m pip install pytest==9.1.1 pytest-cov==7.1.0
       - name: Unit tests with coverage
-        run: pytest --cov=dailies/core --cov=scripts --cov-report=xml
+        run: pytest --cov --cov-report=xml
       - name: Check coverage floors
         run: scripts/coverage-check.sh coverage.xml .github/auto-qa-tuning.json
       - name: Upload coverage report

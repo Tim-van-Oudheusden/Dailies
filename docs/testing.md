@@ -98,10 +98,12 @@ no repository inside the container; the gates do not need one.
 
 Unit-test coverage is measured with [pytest-cov](https://pytest-cov.readthedocs.io/) on two modules: `core`
 (`dailies/core`) and `scripts` (`scripts/`). `dailies/data`, `dailies/ui` and the tests themselves are not measured;
-the UI is covered by the build validation and the smoke test instead.
+the UI is covered by the build validation and the smoke test instead. The measured roots are listed once, in
+`[tool.coverage.run] source` in `pyproject.toml`; every coverage run passes a bare `--cov`, so pytest-cov reads them
+from there.
 
 ```sh
-pytest --cov=dailies/core --cov=scripts --cov-report=xml
+pytest --cov --cov-report=xml
 ```
 
 writes a Cobertura-format report to `coverage.xml`. The floors live in `.github/auto-qa-tuning.json`, per group, as
@@ -116,7 +118,10 @@ every file in each group (`core` = `dailies/core`, `scripts` = `scripts`) from t
 `scripts/lib/coverage.sh`, and compares them with the floors. It prints the observed coverage next to each floor and
 exits 1 if a group is below a floor (`::error::<group> <lines|branches> coverage X% is below its floor of Y%`), 2 for a
 usage error, an unreadable or malformed report, or a malformed floors file. A group with no measured lines yet is
-reported as "no code yet" and passes; so does a missing report, but only while neither group folder holds any Python.
+reported as "no code yet" and passes, but only while its folder holds no Python; so does a missing report, but only
+while neither group folder holds any Python. A group whose folder holds Python but has no measured lines exits 2
+(`<group> has Python files but no measured lines; is it in [tool.coverage.run] source in pyproject.toml?`): its root
+was not measured, and passing it would leave its floor unenforced.
 A module that no test imports still counts, at 0 %: the folders under `scripts/` are not packages, and
 `include_namespace_packages` in `pyproject.toml` makes coverage.py list their modules anyway.
 The comparison uses the exact ratio, so 69.999 % does not pass a 70 % floor. `scripts/coverage-check.test.sh` covers
@@ -124,27 +129,27 @@ these cases against the fixtures in `tests/scripts/fixtures/coverage/`, and `pyt
 
 `.github/workflows/coverage-gate.yml` (job **Unit-test coverage floors**, every PR and push to `main`) runs the check
 for every group in the floors file and is a required status check in the `main` ruleset. Adding a group to the gate
-means adding it to `.github/auto-qa-tuning.json`, to the `--cov` list and to `scripts/lib/coverage.sh`. Apply the
-ruleset entry to the live ruleset only after the workflow has run on `main` once; a required check that never reports
-blocks every PR.
+means adding it to `.github/auto-qa-tuning.json`, to `[tool.coverage.run] source` and to `scripts/lib/coverage.sh`
+(`coverage_group_dir` and `coverage_groups`). Apply the ruleset entry to the live ruleset only after the workflow has
+run on `main` once; a required check that never reports blocks every PR.
 
 Raise a floor when coverage rises; never lower one to make a PR pass. Add tests instead. The floors start at 70 % lines
 and 50 % branches and are ratcheted up by the self-tuning below. Run the check locally:
 
 ```sh
-pytest --cov=dailies/core --cov=scripts --cov-report=xml
+pytest --cov --cov-report=xml
 scripts/coverage-check.sh coverage.xml .github/auto-qa-tuning.json
 ```
 
-`pytest --cov=dailies/core --cov=scripts --cov-report=html` writes a browsable report to `htmlcov/`.
+`pytest --cov --cov-report=html` writes a browsable report to `htmlcov/`.
 
 ## Quality report
 
 `.github/workflows/quality-report.yml` (job **Quality report**: every push to `main`, weekly on Monday at 06:17 UTC,
 and on demand) runs `scripts/quality-report.sh > quality-report.md`. The script runs each gate of `Build, lint, test`
 separately (`ruff check`, `ruff format --check`, `pytest`, `check-jsonschema` on each data file), then one coverage run
-(`pytest --cov=dailies/core --cov=scripts --cov-report=xml`) whose Cobertura report, read through
-`scripts/lib/coverage.sh`, gives every module in `.github/auto-qa-tuning.json`, and prints a Markdown report: pass/fail
+(`pytest --cov --cov-report=xml`) whose Cobertura report, read through `scripts/lib/coverage.sh`, gives every module in
+`.github/auto-qa-tuning.json`, and prints a Markdown report: pass/fail
 per gate and line and branch coverage per group. Every gate and the coverage run happen even when an earlier one fails.
 If the coverage run fails, or leaves no report, every module shows `❌ n/a`; a report left by an earlier run is deleted
 first, so it never stands in for the current run. A module with no measured lines shows `no code yet`, and one with
