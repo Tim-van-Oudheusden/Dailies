@@ -329,7 +329,9 @@ python3 scripts/release_check.py notes
 
 1. Open a pull request (`chore(release): X.Y.Z (#N)`) that raises `version:` in `meson.build` and adds a
    `<release version="X.Y.Z" date="YYYY-MM-DD">` entry at the top of `<releases>` in the metainfo, describing what
-   changed for users. The Meson `appstreamcli validate` test checks the entry. Merge it.
+   changed for users. The Meson `appstreamcli validate` test checks the entry. The same pull request moves the
+   metainfo's screenshot URLs to the previous release's tag, the newest one that exists while it runs
+   (`tests/data/test_screenshots.py` requires it). Merge it.
 2. Open a second pull request (`build(flatpak): pin release manifest to X.Y.Z (#N)`) that sets the `dailies` module's
    `commit` in the release manifest to the merge commit from step 1, and merge it with nothing else merged in
    between. The pin cannot go into the first pull request: a commit cannot name its own hash. It holds only a
