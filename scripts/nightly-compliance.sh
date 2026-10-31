@@ -17,7 +17,9 @@
 #   3. GNOME runtime support: `flatpak remote-info flathub <ref>` for the
 #      runtime the app targets shows no End-of-life line. The ref is
 #      RUNTIME_REF, default org.gnome.Platform//51; bump it together with
-#      runtime-version in the Flatpak manifests. Needs the flathub remote.
+#      runtime-version in the Flatpak manifests
+#      (tests/tooling/test_runtime_branch.py fails while they differ). Needs
+#      the flathub remote.
 #   4. ACMM codebase level: scripts/acmm-self-check.py finds the files Hive's
 #      ACMM evaluation looks for, up to level ACMM_MIN_LEVEL (default 5).
 #   5. External data checker image: scripts/check_checker_digest.py compares

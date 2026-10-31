@@ -510,6 +510,10 @@ the maintainer and has not been done yet; until then, send translations as ordin
   `.pre-commit-config.yaml` and the `ARG`s of `Dockerfile.sandbox`; shellcheck and actionlint in the `Static checks`
   job and `Dockerfile.sandbox`. Dependabot updates none of them, and `pre-commit autoupdate` bumps only its own file,
   so bump every copy in one pull request: `tests/tooling/test_tool_pins.py` fails while any two differ.
+- The GNOME runtime branch is the `runtime-version` of both Flatpak manifests. `RUNTIME_BRANCH` in
+  `scripts/flatpark_payload.py`, the `flatpak build-init … org.gnome.Platform <branch>` line of `ci.yml`'s `flatpak`
+  job and the default `RUNTIME_REF` of `scripts/nightly-compliance.sh` repeat it, so a runtime bump changes them in
+  the same pull request: `tests/tooling/test_runtime_branch.py` fails while any of them differs from the manifests.
 
 ## Agent safety layers
 
