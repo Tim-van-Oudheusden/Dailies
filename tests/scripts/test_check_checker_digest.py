@@ -183,6 +183,24 @@ def test_a_response_without_a_digest_is_an_error(tmp_path: Path, capsys: pytest.
     assert "Docker-Content-Digest" in capsys.readouterr().err
 
 
+@pytest.mark.parametrize(
+    "latest",
+    ["sha512:" + "b" * 128, "sha256:" + "B" * 64, "sha256:" + "b" * 63, NEWER + " ", NEWER + ":latest"],
+    ids=["sha512", "upper-case", "short", "trailing-space", "trailing-text"],
+)
+def test_bump_refuses_a_digest_that_is_not_sha256_and_changes_nothing(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], latest: str
+) -> None:
+    workflow = write_workflow(tmp_path, DATED_WORKFLOW)
+    registry = FakeRegistry(latest=latest, built={PINNED: PINNED_BUILT, latest: built(dt.timedelta(days=5))})
+
+    rc = ccd.main(["--workflow", str(workflow), "--bump"], fetch=registry, now=clock)
+
+    assert rc == 2
+    assert workflow.read_text(encoding="utf-8") == DATED_WORKFLOW
+    assert "not a sha256 digest" in capsys.readouterr().err
+
+
 @pytest.mark.parametrize("age", [dt.timedelta(0), dt.timedelta(days=9, hours=23)], ids=["just-built", "9d23h"])
 def test_drift_passes_while_latest_is_younger_than_ten_days(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], age: dt.timedelta

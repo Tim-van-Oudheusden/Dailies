@@ -79,9 +79,10 @@ itself once the required checks pass (#79); a failed check leaves it open for a 
      --now 2026-10-19T04:21:09Z
    ```
 
-   Usual causes: a domain that failed and was carried forward (`"reason": "carried_forward"` in `scores`), an unranked
-   domain (scores 0), a shared domain whose games are picked in the wrong order (`data/v1/domain_weights.json`), or a
-   catalog change since last week. The method is in [`docs/data-format.md`](../data-format.md).
+   Usual causes: a domain that failed and was carried forward (`"reason": "carried_forward"` on its `popular[]` or
+   `trending[]` item), an unranked domain (scores 0), a shared domain whose games are picked in the wrong order
+   (`data/v1/domain_weights.json`), or a catalog change since last week. The method is in
+   [`docs/data-format.md`](../data-format.md).
 5. If the pull request stays open: one of its required checks failed (`gh pr checks <number>`), or the **Merge once
    the required checks pass** step failed.
 

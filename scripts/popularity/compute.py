@@ -366,7 +366,7 @@ def _shelves(
     ]
     rising.sort(key=lambda game_id: (-scores[game_id]["trend"], *tie_break(game_id)))
     risers = capped(rising, domain_of, size)
-    picks = [(game_id, scores[game_id]["trend"], "score") for game_id in risers]
+    picks = [(game_id, scores[game_id]["trend"], reasons[game_id]) for game_id in risers]
     if len(picks) < TRENDING_MINIMUM:
         added = {game["id"]: game["added"] for game in games}
         # A stable sort of the popularity order: newest added first, ties in popularity order.

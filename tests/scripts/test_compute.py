@@ -435,6 +435,21 @@ def test_failed_domain_carries_last_week_forward() -> None:
     assert popularity["scores"]["game-9"]["history"] == [0.9]
 
 
+def test_failed_domain_that_rises_is_carried_forward_on_trending() -> None:
+    # Carried forward at 0.6 over a four-week mean of 0.5: a 0.1 rise, below the top five, that nothing measured.
+    games = [game(f"game-{index}") for index in range(10)]
+    data = raw({entry["domain"]: None if index == 9 else ranks(1000) for index, entry in enumerate(games)})
+    last = previous("2026-W42", {"game-9": (0.6, [0.4])})
+    popularity, _ = compute.compute(catalog(*games), data, last, {}, NOW)
+    assert popularity["trending"][0] == {
+        "id": "game-9",
+        "rank": 1,
+        "score": 0.1,
+        "delta": 0.1,
+        "reason": "carried_forward",
+    }
+
+
 def test_failed_domain_without_history_scores_zero() -> None:
     games = [game(f"game-{index}") for index in range(10)]
     data = raw({entry["domain"]: None if index == 0 else ranks(1000) for index, entry in enumerate(games)})

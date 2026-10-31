@@ -229,4 +229,9 @@ if [ -n "$details" ]; then
   printf '%s' "$details"
 fi
 
+# The last line: scripts/compliance_issue.py treats a report without it as cut short (a timeout or an early exit),
+# never as one where every check passed.
+echo
+echo "<!-- nightly-compliance: end -->"
+
 exit "$failed"

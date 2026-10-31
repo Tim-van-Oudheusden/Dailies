@@ -44,7 +44,9 @@ ACCEPT = (
     "application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json, "
     "application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json"
 )
-PIN = re.compile(rf"docker://ghcr\.io/{re.escape(REPOSITORY)}@(sha256:[0-9a-f]{{64}})")
+# The one form a pin may take; ghcr.io's answer is held to it too, since --bump writes that answer into a workflow.
+DIGEST = r"sha256:[0-9a-f]{64}"
+PIN = re.compile(rf"docker://ghcr\.io/{re.escape(REPOSITORY)}@({DIGEST})")
 AS_OF = re.compile(rf"(ghcr\.io/{re.escape(REPOSITORY)}:latest as of )\d{{4}}-\d{{2}}-\d{{2}}")
 # The runners are x86_64; the build time of that image stands for the whole index.
 PLATFORM = {"os": "linux", "architecture": "amd64"}
@@ -128,6 +130,9 @@ def latest_digest(fetch: Fetch) -> str:
     digest = next((value for key, value in headers.items() if key.lower() == "docker-content-digest"), "")
     if not digest:
         msg = "ghcr.io answered manifests/latest without a Docker-Content-Digest header"
+        raise DigestError(msg)
+    if not re.fullmatch(DIGEST, digest):
+        msg = f"ghcr.io answered manifests/latest with a Docker-Content-Digest that is not a sha256 digest: {digest!r}"
         raise DigestError(msg)
     return digest
 

@@ -4,8 +4,9 @@
 .github/workflows/auto-issues.yml runs this after each Nightly compliance run on main, with that run's
 `nightly-compliance` artifact. A failing check opens one issue "ci: nightly compliance: N failing checks", labelled `ci`
 and `automated`, or updates the open one; the first run where every check passes again comments on it and closes it.
-A run that left no report (it failed before the upload) opens or updates the issue as "ci: nightly compliance: no
-report". The open issue is found by MARKER in its body or by its title, so it is still found after its body was edited.
+A run that left no report (it failed before the upload), or one cut short before every check ran, opens or updates
+the issue as "ci: nightly compliance: no report" and never closes it. The open issue is found by MARKER in its body or
+by its title, so it is still found after its body was edited.
 
 Catalog links are left out: on a failure the link check opens its own `data` issue (scripts/check_links.py).
 
@@ -36,6 +37,9 @@ TITLE_PREFIX = "ci: nightly compliance: "
 # How an earlier run titled its issue, so it is found even if its body was edited.
 ISSUE_TITLE = re.compile(rf"^{re.escape(TITLE_PREFIX)}(\d+ failing checks?|no report)$")
 REPORT_HEADING = "# Nightly compliance\n"
+# scripts/nightly-compliance.sh prints this last. Without it the run stopped before every check had its row, so the
+# missing rows cannot be read as passing.
+REPORT_END = "<!-- nightly-compliance: end -->"
 FAILING_ROW = re.compile(r"^\| (?P<check>.+) \| ❌ fail \|$", re.MULTILINE)
 # The link check reports its failures in its own `data` issue.
 OWN_ISSUE_CHECKS = ("Catalog links",)
@@ -79,8 +83,11 @@ def github_api(token: str) -> Api:
 
 
 def failing_checks(report: str) -> list[str] | None:
-    """The failing checks of a nightly compliance report, minus those with their own issue; None if it is no report."""
-    if not report.startswith(REPORT_HEADING):
+    """The failing checks of a nightly compliance report, minus those with their own issue; None if it is no report.
+
+    A report that does not end with REPORT_END was cut short and counts as no report.
+    """
+    if not report.startswith(REPORT_HEADING) or report.rstrip().splitlines()[-1] != REPORT_END:
         return None
     checks = [match["check"] for match in FAILING_ROW.finditer(report)]
     return [check for check in checks if not check.startswith(OWN_ISSUE_CHECKS)]
@@ -101,8 +108,8 @@ def issue_body(failing: list[str] | None, report: str, run_url: str) -> str:
     )
     if failing is None:
         return (
-            f"{MARKER}\n[This Nightly compliance run]({run_url}) left no `nightly-compliance` report: it failed before"
-            f" the upload. Its log says why.\n\n{footer}\n"
+            f"{MARKER}\n[This Nightly compliance run]({run_url}) left no complete `nightly-compliance` report: it"
+            f" failed before the upload or stopped before every check ran. Its log says why.\n\n{footer}\n"
         )
     checks = "".join(f"- {check}\n" for check in failing)
     head = f"{MARKER}\n[Nightly compliance]({run_url}) has failing checks:\n\n{checks}\n{footer}\n\n"
