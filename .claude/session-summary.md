@@ -9,17 +9,17 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-10-29. #283 on `fix/283-trending-carried-forward-reason`.
+2026-10-30. #289 on `fix/289-screenshots-previous-release`.
 
-- **Outcome:** `compute.py` `_shelves` labels a Trending riser with its `reasons` entry, as Popular does, so a game
-  whose Tranco fetch failed and that rises on last week's carried-forward popularity shows `carried_forward`, not
-  `score`. New test `test_failed_domain_that_rises_is_carried_forward_on_trending`. The popularity runbook now says
-  the reason is on the `popular[]` / `trending[]` item, not in `scores`.
-- **Open follow-ups:** whether a carried-forward game may trend at all is a method question for the maintainer (#283
-  leaves it open on purpose).
+- **Outcome:** `tests/data/test_screenshots.py` requires every metainfo screenshot URL to name the second-newest
+  `<release>`, next to the existing "not the newest" guard; the URLs move from `v0.1.0` to `v0.2.2` (same PNGs, so no
+  store-visible change yet). CONTRIBUTING "Cutting a release" step 1 says the version-bump PR moves them to the
+  previous release's tag.
+- **Open follow-ups:** the next version-bump PR moves the URLs to `v0.3.0` (the #231 re-takes); the FlatPark package
+  (#206 step 2) should name `v0.3.0` in its own metainfo copy.
 - **Gotchas:**
-  - Host Python 3.11 cannot import `dailies/core` (PEP 695 generics); run `pytest` under 3.12+ (`uv venv -p 3.13`
-    plus `scripts/requirements.txt` and `pytest==9.1.1`).
+  - Every tag from `v0.1.0` to `v0.2.2` holds the same four PNGs; only `v0.3.0` has the re-takes (1, 2 and 4).
+  - A host with Python 3.11 fails collection on `type` statements and lacks `ruamel`; the project needs 3.12+.
   - A host whose `jq` is `jaq` fails the `pr-metrics.sh` and `auto-qa-tuner.sh` tests (`$label`/`$module` are
     keywords there); CI's jq passes them.
   - Without the GNOME 51 SDK on the host, `scripts/sandbox.sh` runs every gate but the Flatpak build.

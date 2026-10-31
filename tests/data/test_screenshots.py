@@ -100,6 +100,15 @@ def test_screenshot_urls_are_not_on_the_newest_release() -> None:
     assert newest["version"] not in versions, (versions, newest["version"])
 
 
+def test_screenshot_urls_are_on_the_release_before_the_newest() -> None:
+    # The newest tag is not pushed yet on the version-bump pull request, so the previous release's is the latest one a
+    # store can show. Without this the URLs could stay on an old tag, whose pictures predate later re-takes (#289).
+    releases = RELEASE.findall(METAINFO.read_text(encoding="utf-8"))
+    assert len(releases) >= 2, releases
+    versions = {match["version"] for match in image_urls()}
+    assert versions == {releases[1]}, (versions, releases[1])
+
+
 def test_every_screenshot_file_is_listed_once_in_the_metainfo() -> None:
     names = [match["name"] for match in image_urls()]
     assert len(names) == len(set(names)), names
