@@ -1,6 +1,6 @@
 # Path-based PR labels, applied by .github/workflows/labeler.yml (actions/labeler).
-# The labels name the area a PR touches; its risk tier comes from .github/policies/risk-tiers.policy.
-# Every path the policy names gets a label and every labelled path has a policy rule, apart from the exemptions
+# The labels name the area a PR touches; its risk tier comes from .github/risk-assessment.yml.
+# Every path risk-assessment.yml names gets a label and every labelled path has a rule there, apart from the exemptions
 # listed with their reasons in tests/tooling/test_workflows.py, which fails when the two files drift apart.
 
 app:

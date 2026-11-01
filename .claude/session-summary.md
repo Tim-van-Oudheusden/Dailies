@@ -9,18 +9,14 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-10-31. #296 on `refactor/296-coverage-roots-single-source`.
+2026-11-01. #307 on `ci/307-risk-assessment-config`.
 
-- **Outcome:** `[tool.coverage.run] source` in `pyproject.toml` is the one list of measured roots: `coverage-gate.yml`,
-  `quality-report.sh` and `sandbox-gates.sh` run a bare `pytest --cov`. `coverage-check.sh` exits 2 when a group has
-  no measured lines but its root holds Python (an unmeasured root used to pass as "no code yet"), and builds its
-  "known groups" list from the new `coverage_groups` in `scripts/lib/coverage.sh`. Same totals as the old `--cov`
-  lists (3143/3188 lines).
-- **Open follow-ups:** none. `quality-report.sh` still prints "no code yet" for an unmeasured root; it is a report,
-  not a gate, and the gate now fails for it.
+- **Outcome:** the risk-tier rules moved from `.github/policies/risk-tiers.policy` to `.github/risk-assessment.yml`
+  (same rules, same first-match order; `rules:` list of `- <tier> <glob>` items). `scripts/tier-classify.sh` reads a
+  strict line subset of YAML (no new dependency); its shell suite, `test_tier_classify.py`, the labeler parity tests
+  and the docs follow the new path. `RISK_TIER_POLICY` still overrides the file.
+- **Open follow-ups:** `acmm:policy-as-code` (L5) was met only by the old `.github/policies/` directory; it needs
+  another file there (#312, workflow token permissions) before this lands.
 - **Gotchas:**
-  - Host Python 3.11 cannot import `dailies/core` (PEP 695 generics); run `pytest` under 3.12+ (`uv venv -p 3.13`
-    plus `scripts/requirements.txt` and `pytest==9.1.1`).
-  - A host jq older than 1.7 (or `jaq`) fails the `pr-metrics.sh`, `auto-qa-tuner.sh` and `quality-report.sh` tests
-    (`$label`/`$module` are keywords there); CI's jq passes them.
-  - Without the GNOME 51 SDK on the host, `scripts/sandbox.sh` runs every gate but the Flatpak build.
+  - Git does not track empty directories: delete `.github/policies/` after moving its last file, or the ACMM
+    self-check still counts it.
