@@ -46,4 +46,6 @@ branch is what you push.
    The body says `Fixes #<number>`; the `PR review rubric` check fails without
    that link or a Conventional Commits title.
 3. Confirm `git status` shows up to date with `origin/<branch>`, and hand off
-   the PR URL. The maintainer merges it, and the merge closes the issue.
+   the PR URL. The merge queue merges it once the required checks pass (the
+   maintainer merges high-risk PRs and those labelled `hold`, `blocked`,
+   `sentinel-alert` or `automated`), and the merge closes the issue.

@@ -14,8 +14,8 @@ coordination rules behind it are in [`../multi-agent.md`](../multi-agent.md).
 | Branch | `<type>/<number>-<slug>` for local agents; Hive uses `<agent>/<number>-<slug>` or a topic branch such as `quality/test-…`; Claude Code in CI uses `claude/*` | `craftsman/303-done-today-refresh-doc` | Convention (`AGENTS.md`, "Issue Tracking") |
 | Commit | `(#<number>)` at the end of the Conventional Commits subject | `docs(done-today): refresh drops the marks of every other day, not only earlier ones (#303)` | Convention |
 | Pull request | `Fixes #<number>` in the body (or `Closes`, `Resolves`, `Refs`); Hive's PRs also end with `— hive: agent=<name> backend=… model=<model> …` | #304 | `PR review rubric` check (`scripts/pr-review-check.sh`), required on `main` for authors that are not `*[bot]` accounts |
-| Merge | Merge commit `Merge pull request #<PR> from <owner>/<branch>`, made by the maintainer | `ec9291a` | `main` only changes through pull requests (`.github/rulesets/main.json`); `.github/CODEOWNERS` names the maintainer owner of the high-risk paths |
-| Close | The merge closes the issue through `Fixes #<number>` | #303 closed by #304 | GitHub |
+| Merge | Merge commit `Merge pull request #<PR> from <owner>/<branch>`, made by the maintainer or, for a low- or medium-risk PR, by the merge queue (`.github/workflows/merge-queue.yml`) | `ec9291a` | `main` only changes through pull requests (`.github/rulesets/main.json`); `.github/CODEOWNERS` names the maintainer owner of the high-risk paths |
+| Close | The merge closes the issue through `Fixes #<number>`; a merge by the queue's token closes nothing by itself, so its `land` job closes the linked issues | #303 closed by #304 | GitHub; `scripts/merge-queue.sh land` |
 
 The required rubric check is what guarantees the chain for pull requests from people: a pull request into `main` from
 a person cannot merge without an issue link. Bot authors, including Hive, are exempt (see **Exempt** below).

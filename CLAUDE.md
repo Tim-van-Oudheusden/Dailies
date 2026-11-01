@@ -43,8 +43,9 @@ when this file conflicts with AGENTS.md, AGENTS.md wins.**
 - Conventional Commits, one commit per issue, referencing the issue number.
 - Land each issue through a pull request: branch `<type>/<number>-<slug>` off
   `main`, `git push -u origin HEAD`, then `gh pr create` with
-  `Fixes #<number>` in the body. `main` is protected; the maintainer merges
-  once the required checks pass.
+  `Fixes #<number>` in the body. `main` is protected; once the required checks
+  pass the merge queue merges it (the maintainer merges high-risk PRs and
+  those labelled `hold`, `blocked`, `sentinel-alert` or `automated`).
 
 See `CONTRIBUTING.md` for contributor workflow and `AGENTS.md` for the full
 agent ruleset.

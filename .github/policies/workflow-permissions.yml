@@ -63,6 +63,17 @@ workflows:
     jobs:
       label: { contents: read, pull-requests: write }
 
+  merge-queue.yml:
+    jobs:
+      # Land: merge the verified PR, close the issues it links, start main's push
+      # workflows and the next run.
+      land: { actions: write, contents: write, issues: write, pull-requests: write }
+      # Pick: list open PRs and read their merge state and head.
+      pick: { contents: read, pull-requests: read }
+      # Reject: label a PR that failed verification `hold`, comment the run, start
+      # the next queue run.
+      reject: { actions: write, contents: read, issues: write, pull-requests: write }
+
   # List Dependabot alerts; open or update the broken-links `data` issue; download
   # last week's link-check state artifact.
   nightly-compliance.yml:
