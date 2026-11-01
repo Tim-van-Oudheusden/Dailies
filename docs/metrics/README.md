@@ -93,9 +93,10 @@ gh pr list -R Tim-van-Oudheusden/Dailies --state closed --limit 1000 --search "c
 A record of what reached `main` and who was behind it. Each PR merged in the window (default 7 days) is attributed to
 one source, checked in this order:
 
-- **Hive**: the PR body has Hive's signature line (`— hive: agent=<name> … model=<model> …`), from which the agent and
-  model are taken (contributor runs, such as the maintainer's local agent, sign without `agent=`, shown as `—`), or the
-  PR is authored by the `hive-forge-app` GitHub App.
+- **Hive**: the PR body has a Hive signature line, `— hive: agent=<name> … model=<model> …` or
+  `— omp (Claude Code), model=<model>`, from which the agent and model are taken (contributor runs, such as the
+  maintainer's local agent, sign without `agent=`, shown as `—`), or the PR is authored by the `hive-forge-app` GitHub
+  App.
 - **Claude Code (CI)**: head branch `claude/*`.
 - **Dependabot**: head branch `dependabot/*`.
 - **Other**: anything else, such as the maintainer's own PRs or the data PRs `github-actions` opens
@@ -111,7 +112,7 @@ authenticated `gh`:
 
 ```sh
 since="$(date -u -d '7 days ago' +%Y-%m-%d)"
-gh pr list -R Tim-van-Oudheusden/Dailies --state merged --limit 1000 --search "merged:>=${since}" \
+gh pr list -R Tim-van-Oudheusden/Dailies --base main --state merged --limit 1000 --search "merged:>=${since}" \
   --json number,title,author,headRefName,mergedAt,mergedBy,body | scripts/ai-audit-report.sh --since "$since"
 ```
 

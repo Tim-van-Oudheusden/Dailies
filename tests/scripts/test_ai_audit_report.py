@@ -118,6 +118,20 @@ def test_hive_signature_outranks_the_head_branch() -> None:
     assert row.startswith("| #7 | 2026-10-10 12:00 | Hive | scanner | claude-sonnet-5 |"), row
 
 
+def test_omp_contributor_signature_is_hive_with_its_model() -> None:
+    body = "Fixes #1\n\n— omp (Claude Code), model=anthropic/claude-opus-5-5\n"
+    result = report([pr(10, branch="ci/1-change", body=body)])
+
+    (row,) = rows(result, "Ledger")
+    assert row.startswith("| #10 | 2026-10-10 12:00 | Hive | — | anthropic/claude-opus-5-5 |"), row
+
+
+def test_ledger_follows_merge_time_not_pr_number() -> None:
+    result = report([pr(11, merged_at="2026-10-03T00:00:00Z"), pr(12, merged_at="2026-10-02T00:00:00Z")])
+
+    assert [row.split(" | ")[0] for row in rows(result, "Ledger")] == ["| #12", "| #11"]
+
+
 def test_hive_forge_app_is_hive_even_without_a_signature() -> None:
     # gh reports a GitHub App author as app/<slug>; the REST API as <slug>[bot].
     result = report(
