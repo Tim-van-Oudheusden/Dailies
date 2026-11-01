@@ -150,8 +150,8 @@ into its `install_data` list too: `tests/tooling/test_meson_install.py` fails `p
 Flatpak job's launch test would.
 
 The `main` ruleset also requires the **Unit-test coverage floors** check (`.github/workflows/coverage-gate.yml`): it
-runs `pytest --cov=dailies/core --cov=scripts --cov-report=xml` and fails the PR if the line or branch coverage of
-`core` or `scripts` drops below its floor in `.github/auto-qa-tuning.json`. See
+runs `pytest --cov --cov-report=xml` (measuring the roots in `[tool.coverage.run] source` in `pyproject.toml`) and fails
+the PR if the line or branch coverage of `core` or `scripts` drops below its floor in `.github/auto-qa-tuning.json`. See
 [`docs/testing.md`](docs/testing.md#coverage-floors) to run it locally.
 
 ### Experimental Windows build

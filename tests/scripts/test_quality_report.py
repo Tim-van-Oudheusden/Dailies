@@ -121,7 +121,7 @@ def test_reports_every_gate_and_the_coverage_of_each_module(tmp_path: Path) -> N
         "pytest ",
         "check-jsonschema --schemafile data/v1/schema/catalog.schema.json data/v1/games.json",
         "check-jsonschema --schemafile data/v1/schema/popularity.schema.json data/v1/popularity.json",
-        f"pytest --cov=dailies/core --cov=scripts --cov-report=xml:{tmp_path / 'coverage.xml'}",
+        f"pytest --cov --cov-report=xml:{tmp_path / 'coverage.xml'}",
     ]
 
 

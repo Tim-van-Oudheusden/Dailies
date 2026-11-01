@@ -6,11 +6,12 @@
 #
 # Runs every gate of CI's `Build, lint, test` job separately (`ruff check .`, `ruff format --check .`, `pytest`, and
 # `check-jsonschema` on each data file in data/v1 against its schema), then one coverage run,
-# `pytest --cov=dailies/core --cov=scripts --cov-report=xml`, whose Cobertura report gives the line and branch coverage
-# of every module (floor group) in .github/auto-qa-tuning.json, and reports pass/fail per gate and the coverage per
-# module. Tool output goes to stderr so stdout stays a clean report. Every gate and the coverage run happen even when
-# an earlier one fails; a failed coverage run, or one that leaves no report, reports n/a. A module with no measured
-# lines reports "no code yet", and one with lines but no branches reports "no branches" for them; neither is a failure.
+# `pytest --cov --cov-report=xml` (measuring the roots in [tool.coverage.run] source in pyproject.toml), whose Cobertura
+# report gives the line and branch coverage of every module (floor group) in .github/auto-qa-tuning.json, and reports
+# pass/fail per gate and the coverage per module. Tool output goes to stderr so stdout stays a clean report. Every gate
+# and the coverage run happen even when an earlier one fails; a failed coverage run, or one that leaves no report,
+# reports n/a. A module with no measured lines reports "no code yet", and one with lines but no branches reports "no
+# branches" for them; neither is a failure.
 # The coverage floors themselves are enforced by scripts/coverage-check.sh, and scripts/auto-qa-tuner.sh reads the
 # coverage rows printed here.
 #
@@ -72,7 +73,7 @@ echo "| ------ | ----- | -------- |"
 # A report left by an earlier run must not stand in for this run's.
 rm -f "$report"
 measured=0
-if pytest --cov=dailies/core --cov=scripts "--cov-report=xml:$report" >&2 && [ -f "$report" ]; then
+if pytest --cov "--cov-report=xml:$report" >&2 && [ -f "$report" ]; then
   measured=1
 fi
 for module in $modules; do

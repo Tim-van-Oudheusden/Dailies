@@ -4,18 +4,22 @@
 # Usage:
 #   scripts/coverage-check.sh <coverage.xml> <tuning.json>
 #
-# Reads the Cobertura XML that `pytest --cov=dailies/core --cov=scripts --cov-report=xml` writes and the floors from
-# the tuning config (.github/auto-qa-tuning.json: {"margin": N, "floors": {"<group>": {"lines": N, "branches": N}}}),
-# and fails if any group's line or branch coverage is below its floor, in percent. Groups map to measured roots in
-# scripts/lib/coverage.sh: `core` is dailies/core, `scripts` is scripts. The margin is only read by the floor tuner.
+# Reads the Cobertura XML that `pytest --cov --cov-report=xml` writes (the measured roots come from
+# [tool.coverage.run] source in pyproject.toml) and the floors from the tuning config (.github/auto-qa-tuning.json:
+# {"margin": N, "floors": {"<group>": {"lines": N, "branches": N}}}), and fails if any group's line or branch coverage
+# is below its floor, in percent. Groups map to measured roots in scripts/lib/coverage.sh (coverage_group_dir). The
+# margin is only read by the floor tuner.
 #
-# No code yet: a group with no measured lines (its root is absent, holds no Python, or is not in the report) passes
-# and is reported as "no code yet"; its floors apply from the first measured line. When there is no Python at all
-# under any group's root, coverage.py writes no report, and a missing report then passes the same way. A missing
-# report while Python code exists is an error. A group with lines but no branches has 100% branch coverage.
+# No code yet: a group with no measured lines whose root is absent or holds no Python passes and is reported as "no
+# code yet"; its floors apply from the first measured line. A group with no measured lines although its root holds
+# Python is an error: the root was not measured (it is missing from [tool.coverage.run] source, or an explicit --cov
+# list left it out). When there is no Python at all under any group's root, coverage.py writes no report, and a
+# missing report then passes the same way. A missing report while Python code exists is an error. A group with lines
+# but no branches has 100% branch coverage.
 #
 # Exit status: 0 when every group is at or above both floors (or has no code yet), 1 when a group is below a floor,
-# 2 for bad arguments, a malformed config, an unknown group, or a missing, unreadable or malformed report.
+# 2 for bad arguments, a malformed config, an unknown group, a missing, unreadable or malformed report, or a group
+# whose root holds Python but has no measured lines.
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -53,7 +57,8 @@ fi
 groups="$(jq -r '.floors | keys[]' "$config")"
 for group in $groups; do
   if ! coverage_group_dir "$group" >/dev/null; then
-    echo "Unknown coverage group '$group' in $config; known groups: core, scripts" >&2
+    echo "Unknown coverage group '$group' in $config;" \
+      "known groups: $(coverage_groups | paste -sd ',' - | sed 's/,/, /g')" >&2
     exit 2
   fi
 done
@@ -69,7 +74,7 @@ if [ ! -f "$report" ]; then
   for group in $groups; do
     if has_python "$group"; then
       echo "No coverage report at $report, but $(coverage_group_dir "$group") has Python code;" \
-        "run pytest --cov=dailies/core --cov=scripts --cov-report=xml first" >&2
+        "run pytest --cov --cov-report=xml first" >&2
       exit 2
     fi
   done
@@ -94,7 +99,12 @@ for group in $groups; do
   read -r lines_missed lines_covered branches_missed branches_covered <<<"$counters"
 
   if [ "$((lines_missed + lines_covered))" -eq 0 ]; then
-    echo "Coverage ($group): no code yet (no measured lines under $(coverage_group_dir "$group"));" \
+    if has_python "$group"; then
+      echo "$group has Python files but no measured lines; is it in [tool.coverage.run] source in pyproject.toml?" \
+        "($(coverage_group_dir "$group") was not measured)" >&2
+      exit 2
+    fi
+    echo "Coverage ($group): no code yet (no Python under $(coverage_group_dir "$group"));" \
       "floors lines ${floor_lines}%, branches ${floor_branches}% apply once it has code"
     continue
   fi

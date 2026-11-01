@@ -78,7 +78,9 @@ addopts = ["-m", "not e2e", "--ignore=tests/gi", "--strict-markers", "--import-m
 pythonpath = ["."]
 
 # Coverage floors apply to the pure-Python core and the CI scripts only; the gi-bound UI is covered by the e2e smoke
-# test. CI writes Cobertura XML with `pytest --cov --cov-report=xml`.
+# test. `source` is the one list of measured roots: CI and the scripts run a bare `pytest --cov --cov-report=xml`,
+# which reads it (an explicit `--cov=<path>` would replace it). A root gets a floor through a group in
+# scripts/lib/coverage.sh and .github/auto-qa-tuning.json.
 [tool.coverage.run]
 source = ["dailies/core", "scripts"]
 branch = true
