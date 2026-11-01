@@ -2,8 +2,8 @@
 
 Each check is a function that returns a list of violations for one parsed workflow (or for the labeler and policy
 files). The tests at the top run them over the repository's files; the tests at the bottom feed each one an inline
-YAML fixture that breaks it. A new workflow passes as is when it asks for nothing beyond `contents: read`; a job that
-needs more gets a reviewed row in `JOB_PERMISSIONS`.
+YAML fixture that breaks it. A new workflow passes once it has a rule in `.github/policies/workflow-permissions.yml`;
+a job that needs more than `contents: read` gets reviewed job-level grants in that rule.
 """
 
 import fnmatch
@@ -17,56 +17,13 @@ from ruamel.yaml import YAML
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOWS = ROOT / ".github" / "workflows"
 LABELER = ROOT / ".github" / "labeler.yml"
-POLICY = ROOT / ".github" / "policies" / "risk-tiers.policy"
+POLICY = ROOT / ".github" / "risk-assessment.yml"
 
-# Every workflow's top-level token: jobs that need more declare it themselves.
-TOP_LEVEL_PERMISSIONS = {"contents": "read"}
-
-# Reviewed job-level token scopes, by (workflow file, job id). A job that declares `permissions:` must match its row
-# exactly; a job without a row must not declare any (it inherits the read-only top level).
-JOB_PERMISSIONS: dict[tuple[str, str], dict[str, str]] = {
-    # Push the suggestions commit to the PR branch; react to the command and post the report comment.
-    ("auto-review.yml", "apply"): {"contents": "write", "pull-requests": "write"},
-    # Download the Nightly compliance run's report artifact; open, update or close the nightly compliance issue.
-    ("auto-issues.yml", "compliance-issue"): {"actions": "read", "contents": "read", "issues": "write"},
-    # claude-code-action's documented minimum: push claude/* branches, open and comment on PRs and issues, and mint
-    # its GitHub App token via OIDC.
-    ("claude.yml", "claude"): {
-        "contents": "write",
-        "pull-requests": "write",
-        "issues": "write",
-        "id-token": "write",
-    },
-    # The checker edits the manifest; create-pull-request pushes the update branch and opens the PR.
-    ("external-data-checker.yml", "flatpak-external-data-checker"): {
-        "contents": "write",
-        "pull-requests": "write",
-    },
-    # Comment the validation report on the submission issue and set its labels.
-    ("game-submission-check.yml", "check"): {"contents": "read", "issues": "write"},
-    # Stage B: comment on an invalid submission. The pull request job opens the PR with the bot App's token.
-    ("game-submission-approve.yml", "add"): {"contents": "read", "issues": "write"},
-    # Link the pull request, opened with the bot App's token, on the submission issue.
-    ("game-submission-approve.yml", "pull-request"): {"contents": "read", "issues": "write"},
-    # actions/labeler reads .github/labeler.yml and labels the PR.
-    ("labeler.yml", "label"): {"contents": "read", "pull-requests": "write"},
-    # List Dependabot alerts; open or update the broken-links `data` issue; download last week's link-check state
-    # artifact.
-    ("nightly-compliance.yml", "compliance"): {
-        "actions": "read",
-        "contents": "read",
-        "issues": "write",
-        "vulnerability-alerts": "read",
-    },
-    # actions/deploy-pages: deploy the artifact, authenticated through OIDC.
-    ("pages.yml", "deploy"): {"pages": "write", "id-token": "write"},
-    # Check out scripts/ and list closed PRs.
-    ("pr-metrics.yml", "acceptance"): {"contents": "read", "pull-requests": "read"},
-    # Check out scripts/ and the popularity.json history, list popularity.yml runs and merged data/popularity PRs.
-    ("pr-metrics.yml", "popularity"): {"contents": "read", "actions": "read", "pull-requests": "read"},
-    # Create the GitHub Release and upload the bundles.
-    ("release.yml", "publish"): {"contents": "write"},
-}
+# What GITHUB_TOKEN may do in each workflow is policy as code in .github/policies/workflow-permissions.yml:
+# `default` is every workflow's top-level token, and a workflow's `jobs` rule holds the reviewed job-level scopes.
+# A job that declares `permissions:` must match its rule exactly; a job without a rule must not declare any (it
+# inherits the read-only top level).
+PERMISSIONS_POLICY_FILE = ROOT / ".github" / "policies" / "workflow-permissions.yml"
 
 # docker:// actions referenced by tag instead of a digest, with the reason. Prefer pinning by digest
 # (`docker://image@sha256:<64 hex>`); external-data-checker.yml does.
@@ -95,8 +52,14 @@ BOT_ENVIRONMENT_JOBS: dict[tuple[str, str], str] = {
 }
 
 # Jobs reviewed to merge pull requests (`gh pr merge`), by (workflow file, job id). Only the weekly popularity numbers
-# merge themselves once the required checks pass (#79); catalog and link-status changes stay human-merged.
+# merge themselves once the required checks pass (#79); catalog and link-status changes stay human-merged. The merge
+# queue merges the rest, except high-risk changes and pull requests labelled `automated`, `hold`, `blocked` or
+# `sentinel-alert` (scripts/merge-queue.sh).
 AUTO_MERGE_JOBS: dict[tuple[str, str], str] = {
+    (
+        "merge-queue.yml",
+        "land",
+    ): "scripts/merge-queue.sh land: gh pr merge --merge --match-head-commit on a verified PR",
     ("popularity.yml", "pull-request"): "gh pr merge --auto --merge on the data/popularity pull request",
 }
 
@@ -152,6 +115,15 @@ def load_yaml(text: str) -> dict:
     return YAML(typ="safe", pure=True).load(text)
 
 
+PERMISSIONS_POLICY = load_yaml(PERMISSIONS_POLICY_FILE.read_text(encoding="utf-8"))
+TOP_LEVEL_PERMISSIONS = PERMISSIONS_POLICY["default"]
+REVIEWED_JOB_PERMISSIONS: dict[tuple[str, str], dict[str, str]] = {
+    (name, job_id): permissions
+    for name, rule in PERMISSIONS_POLICY["workflows"].items()
+    for job_id, permissions in (rule.get("jobs") or {}).items()
+}
+
+
 def workflow_files() -> list[Path]:
     return sorted([*WORKFLOWS.glob("*.yml"), *WORKFLOWS.glob("*.yaml")])
 
@@ -192,7 +164,7 @@ def top_level_permission_violations(name: str, workflow: dict) -> list[str]:
 
 
 def job_permission_violations(
-    name: str, workflow: dict, reviewed: dict[tuple[str, str], dict[str, str]] = JOB_PERMISSIONS
+    name: str, workflow: dict, reviewed: dict[tuple[str, str], dict[str, str]] = REVIEWED_JOB_PERMISSIONS
 ) -> list[str]:
     violations = []
     for job_id, job in jobs_of(workflow).items():
@@ -205,6 +177,19 @@ def job_permission_violations(
         elif job["permissions"] != expected:
             violations.append(f"{name}: job {job_id} permissions are {job['permissions']!r}, reviewed {expected!r}")
     return violations
+
+
+def policy_coverage_violations(policy: dict, workflows: dict[str, dict]) -> list[str]:
+    rules = policy["workflows"]
+    return [
+        *(f"{name}: no rule in the workflow permissions policy" for name in sorted(set(workflows) - set(rules))),
+        *(f"{name}: rule names a workflow that does not exist" for name in sorted(set(rules) - set(workflows))),
+        *(
+            f"{name}: rule names job {job_id}, which does not exist"
+            for name in sorted(set(rules) & set(workflows))
+            for job_id in sorted(set(rules[name].get("jobs") or {}) - set(jobs_of(workflows[name])))
+        ),
+    ]
 
 
 def timeout_violations(name: str, workflow: dict) -> list[str]:
@@ -367,8 +352,7 @@ def labeler_globs(labeler: dict) -> dict[str, list[str]]:
 
 
 def policy_globs(policy: str) -> list[str]:
-    rules = [line.split() for line in policy.splitlines() if line.strip() and not line.lstrip().startswith("#")]
-    return [glob for _, glob in rules]
+    return [item.split()[1] for item in load_yaml(policy)["rules"]]
 
 
 def sample(glob: str) -> str:
@@ -430,9 +414,9 @@ def parity_violations(
 ) -> list[str]:
     unruled, unlabelled = unruled_label_globs(labeler, policy), unlabelled_tier_globs(labeler, policy)
     return [
-        *(f"labeler.yml glob {glob} has no risk-tiers.policy rule" for glob in unruled if glob not in unruled_ok),
+        *(f"labeler.yml glob {glob} has no risk-assessment.yml rule" for glob in unruled if glob not in unruled_ok),
         *(
-            f"risk-tiers.policy glob {glob} has no labeler.yml label"
+            f"risk-assessment.yml glob {glob} has no labeler.yml label"
             for glob in unlabelled
             if glob not in unlabelled_ok
         ),
@@ -612,7 +596,8 @@ def bot_environment_violations(
     return violations
 
 
-GH_PR_MERGE = re.compile(r"\bgh\s+pr\s+merge\b")
+# `scripts/merge-queue.sh land` runs `gh pr merge` itself, so a job that calls it merges pull requests too.
+GH_PR_MERGE = re.compile(r"\bgh\s+pr\s+merge\b|\bmerge-queue\.sh\s+land\b")
 
 
 def merge_violations(name: str, workflow: dict, reviewed: dict[tuple[str, str], str] = AUTO_MERGE_JOBS) -> list[str]:
@@ -649,9 +634,8 @@ def test_job_permissions_match_the_reviewed_map(path: Path) -> None:
     assert job_permission_violations(path.name, load(path)) == []
 
 
-def test_every_reviewed_job_permission_row_names_an_existing_job() -> None:
-    existing = {(path.name, job_id) for path in FILES for job_id in jobs_of(load(path))}
-    assert sorted(set(JOB_PERMISSIONS) - existing) == []
+def test_permissions_policy_has_a_rule_for_every_workflow_and_only_for_workflows_that_exist() -> None:
+    assert policy_coverage_violations(PERMISSIONS_POLICY, {path.name: load(path) for path in FILES}) == []
 
 
 @pytest.mark.parametrize("path", FILES, ids=IDS)
@@ -815,6 +799,25 @@ jobs:
 def test_fixture_reviewed_job_without_permissions_fails() -> None:
     workflow = load_yaml("jobs:\n  build:\n    runs-on: ubuntu-latest\n")
     assert job_permission_violations("x.yml", workflow, reviewed={("x.yml", "build"): {"contents": "write"}})
+
+
+def test_fixture_workflow_without_a_rule_fails() -> None:
+    policy = {"default": {"contents": "read"}, "workflows": {}}
+    assert policy_coverage_violations(policy, {"x.yml": load_yaml("jobs:\n  build: {}\n")}) == [
+        "x.yml: no rule in the workflow permissions policy"
+    ]
+
+
+def test_fixture_rule_for_a_missing_workflow_fails() -> None:
+    policy = {"default": {"contents": "read"}, "workflows": {"gone.yml": {}}}
+    assert policy_coverage_violations(policy, {}) == ["gone.yml: rule names a workflow that does not exist"]
+
+
+def test_fixture_rule_for_a_missing_job_fails() -> None:
+    policy = {"default": {"contents": "read"}, "workflows": {"x.yml": {"jobs": {"gone": {"contents": "write"}}}}}
+    assert policy_coverage_violations(policy, {"x.yml": load_yaml("jobs:\n  build: {}\n")}) == [
+        "x.yml: rule names job gone, which does not exist"
+    ]
 
 
 def test_fixture_job_without_timeout_fails() -> None:
@@ -1099,21 +1102,21 @@ ci:
 
 
 def test_fixture_labelled_path_without_tier_rule_fails() -> None:
-    policy = "high .github/*\nmedium dailies/*\n"
+    policy = "rules:\n  - high .github/*\n  - medium dailies/*\n"
     assert parity_violations(load_yaml(PARITY_LABELER), policy, unruled_ok={}, unlabelled_ok={}) == [
-        "labeler.yml glob data/ui/** has no risk-tiers.policy rule"
+        "labeler.yml glob data/ui/** has no risk-assessment.yml rule"
     ]
 
 
 def test_fixture_tier_rule_without_label_fails() -> None:
-    policy = "high .github/*\nhigh meson.build\nmedium dailies/*\nmedium data/ui/*\n"
+    policy = "rules:\n  - high .github/*\n  - high meson.build\n  - medium dailies/*\n  - medium data/ui/*\n"
     assert parity_violations(load_yaml(PARITY_LABELER), policy, unruled_ok={}, unlabelled_ok={}) == [
-        "risk-tiers.policy glob meson.build has no labeler.yml label"
+        "risk-assessment.yml glob meson.build has no labeler.yml label"
     ]
 
 
 def test_fixture_stale_parity_exemption_fails() -> None:
-    policy = "high .github/*\nmedium dailies/*\nmedium data/ui/*\n"
+    policy = "rules:\n  - high .github/*\n  - medium dailies/*\n  - medium data/ui/*\n"
     exemption = {"data/ui/**": "fixture"}
     assert parity_violations(load_yaml(PARITY_LABELER), policy, unruled_ok=exemption, unlabelled_ok={}) == [
         "LABEL_GLOBS_WITHOUT_TIER_RULE row data/ui/** is stale"
@@ -1384,8 +1387,13 @@ jobs:
 
 @pytest.mark.parametrize(
     "run",
-    ['gh pr merge --auto --merge "$PR_URL"', "gh  pr merge 12", "set -e\nGH_TOKEN=x gh pr merge --squash 3"],
-    ids=["auto", "spaced", "later-line"],
+    [
+        'gh pr merge --auto --merge "$PR_URL"',
+        "gh  pr merge 12",
+        "set -e\nGH_TOKEN=x gh pr merge --squash 3",
+        'scripts/merge-queue.sh land "$NUMBER" "$HEAD_SHA" "$MAIN_SHA"',
+    ],
+    ids=["auto", "spaced", "later-line", "merge-queue-script"],
 )
 def test_fixture_unreviewed_job_that_merges_pull_requests_fails(run: str) -> None:
     workflow = load_yaml("jobs:\n  links:\n    steps:\n      - run: |\n          " + run.replace("\n", "\n          "))

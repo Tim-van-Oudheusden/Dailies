@@ -1,0 +1,38 @@
+# Code owners: the maintainer owns every path .github/risk-assessment.yml rates
+# high (docs/risk-tiers.md): CI and gates, gate tooling, Flatpak manifests, the
+# build, the metainfo and settings schema, the data schemas, and agent
+# instructions. A pull request that touches one requests his review. Medium-
+# and low-risk paths have no owner.
+#
+# Keep this file and the high-risk rules in step: tests/tooling/test_codeowners.py
+# fails if a tracked file is high risk but unowned, or owned but not high risk.
+# Patterns use .gitignore syntax: a leading `/` anchors to the repository root,
+# and `*` does not cross `/` (the risk rules' `*` does, so a rule such as
+# `data/*.metainfo.xml.in` is written out per directory here).
+
+# CI gates, review rubric, rulesets, the risk rules, and this file itself.
+/.github/                           @Tim-van-Oudheusden
+
+# Gate tooling: CI scripts, the submission validator, the popularity pipeline.
+/scripts/                           @Tim-van-Oudheusden
+
+# Flatpak manifests: sandbox permissions (finish-args), runtime, sources.
+/build-aux/                         @Tim-van-Oudheusden
+
+# The build, its options and the release version.
+/meson.build                        @Tim-van-Oudheusden
+/meson_options.txt                  @Tim-van-Oudheusden
+
+# Release notes and branding, and stored settings.
+/data/*.metainfo.xml.in             @Tim-van-Oudheusden
+/data/*.gschema.xml.in              @Tim-van-Oudheusden
+
+# The data contract with every installed copy of the app.
+/data/v1/schema/                    @Tim-van-Oudheusden
+
+# Agent instructions and governance.
+/AGENTS.md                          @Tim-van-Oudheusden
+/CLAUDE.md                          @Tim-van-Oudheusden
+/.claude/                           @Tim-van-Oudheusden
+/.cursor/                           @Tim-van-Oudheusden
+/prompts/                           @Tim-van-Oudheusden
