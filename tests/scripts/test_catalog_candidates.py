@@ -223,6 +223,19 @@ def test_a_download_over_the_size_limit_exits_2(
     assert "larger than" in capsys.readouterr().err
 
 
+def test_a_download_slower_than_the_timeout_exits_2(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Each chunk arrives within the per-read timeout, but the clock passes the whole-body deadline.
+    clock = iter(range(0, 1000, 6))
+    monkeypatch.setattr(cc, "monotonic", lambda: next(clock))
+
+    status = run(tmp_path, session=upstream(b"x" * (64 * 1024 * 5)))
+
+    assert status == 2
+    assert "did not download within" in capsys.readouterr().err
+
+
 def test_a_download_that_is_not_a_tarball_exits_2(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     status = run(tmp_path, session=upstream(b"<html>maintenance</html>"))
 

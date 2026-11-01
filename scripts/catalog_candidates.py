@@ -12,8 +12,9 @@ files each one through the form (docs/runbooks/catalog-link.md, "Growing the cat
 The Dles' text is GPL-3.0 and the catalog is CC0, so a submission's description is written fresh.
 
 The download follows the rules of scripts/lib/urlcheck.py: https only, every redirect hop and the connected peer on
-a public address, 10 s per request, at most 5 redirects. The tarball is read in memory up to MAX_ARCHIVE bytes and
-never extracted; records are parsed as safe YAML, and their text is printed as inert code spans.
+a public address, urlcheck.TIMEOUT seconds per request, at most urlcheck.MAX_REDIRECTS redirects. The whole download
+is bounded by a deadline of urlcheck.TIMEOUT seconds; the tarball is read in memory up to MAX_ARCHIVE bytes and never
+extracted; records are parsed as safe YAML, and their text is printed as inert code spans.
 
 Usage:
     python -I scripts/catalog_candidates.py --commit SHA [--since YYYY-MM-DD] [--catalog data/v1/games.json]
@@ -32,13 +33,24 @@ from dataclasses import dataclass
 from datetime import date
 from http import HTTPStatus
 from pathlib import Path, PurePosixPath
+from time import monotonic
 from typing import Any
 
 from ruamel.yaml import YAML, YAMLError
 
 # scripts/lib is not a package and `python -I` leaves the script's directory off sys.path, so add it by path.
 sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
-from urlcheck import CheckError, Resolver, Session, fetch, public_session, registrable_domain, resolve_host, table_cell
+from urlcheck import (
+    TIMEOUT,
+    CheckError,
+    Resolver,
+    Session,
+    fetch,
+    public_session,
+    registrable_domain,
+    resolve_host,
+    table_cell,
+)
 
 UPSTREAM = "aukspot/dles"
 CATALOG = Path(__file__).resolve().parent.parent / "data" / "v1" / "games.json"
@@ -87,18 +99,23 @@ def download(url: str, session: Session, resolve: Resolver) -> bytes:
 
     Raises:
         CheckError: The URL or a redirect is unsafe, or the request fails.
-        UpstreamError: The answer is not 2xx or is larger than MAX_ARCHIVE.
+        UpstreamError: The answer is not 2xx, is larger than MAX_ARCHIVE, or took longer than TIMEOUT seconds to read.
     """
     final_url, response = fetch(session, "GET", url, resolve)
     try:
         if not HTTPStatus.OK <= response.status_code < HTTPStatus.MULTIPLE_CHOICES:
             msg = f"{final_url} answered HTTP {response.status_code}"
             raise UpstreamError(msg)
+        # The request timeout bounds each socket read, not the whole body: a server can trickle bytes forever.
+        deadline = monotonic() + TIMEOUT
         body = bytearray()
         for chunk in response.iter_content(64 * 1024):
             body.extend(chunk)
             if len(body) > MAX_ARCHIVE:
                 msg = f"{final_url} is larger than {MAX_ARCHIVE} bytes"
+                raise UpstreamError(msg)
+            if monotonic() > deadline:
+                msg = f"{final_url} did not download within {TIMEOUT} s"
                 raise UpstreamError(msg)
         return bytes(body)
     finally:
