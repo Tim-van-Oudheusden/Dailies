@@ -149,8 +149,8 @@ Agent changes go through the same gates as human ones, with no shortcuts:
   (`.github/workflows/ci.yml`) runs the quality gates, which include the `tests/tooling` tests that pin the workflows'
   security invariants. The PR review rubric (`.github/workflows/review.yml`) runs as well.
 - A human reviews and merges every PR. Look harder at changes that touch:
-  - `.github/workflows/`: keep `permissions:` least-privilege (the reviewed scopes are listed in
-    `tests/tooling/test_workflows.py`). Don't add `pull_request_target` to a job that checks out or runs PR code, and
+  - `.github/workflows/`: keep `permissions:` least-privilege (the reviewed scopes are policy as code in
+    `.github/policies/workflow-permissions.yml`, which `tests/tooling/test_workflows.py` enforces). Don't add `pull_request_target` to a job that checks out or runs PR code, and
     don't interpolate event fields into `run:` (pass them through `env:`). `labeler.yml` is the sanctioned
     `pull_request_target` exception: it checks out nothing and runs only `actions/labeler`. `auto-issues.yml` is the
     only `workflow_run` workflow: it runs from `main` with an `issues: write` token, so it takes only Nightly compliance
