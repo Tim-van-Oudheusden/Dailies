@@ -9,20 +9,14 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-01. #305 on `ci/305-merge-queue`.
+2026-11-01. #306 on `ci/306-strategy-report`.
 
-- **Outcome:** `.github/workflows/merge-queue.yml` and `scripts/merge-queue.sh` (ported from MinimalUI #249/#260 and
-  website #967/#983/#986/#994) merge ready PRs one at a time after re-running CI's `Build, lint, test` commands on the
-  PR merged onto main. Keep-out labels: `hold`, `blocked`, `sentinel-alert`, `automated` (the last keeps catalog and
-  link-status PRs human-merged, #79); high-risk PRs are left for the maintainer. `coverage-gate.yml` gained
-  `workflow_dispatch` so the queue can start it on main. `test_workflows.py` counts `merge-queue.sh land` as a merging
-  job (row in `AUTO_MERGE_JOBS`), and `.github/policies/workflow-permissions.yml` has rules for pick, land and reject.
-  Docs that said "the maintainer merges" now describe the queue.
-- **Open follow-ups:** none. No repository setting is needed (merge commits are on, the jobs declare their own token
-  scopes). The queue only runs once this PR is merged, since `workflow_run` workflows start from main.
+- **Outcome:** weekly `Strategy report` workflow (`strategy-report.yml`, Mon 06:17 UTC, manual `days` input) and
+  `scripts/strategy-report.sh`, ported from MinimalUI. It prints flow, backlog per `stage/*`, backlog per
+  `milestone::*` (Dailies-specific) and ACMM gaps per level to the job summary. Documented in
+  `docs/metrics/README.md`, `CONTRIBUTING.md` and `docs/multi-agent.md`; satisfies the ACMM `strategic-dashboard`
+  criterion.
+- **Open follow-ups:** none. The workflow only reads (`issues: read`, `pull-requests: read`), so no maintainer setup.
 - **Gotchas:**
-  - The `write` and `edit` tools resolve relative paths against the main checkout, not the worktree; use absolute paths.
-  - `GITHUB_TOKEN` merges start no push workflows and close no issues, so `land` dispatches every push-to-main workflow
-    (each needs `workflow_dispatch`; `tests/scripts/test_merge_queue.py` checks it) and closes the linked issues.
-  - `test_nightly_compliance.py`'s ACMM-gap test scored the real repo and named `acmm:merge-queue`; it now runs a copy
-    of the two scripts in an empty checkout, so it holds as the other L6 files land.
+  - Dashboard-filed ACMM issues are titled `[dashboard] [ACMM L6] Add ...`; the level regex is unanchored for that.
+  - Host jq older than 1.7 fails jq-based script tests; run them in the `development` distrobox.

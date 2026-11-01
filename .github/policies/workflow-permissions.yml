@@ -104,6 +104,11 @@ workflows:
 
   review.yml: {}
 
+  strategy-report.yml:
+    jobs:
+      # Check out scripts/, list issues and merged PRs.
+      report: { contents: read, issues: read, pull-requests: read }
+
   tier-classifier.yml: {}
 
   windows.yml: {}
