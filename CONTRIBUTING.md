@@ -76,7 +76,8 @@ read from GLib APIs and render with GTK. UI layout lives in Blueprint files unde
 goes in `tests/core/test_catalog.py`, one for `scripts/validate_submission.py` in `tests/scripts/`. Checks on the
 committed data files go in `tests/data/`; checks on `.github/` (workflow invariants, label and policy parity) go in
 `tests/tooling/`. A workflow job that needs more than `contents: read` declares its own `permissions:` and gets a
-reviewed row in `JOB_PERMISSIONS` in `tests/tooling/test_workflows.py`.
+reviewed rule in `.github/policies/workflow-permissions.yml`; `tests/tooling/test_workflows.py` fails when a workflow
+has no rule, a rule names a missing workflow or job, or a job's block differs from its rule.
 
 ## Finding and claiming work
 
