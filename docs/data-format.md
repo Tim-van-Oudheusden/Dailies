@@ -153,8 +153,9 @@ the one field Dailies curates itself. Judge a typical day for a newcomer:
 The weekly Popular and Trending shelves. Unlike the catalog, this schema is closed (`additionalProperties: false` at
 every level), so a new field needs a schema change first. `method_version: 0` means the shelves were picked by hand;
 from `1` on they are computed by the weekly workflow, and the number goes up whenever the formula changes. The app
-reads `week`, `valid_until`, `popular` and `trending`; the rest is there for transparency and for computing the next
-week's trend.
+reads `week`, `generated_at`, `valid_until`, `popular` and `trending` (`generated_at` dates stale shelves and decides
+whether the cached or the bundled copy is newer); the rest is there for transparency and for computing the next week's
+trend.
 
 ### Top level
 
