@@ -338,6 +338,18 @@ def test_every_main_push_workflow_can_be_started_by_hand(name: str) -> None:
     assert "workflow_dispatch" in triggers
 
 
+def test_land_fails_and_closes_nothing_starts_nothing_when_the_merge_is_refused(tmp_path: Path) -> None:
+    # A refused merge (the head moved, a token without write access) must not close the linked issues or start main's
+    # push workflows and the next run as if it had landed.
+    queue = queue_of(tmp_path, [{"number": 7, "closingIssues": [12]}])
+    queue.fail_calls_starting_with("pr merge")
+
+    result = queue.run("land", "7", queue.heads[7], queue.main)
+
+    assert result.status != 0
+    assert result.calls == [merge_command(7, queue.heads[7])]
+
+
 def test_land_closes_every_issue_the_merged_pull_request_links_after_merging_it(tmp_path: Path) -> None:
     # GitHub does not close an issue linked with `Fixes #N` when GITHUB_TOKEN merges the pull request.
     queue = queue_of(tmp_path, [{"number": 7, "closingIssues": [12, 13]}])

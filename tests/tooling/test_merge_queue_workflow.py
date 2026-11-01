@@ -92,6 +92,24 @@ def test_a_label_only_starts_the_queue_when_a_person_removed_it() -> None:
     assert "github.event.sender.type == 'User'" in str(QUEUE["jobs"]["pick"]["if"])
 
 
+SUCCESSFUL_RUN = "(github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')"
+SAME_REPO = "github.event.pull_request.head.repo.full_name == github.repository"
+
+
+def test_only_a_successful_workflow_run_starts_the_queue() -> None:
+    # A failed check cannot make a pull request ready; its run must neither pick nor replace a pending run.
+    assert SUCCESSFUL_RUN in " ".join(str(QUEUE["concurrency"]["group"]).split())
+    assert SUCCESSFUL_RUN in " ".join(str(QUEUE["jobs"]["pick"]["if"]).split())
+
+
+def test_a_fork_pull_request_event_neither_starts_the_queue_nor_joins_its_concurrency_group() -> None:
+    # A fork's event gets a read-only token, so its land would fail; in the queue's group it could replace a pending
+    # run that would merge.
+    for expression in (str(QUEUE["concurrency"]["group"]), str(QUEUE["jobs"]["pick"]["if"])):
+        flat = " ".join(expression.split())
+        assert f"(github.event_name == 'pull_request' && {SAME_REPO} && (" in flat
+
+
 def test_verify_runs_the_gate_commands_of_ci_build_job_from_a_checkout_that_keeps_no_token() -> None:
     # Verification runs the pull request's code merged onto main: the same Build, lint, test gate CI runs, with no
     # token left behind.
