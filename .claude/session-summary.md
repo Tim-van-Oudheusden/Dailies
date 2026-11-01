@@ -16,8 +16,8 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
   PR merged onto main. Keep-out labels: `hold`, `blocked`, `sentinel-alert`, `automated` (the last keeps catalog and
   link-status PRs human-merged, #79); high-risk PRs are left for the maintainer. `coverage-gate.yml` gained
   `workflow_dispatch` so the queue can start it on main. `test_workflows.py` counts `merge-queue.sh land` as a merging
-  job (row in `AUTO_MERGE_JOBS`) and has `JOB_PERMISSIONS` rows for pick, land and reject. Docs that said "the
-  maintainer merges" now describe the queue.
+  job (row in `AUTO_MERGE_JOBS`), and `.github/policies/workflow-permissions.yml` has rules for pick, land and reject.
+  Docs that said "the maintainer merges" now describe the queue.
 - **Open follow-ups:** none. No repository setting is needed (merge commits are on, the jobs declare their own token
   scopes). The queue only runs once this PR is merged, since `workflow_run` workflows start from main.
 - **Gotchas:**

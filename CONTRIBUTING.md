@@ -76,7 +76,8 @@ read from GLib APIs and render with GTK. UI layout lives in Blueprint files unde
 goes in `tests/core/test_catalog.py`, one for `scripts/validate_submission.py` in `tests/scripts/`. Checks on the
 committed data files go in `tests/data/`; checks on `.github/` (workflow invariants, label and policy parity) go in
 `tests/tooling/`. A workflow job that needs more than `contents: read` declares its own `permissions:` and gets a
-reviewed row in `JOB_PERMISSIONS` in `tests/tooling/test_workflows.py`.
+reviewed rule in `.github/policies/workflow-permissions.yml`; `tests/tooling/test_workflows.py` fails when a workflow
+has no rule, a rule names a missing workflow or job, or a job's block differs from its rule.
 
 ## Finding and claiming work
 
@@ -533,10 +534,14 @@ AI agents working in this repo are bounded by several layers:
    history-rewriting commands, and denies reading secrets (`.env*`), force-pushes and `--no-verify` commits.
 3. **Personal overrides** — `.claude/settings.local.json` (gitignored). Deny rules from the project file still apply.
 4. **Structural gates** — the ruleset on `main` and CI must pass before merge, regardless of who wrote the change.
+   `.github/CODEOWNERS` makes the maintainer the owner of the high-risk paths
+   ([`docs/risk-tiers.md`](docs/risk-tiers.md)): a change to CI, scripts, the Flatpak manifests, the build, the data
+   schemas or agent instructions requests his review.
 
 The security side of these layers (trust boundaries, secrets, supply chain, review focus, reporting) is set out in
 [`docs/security/SECURITY-AI.md`](docs/security/SECURITY-AI.md). How the agents share the issue queue without stepping on
-each other (claim and stage labels, hand-offs, what the workflows open) is in [`docs/multi-agent.md`](docs/multi-agent.md).
+each other (claim and stage labels, hand-offs, what the workflows open) is in [`docs/multi-agent.md`](docs/multi-agent.md); how a change traces back to its issue is in
+[`docs/agent-tasks/README.md`](docs/agent-tasks/README.md).
 
 How agent work fares is measured, not guessed: the weekly `PR metrics` workflow reports how many agent-authored PRs
 (`claude/*` branches and the `hive-forge-app` GitHub App) were merged vs. closed unmerged. Every metric, its cadence,

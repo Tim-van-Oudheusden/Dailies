@@ -151,12 +151,12 @@ Agent changes go through the same gates as human ones, with no shortcuts:
   security invariants. The PR review rubric (`.github/workflows/review.yml`) runs as well.
 - The merge queue (`.github/workflows/merge-queue.yml`) merges low- and medium-risk PRs once their required checks
   pass; review them before then or add `hold`. A human reviews and merges every high-risk PR
-  ([`docs/risk-tiers.md`](../risk-tiers.md)), and every PR labelled `blocked` or `sentinel-alert`, and every `automated` one except the weekly popularity PR, which merges
-  itself. The
-  queue's `verify` job is the only one that runs a PR's code, with a read-only token; `pick`, `land` and `reject` run
-  `main`'s scripts. Look harder at changes that touch:
-  - `.github/workflows/`: keep `permissions:` least-privilege (the reviewed scopes are listed in
-    `tests/tooling/test_workflows.py`). Don't add `pull_request_target` to a job that checks out or runs PR code, and
+  ([`docs/risk-tiers.md`](../risk-tiers.md)), every PR labelled `blocked` or `sentinel-alert`, and every `automated`
+  one except the weekly popularity PR, which merges itself. The queue's `verify` job is the only one that runs a PR's
+  code, with a read-only token; `pick`, `land` and `reject` run `main`'s scripts. Look harder at changes that touch:
+  - `.github/workflows/`: keep `permissions:` least-privilege (the reviewed scopes are policy as code in
+    `.github/policies/workflow-permissions.yml`, which `tests/tooling/test_workflows.py` enforces). Don't add
+    `pull_request_target` to a job that checks out or runs PR code, and
     don't interpolate event fields into `run:` (pass them through `env:`). `labeler.yml` is the sanctioned
     `pull_request_target` exception: it checks out nothing and runs only `actions/labeler`. Two
     workflows run on `workflow_run`. `auto-issues.yml` runs from `main` with an `issues: write` token, so it takes

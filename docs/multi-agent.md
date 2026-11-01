@@ -33,7 +33,9 @@ the `github-issue-flow` skill in `.claude/skills/`. Hive agents work through the
 ## The shared queue
 
 Every agent takes work from GitHub issues and lands it through a pull request whose body says `Fixes #<number>`
-(`AGENTS.md`, "Issue Tracking"). One issue is worked at a time, and child issues wait for their parents.
+(`AGENTS.md`, "Issue Tracking"). One issue is worked at a time, and child issues wait for their parents. How each
+change links back to its issue, and how to follow that link either way, is in
+[`agent-tasks/`](agent-tasks/README.md).
 
 Before starting an issue, an agent checks that nobody else holds it:
 
@@ -143,6 +145,10 @@ script-lock files, which are high risk, so the maintainer merges them. A label r
 required check that finishes does. To drain the queue by hand: `gh workflow run merge-queue.yml`. The logic lives in
 `scripts/merge-queue.sh`, and `tests/scripts/test_merge_queue.py` and `tests/tooling/test_merge_queue_workflow.py`
 cover it.
+
+`.github/CODEOWNERS` names the maintainer as owner of every `high` path, so those pull requests request his review.
+It does not gate the merge: the ruleset leaves `require_code_owner_review` off, because an author cannot approve his
+own pull request.
 
 ## Keeping agents apart
 

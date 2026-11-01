@@ -5,9 +5,9 @@ name: Change classification
 # tier lands in the job summary and never fails the run. Tiers and the review
 # each one expects are defined in docs/risk-tiers.md.
 #
-# The classifier and policy come from the base branch, checked out separately,
-# so a pull request cannot lower its own tier by editing them; the PR's own
-# checkout only supplies the diff.
+# The classifier and its risk assessment (.github/risk-assessment.yml) come
+# from the base branch, checked out separately, so a pull request cannot lower
+# its own tier by editing them; the PR's own checkout only supplies the diff.
 
 on:
   pull_request:
