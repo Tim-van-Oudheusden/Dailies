@@ -21,6 +21,6 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 - **Gotchas:**
   - Host Python 3.11 cannot import `dailies/core` (PEP 695 generics); run `pytest` under 3.12+ (`uv venv -p 3.13`
     plus `scripts/requirements.txt` and `pytest==9.1.1`).
-  - A host jq older than 1.7 (or `jaq`) fails the `pr-metrics.sh` and `auto-qa-tuner.sh` tests (`$label`/`$module`
-    are keywords there); CI's jq passes them.
+  - A host jq older than 1.7 (or `jaq`) fails the `pr-metrics.sh`, `auto-qa-tuner.sh` and `quality-report.sh` tests
+    (`$label`/`$module` are keywords there); CI's jq passes them.
   - Without the GNOME 51 SDK on the host, `scripts/sandbox.sh` runs every gate but the Flatpak build.
