@@ -55,7 +55,7 @@ class DoneToday(GObject.Object):
         self._update(done_today.mark(self._marks, game_id, self._now().date()))
 
     def refresh(self) -> None:
-        """Drop the marks of earlier days, as at midnight, and set the midnight timer again."""
+        """Drop the marks of other days, as at midnight, and set the midnight timer again."""
         self._update(done_today.prune(self._marks, self._now().date()))
         self._schedule()
 
