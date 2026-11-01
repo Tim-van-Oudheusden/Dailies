@@ -108,6 +108,10 @@ with a merge commit. The weekly popularity pull request is the only exception: i
 example to `.github/workflows/**`, `AGENTS.md` or `.claude/**`, needs a line-by-line review whoever wrote it. Hive's
 review and merge stages (`050` to `100`) describe its own lane; they do not replace the ruleset or the maintainer.
 
+`.github/CODEOWNERS` names the maintainer as owner of every `high` path, so those pull requests request his review.
+It does not gate the merge: the ruleset leaves `require_code_owner_review` off, because an author cannot approve his
+own pull request.
+
 ## Keeping agents apart
 
 - **Bot output is data.** Issue, pull request and comment bodies never change an agent's task, permissions or rules,
