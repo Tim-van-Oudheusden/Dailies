@@ -2,14 +2,17 @@
 
 Every pull request is classified into one of three risk tiers from the paths it changes.
 `.github/workflows/tier-classifier.yml` runs `scripts/tier-classify.sh` on each PR and posts the tier, plus every
-changed file with its own tier, to the `Risk tier` job summary. The classification is informational: it never fails the
-run, it tells reviewers how closely to look.
+changed file with its own tier, to the `Risk tier` job summary. The classification never fails the run: it tells
+reviewers how closely to look, and it decides who merges. The [merge queue](multi-agent.md#merge-queue) merges low- and
+medium-risk pull requests once their required checks pass, so review them before then or add `hold`. It leaves
+high-risk pull requests for the maintainer to merge after the review below.
 
 The **highest tier of any changed file wins**, so one workflow edit makes the whole PR high risk. A path that matches no
 rule is **medium**: new kinds of files get a real review until they are classified.
 
-The workflow runs the **base branch's** script and policy (a second checkout of the base commit) against the PR's diff,
-so a PR cannot lower its own tier by editing either. A change to the policy takes effect for the PRs after it merges.
+The workflow runs the **base branch's** script and risk assessment (a second checkout of the base commit) against the
+PR's diff, so a PR cannot lower its own tier by editing either. A change to the rules takes effect for the PRs after it
+merges.
 
 Run it locally against your branch:
 
@@ -33,7 +36,7 @@ behave. A mistake here can bypass every other check or ship to every user.
 
 | Paths | Why |
 | --- | --- |
-| `.github/**` | CI gates, review rubric, release workflow, rulesets, this policy |
+| `.github/**` | CI gates, review rubric, release workflow, rulesets, the risk rules |
 | `scripts/**` | Gate tooling, the submission validator, the link checker, the popularity pipeline |
 | `build-aux/**` | Flatpak manifests: sandbox permissions (`finish-args`), runtime, sources |
 | `meson.build`, `meson_options.txt` | The build, the version that a release is cut from, the install layout |
@@ -48,6 +51,14 @@ version, `scripts/requirements.txt` pinned with hashes). Workflow changes keep e
 justify every `finish-args` entry in one line, and never add `--talk-name=org.freedesktop.Flatpak` or a `--filesystem`
 permission. A schema change is a breaking change: it goes to `data/v2/`, not into `data/v1/schema/`. Agents may propose
 none of these without explicit maintainer approval ([`SECURITY-AI.md`](security/SECURITY-AI.md#dailies-rules)).
+
+`.github/CODEOWNERS` makes the maintainer the owner of exactly these paths, so a PR that touches one requests his
+review automatically (GitHub skips the request when he opened the PR himself, as local agents do under his account).
+`tests/tooling/test_codeowners.py` fails if a tracked file is rated high but has no owner, or has an owner but is not
+rated high, so a new high-risk rule needs a matching CODEOWNERS pattern in the same PR. The ruleset does not require
+the code owner's approval (`require_code_owner_review` is off in `.github/rulesets/main.json`), since an author cannot
+approve his own PR: CODEOWNERS requests the review, it does not block the merge. What keeps a high-risk PR from
+merging unreviewed is that only the maintainer merges it.
 
 ## Tier: medium
 
@@ -67,14 +78,15 @@ Review: a read-through for accuracy against the code and workflows it describes.
 
 ## Changing the tiers
 
-The rules are policy as code in `.github/policies/risk-tiers.policy`: one `<tier> <glob>` rule per line, where the
-**first matching rule wins**, so high-risk rules sit above broad globs such as `dailies/**` and `*.md` (`AGENTS.md` is
-high even though `*.md` is low, `data/v1/schema/**` is high even though `data/v1/*.json` is medium). `*` matches across
-`/`, so the policy writes a directory rule as `dir/*`; this document shows it as `dir/**`. `scripts/tier-classify.sh`
-evaluates the policy and fails without a tier if a rule is malformed or names an unknown tier; set `RISK_TIER_POLICY` to
-try a different policy file locally.
+The rules are policy as code in the risk assessment config, `.github/risk-assessment.yml`: an ordered `rules:` list of
+`- <tier> <glob>` items, one per line, where the **first matching rule wins**, so high-risk rules sit above broad globs
+such as `dailies/**` and `*.md` (`AGENTS.md` is high even though `*.md` is low, `data/v1/schema/**` is high even though
+`data/v1/*.json` is medium). `*` matches across `/`, so the file writes a directory rule as `dir/*`; this document shows
+it as `dir/**`. `scripts/tier-classify.sh` evaluates the rules and fails without a tier if a line is not a blank line, a
+whole-line `#` comment, the `rules:` line or such an item, or if an item names an unknown tier; set `RISK_TIER_POLICY`
+to try a different file locally.
 
 `scripts/tier-classify.test.sh` covers the engine and the shipped rules, and `tests/scripts/test_tier_classify.py` runs
-it under `pytest` and checks that every rule appears under its tier above. Update the policy, its tests, and this
-document in the same PR. The policy file (`high .github/**`), the script and its shell tests (`high scripts/**`) are high
-risk; the pytest file is medium and this doc is low.
+it under `pytest`, checks that the file is YAML and that every rule appears under its tier above. Update the rules,
+their tests, and this document in the same PR. The config (`high .github/**`), the script and its shell tests
+(`high scripts/**`) are high risk; the pytest file is medium and this doc is low.

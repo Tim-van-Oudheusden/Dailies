@@ -212,9 +212,10 @@ pull request, and `pages.yml` publishes `data/v1/` to GitHub Pages, which the ap
 | [`docs/data-format.md`](docs/data-format.md) | `games.json` and `popularity.json`: fields, categories, difficulty, submission rules, licences |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Setup, project layout, workflow, quality gates, releasing |
 | [`docs/testing.md`](docs/testing.md) | Where each test runs, coverage floors, headless GTK tests |
-| [`docs/risk-tiers.md`](docs/risk-tiers.md) | How pull requests are classified by risk |
+| [`docs/risk-tiers.md`](docs/risk-tiers.md) | How pull requests are classified by risk, and who owns the high-risk paths (`.github/CODEOWNERS`) |
 | [`docs/runbooks/README.md`](docs/runbooks/README.md) | What to do when something breaks |
 | [`docs/metrics/README.md`](docs/metrics/README.md) | Quality, coverage and agent-work metrics |
+| [`docs/agent-tasks/README.md`](docs/agent-tasks/README.md) | Tracing agent changes back to their issues, and issues forward to their changes |
 | [`SECURITY.md`](SECURITY.md) | Supported versions and how to report a vulnerability privately |
 | [`docs/security/SECURITY-AI.md`](docs/security/SECURITY-AI.md) | Security model for AI agents in this repository |
 | [`BRANDING.md`](BRANDING.md) | Name, voice, colours and icon |

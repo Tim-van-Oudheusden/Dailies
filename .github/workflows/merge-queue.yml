@@ -1,0 +1,177 @@
+name: Merge queue
+
+# Merges ready pull requests into main one at a time. GitHub's own merge queue
+# needs an organization-owned repository, so this one runs on Actions:
+#
+#   pick   - scripts/merge-queue.sh next: the oldest same-repo, non-draft PR
+#            without a `hold`, `blocked`, `sentinel-alert` or `automated` label
+#            whose required checks all pass and whose risk tier is not high
+#            (docs/risk-tiers.md).
+#   verify - merges that PR onto the current main and runs CI's Build, lint,
+#            test gate on the result, with a read-only token and the PR's code.
+#   land   - merges the PR if neither it nor main moved, closes the issues it
+#            links with `Fixes #N`, then starts main's push workflows (merges
+#            made with GITHUB_TOKEN close no issue and start no workflow).
+#   reject - a PR that failed verification gets `hold` and a comment.
+#
+# Land and reject start the next run, so the queue drains one PR at a time.
+# Runs whenever a workflow holding a required check succeeds, a draft is marked
+# ready, or a person removes one of those labels; workflow_dispatch drains it
+# on demand. See docs/multi-agent.md#merge-queue.
+#
+# Security: no step with write access runs code from a PR; pick, land and
+# reject run main's scripts. Fork PRs are never picked, and their events would
+# get a read-only token anyway. A `pull_request` event runs this file as the PR
+# has it, which gives a same-repo author nothing beyond the write access they
+# already have. PR fields reach shell steps only through env.
+
+on:
+  # workflow_run matches workflows by name; tests/tooling/test_merge_queue_workflow.py fails when a workflow holding a
+  # required check is missing from the list.
+  workflow_run:
+    workflows: [CI, Coverage gate, PR review rubric]
+    types: [completed]
+  pull_request:
+    types: [ready_for_review, unlabeled]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One run drains the queue at a time; a newer pending run replaces an older
+# pending one, which is fine since every run looks at all open PRs. Events that
+# cannot make a PR ready (another label removed, a label a bot removed, a
+# failed run) get their own group, so they never replace a pending run that
+# would merge. The label list here and in pick's `if` is KEEP_OUT_LABELS in
+# scripts/merge-queue.sh; tests/tooling/test_merge_queue_workflow.py fails when
+# either copy differs from it.
+concurrency:
+  group: >-
+    ${{
+      (github.event_name == 'workflow_dispatch'
+        || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+        || (github.event_name == 'pull_request'
+            && (github.event.action == 'ready_for_review'
+                || (github.event.sender.type == 'User'
+                    && contains(fromJSON('["hold", "blocked", "sentinel-alert", "automated"]'), github.event.label.name)))))
+      && 'merge-queue' || format('merge-queue-ignored-{0}', github.run_id)
+    }}
+  cancel-in-progress: false
+
+jobs:
+  pick:
+    name: Pick next pull request
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+      || (github.event_name == 'pull_request'
+          && (github.event.action == 'ready_for_review'
+              || (github.event.sender.type == 'User'
+                  && contains(fromJSON('["hold", "blocked", "sentinel-alert", "automated"]'), github.event.label.name))))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      number: ${{ steps.next.outputs.number }}
+      head: ${{ steps.next.outputs.head }}
+      main: ${{ steps.next.outputs.main }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Pick the oldest ready pull request
+        id: next
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: scripts/merge-queue.sh next
+
+  verify:
+    name: Build, lint, test on latest main
+    needs: pick
+    if: needs.pick.outputs.number != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.pick.outputs.main }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Merge the pull request onto main
+        env:
+          NUMBER: ${{ needs.pick.outputs.number }}
+          HEAD_SHA: ${{ needs.pick.outputs.head }}
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+        run: |
+          git fetch --no-tags "$REPO_URL" "$HEAD_SHA"
+          git -c user.name="merge-queue" -c user.email="merge-queue@users.noreply.github.com" \
+            merge --no-ff --no-edit -m "Merge #${NUMBER} onto main" "$HEAD_SHA"
+      - name: Setup Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      # The same commands as ci.yml's `build` job (tests/tooling/test_merge_queue_workflow.py checks it); static
+      # checks, coverage floors and the Flatpak build are not re-run here.
+      - name: Install script dependencies
+        run: python -m pip install --require-hashes -r scripts/requirements.txt
+      - name: Install dev tools
+        run: python -m pip install ruff==0.17.1 pytest==9.1.1 pytest-cov==7.1.0
+      - name: Lint and format check
+        run: ruff check . && ruff format --check .
+      - name: Unit, script, tooling and data tests
+        run: pytest tests/core tests/scripts tests/tooling tests/data
+      - name: Validate data files against their schemas
+        run: |
+          check-jsonschema --schemafile data/v1/schema/catalog.schema.json data/v1/games.json
+          check-jsonschema --schemafile data/v1/schema/popularity.schema.json data/v1/popularity.json
+
+  land:
+    name: Merge
+    needs: [pick, verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+      - name: Merge if nothing moved
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ needs.pick.outputs.number }}
+          HEAD_SHA: ${{ needs.pick.outputs.head }}
+          MAIN_SHA: ${{ needs.pick.outputs.main }}
+        run: scripts/merge-queue.sh land "$NUMBER" "$HEAD_SHA" "$MAIN_SHA"
+
+  reject:
+    name: Hold failed pull request
+    needs: [pick, verify]
+    if: always() && needs.verify.result == 'failure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Hold and comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ needs.pick.outputs.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: scripts/merge-queue.sh reject "$NUMBER" "$RUN_URL"
