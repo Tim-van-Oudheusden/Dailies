@@ -11,15 +11,17 @@
 # a newline in a file name cannot forge a `tier=` line. Any other argument
 # exits 2.
 #
-# Per-path tiers come from the policy file .github/policies/risk-tiers.policy
+# Per-path tiers come from the risk assessment .github/risk-assessment.yml
 # (RISK_TIER_POLICY overrides the path): the first rule whose glob matches a
-# path sets its tier, and unrecognised paths are medium. A missing or malformed
-# policy exits 2 without printing a tier. Tiers are explained in
+# path sets its tier, and unrecognised paths are medium. The file is YAML, read
+# here as a strict line subset: `rules:`, then one `- <tier> <glob>` item per
+# line, plus blank and whole-line `#` comment lines. A missing or malformed
+# file exits 2 without printing a tier. Tiers are explained in
 # docs/risk-tiers.md.
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-policy="${RISK_TIER_POLICY:-$ROOT/.github/policies/risk-tiers.policy}"
+policy="${RISK_TIER_POLICY:-$ROOT/.github/risk-assessment.yml}"
 
 names=(_ low medium high)
 declare -A tier_rank=([low]=1 [medium]=2 [high]=3)
@@ -36,17 +38,22 @@ case "$*" in
   *) fail "usage: tier-classify.sh [-z] < paths" ;;
 esac
 
-[ -r "$policy" ] || fail "cannot read policy file ${policy}"
+[ -r "$policy" ] || fail "cannot read risk assessment file ${policy}"
 
 rule_ranks=()
 rule_globs=()
+in_rules=
 lineno=0
-# CR counts as whitespace, so a policy saved with CRLF line endings still parses.
-while IFS=$' \t\r' read -r tier glob extra || [ -n "${tier:-}" ]; do
+# CR counts as whitespace, so a file saved with CRLF line endings still parses.
+while IFS=$' \t\r' read -r item tier glob extra || [ -n "${item:-}" ]; do
   lineno=$((lineno + 1))
-  [ -z "${tier:-}" ] || [[ $tier == \#* ]] && continue
-  [ -n "${glob:-}" ] && [ -z "${extra:-}" ] \
-    || fail "${policy}:${lineno}: expected '<tier> <glob>'"
+  [ -z "${item:-}" ] || [[ $item == \#* ]] && continue
+  if [ "$item" = rules: ] && [ -z "${tier:-}" ] && [ -z "$in_rules" ]; then
+    in_rules=1
+    continue
+  fi
+  [ -n "$in_rules" ] && [ "$item" = - ] && [ -n "${glob:-}" ] && [ -z "${extra:-}" ] \
+    || fail "${policy}:${lineno}: expected one 'rules:' line, then '- <tier> <glob>' items"
   [ -n "${tier_rank[$tier]:-}" ] \
     || fail "${policy}:${lineno}: unknown tier '${tier}' (expected low, medium or high)"
   rule_ranks+=("${tier_rank[$tier]}")

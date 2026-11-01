@@ -4,9 +4,10 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from ruamel.yaml import YAML
 
 ROOT = Path(__file__).resolve().parents[2]
-POLICY = ROOT / ".github" / "policies" / "risk-tiers.policy"
+POLICY = ROOT / ".github" / "risk-assessment.yml"
 DOC = ROOT / "docs" / "risk-tiers.md"
 
 
@@ -24,11 +25,13 @@ def test_tier_classify_shell_suite_passes() -> None:
 
 
 def policy_rules() -> list[tuple[str, str]]:
+    """The `<tier> <glob>` items of the `rules:` list, as a YAML parser reads them."""
+    document = YAML(typ="safe").load(POLICY.read_text(encoding="utf-8"))
+    assert set(document) == {"rules"}
     rules = []
-    for line in POLICY.read_text(encoding="utf-8").splitlines():
-        if line.strip() and not line.startswith("#"):
-            tier, glob = line.split()
-            rules.append((tier, glob))
+    for item in document["rules"]:
+        tier, glob = item.split()
+        rules.append((tier, glob))
     return rules
 
 

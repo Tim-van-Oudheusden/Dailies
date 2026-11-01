@@ -9,16 +9,14 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-01. #312 on `ci/312-workflow-permissions-policy`.
+2026-11-01. #307 on `ci/307-risk-assessment-config`.
 
-- **Outcome:** the reviewed workflow token grants moved from `JOB_PERMISSIONS` in `tests/tooling/test_workflows.py` into
-  `.github/policies/workflow-permissions.yml` (`default` top-level token plus a `jobs` rule per workflow, review
-  comments kept). The test loads it and now also fails for a workflow with no rule, a rule for a missing workflow, or a
-  rule for a missing job (the first two are new; every workflow now needs a rule, `{}` for read-only ones). Website#990's
-  per-workflow top-level `permissions:` override is not ported: every Dailies workflow keeps exactly `contents: read`.
-  Restores `acmm:policy-as-code` once #307 empties `.github/policies/` of `risk-tiers.policy`.
-- **Open follow-ups:** none.
+- **Outcome:** the risk-tier rules moved from `.github/policies/risk-tiers.policy` to `.github/risk-assessment.yml`
+  (same rules, same first-match order; `rules:` list of `- <tier> <glob>` items). `scripts/tier-classify.sh` reads a
+  strict line subset of YAML (no new dependency); its shell suite, `test_tier_classify.py`, the labeler parity tests
+  and the docs follow the new path. `RISK_TIER_POLICY` still overrides the file.
+- **Open follow-ups:** `acmm:policy-as-code` (L5) was met only by the old `.github/policies/` directory; it needs
+  another file there (#312, workflow token permissions) before this lands.
 - **Gotchas:**
-  - `bash` tool cwd is the main checkout; `write`/`edit` with a relative path land there, not in the worktree. Use
-    absolute worktree paths.
-  - Run `pytest` inside the distrobox with a login shell (`bash -lc`).
+  - Git does not track empty directories: delete `.github/policies/` after moving its last file, or the ACMM
+    self-check still counts it.

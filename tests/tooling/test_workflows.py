@@ -17,7 +17,7 @@ from ruamel.yaml import YAML
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOWS = ROOT / ".github" / "workflows"
 LABELER = ROOT / ".github" / "labeler.yml"
-POLICY = ROOT / ".github" / "policies" / "risk-tiers.policy"
+POLICY = ROOT / ".github" / "risk-assessment.yml"
 
 # What GITHUB_TOKEN may do in each workflow is policy as code in .github/policies/workflow-permissions.yml:
 # `default` is every workflow's top-level token, and a workflow's `jobs` rule holds the reviewed job-level scopes.
@@ -352,8 +352,7 @@ def labeler_globs(labeler: dict) -> dict[str, list[str]]:
 
 
 def policy_globs(policy: str) -> list[str]:
-    rules = [line.split() for line in policy.splitlines() if line.strip() and not line.lstrip().startswith("#")]
-    return [glob for _, glob in rules]
+    return [item.split()[1] for item in load_yaml(policy)["rules"]]
 
 
 def sample(glob: str) -> str:
@@ -415,9 +414,9 @@ def parity_violations(
 ) -> list[str]:
     unruled, unlabelled = unruled_label_globs(labeler, policy), unlabelled_tier_globs(labeler, policy)
     return [
-        *(f"labeler.yml glob {glob} has no risk-tiers.policy rule" for glob in unruled if glob not in unruled_ok),
+        *(f"labeler.yml glob {glob} has no risk-assessment.yml rule" for glob in unruled if glob not in unruled_ok),
         *(
-            f"risk-tiers.policy glob {glob} has no labeler.yml label"
+            f"risk-assessment.yml glob {glob} has no labeler.yml label"
             for glob in unlabelled
             if glob not in unlabelled_ok
         ),
@@ -1109,21 +1108,21 @@ ci:
 
 
 def test_fixture_labelled_path_without_tier_rule_fails() -> None:
-    policy = "high .github/*\nmedium dailies/*\n"
+    policy = "rules:\n  - high .github/*\n  - medium dailies/*\n"
     assert parity_violations(load_yaml(PARITY_LABELER), policy, unruled_ok={}, unlabelled_ok={}) == [
-        "labeler.yml glob data/ui/** has no risk-tiers.policy rule"
+        "labeler.yml glob data/ui/** has no risk-assessment.yml rule"
     ]
 
 
 def test_fixture_tier_rule_without_label_fails() -> None:
-    policy = "high .github/*\nhigh meson.build\nmedium dailies/*\nmedium data/ui/*\n"
+    policy = "rules:\n  - high .github/*\n  - high meson.build\n  - medium dailies/*\n  - medium data/ui/*\n"
     assert parity_violations(load_yaml(PARITY_LABELER), policy, unruled_ok={}, unlabelled_ok={}) == [
-        "risk-tiers.policy glob meson.build has no labeler.yml label"
+        "risk-assessment.yml glob meson.build has no labeler.yml label"
     ]
 
 
 def test_fixture_stale_parity_exemption_fails() -> None:
-    policy = "high .github/*\nmedium dailies/*\nmedium data/ui/*\n"
+    policy = "rules:\n  - high .github/*\n  - medium dailies/*\n  - medium data/ui/*\n"
     exemption = {"data/ui/**": "fixture"}
     assert parity_violations(load_yaml(PARITY_LABELER), policy, unruled_ok=exemption, unlabelled_ok={}) == [
         "LABEL_GLOBS_WITHOUT_TIER_RULE row data/ui/** is stale"
