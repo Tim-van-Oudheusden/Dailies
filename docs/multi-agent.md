@@ -9,7 +9,8 @@ repository's own workflows. None of them directs the others. They coordinate thr
   or the maintainer merges them.
 
 This page maps who does what and how work moves between them. [`AGENTS.md`](../AGENTS.md) holds the rules each agent
-follows, and [`docs/security/SECURITY-AI.md`](security/SECURITY-AI.md) sets out the trust boundaries.
+follows, and [`docs/security/SECURITY-AI.md`](security/SECURITY-AI.md) sets out the trust boundaries. How to monitor
+agent work, debug it when it gets stuck and stop it is in [`ai-ops-runbook.md`](ai-ops-runbook.md).
 
 ## Who works here
 
