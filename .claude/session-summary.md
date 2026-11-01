@@ -9,18 +9,19 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-01. #308 on `docs/308-ai-ops-runbook`.
+2026-11-01. #293 on `test/293-docs-claims`.
 
-- **Outcome:** `docs/ai-ops-runbook.md` answers the on-call questions: the automations and what runs as what, where
-  to look (`gh` command per question), Monday routine checks, playbooks (Claude Code skipped or failed, a PR that
-  does not merge, `hold` from the merge queue, no CI after a queued merge, the PR review rubric, a permissions-policy
-  failure, two agents on one issue, an agent acting outside its instructions) and a stop/undo table per automation
-  (workflows, `hold`, revoking the Claude token, Hive, the bot App key). Ported from MinimalUI (#253, #261) and the
-  website, adapted to Dailies' workflows, labels and checks. Linked from `README.md`, `CONTRIBUTING.md`,
-  `docs/README.md`, `docs/multi-agent.md` and `docs/runbooks/README.md`. Satisfies `acmm:observability-runbook`.
-- **Open follow-ups:** none. Docs only; no test, since the siblings added none.
+- **Outcome:** `tests/tooling/test_docs_claims.py` checks four repeated doc claims against their code: release assets
+  (the `release.yml` publish step) in both release diagrams and `bad-release.md`; who merges (`AUTO_MERGE_JOBS`) in
+  diagram edges and prose; the data files `fetcher.py` requests in the README privacy bullet and `data/v1/README.md`;
+  every workflow with an issue or pull request write scope or the `bot` environment in the "Work the workflows
+  generate" table. Drift fixed: four "human merge" sentences (README, `docs/architecture.md`) and three missing table
+  rows (`auto-review.yml`, `claude.yml`, `labeler.yml`). `docs/testing.md` has a "Docs claims" row.
+- **Open follow-ups:** a new workflow that opens issues or pull requests now fails the suite until it has a row in
+  `docs/multi-agent.md`; the metainfo download list stays a manual check.
 - **Gotchas:**
-  - Every command, label, workflow and job name in the runbook was checked against `gh label list`,
-    `gh workflow list` and the tree. `merge-queue.yml`, `strategy-report.yml` and `ai-audit.yml` are not on `main`
-    yet, so `gh workflow list` omits them until their PRs merge; `gh workflow disable` works once they do.
-  - Relative paths in the read and edit tools resolve against the main checkout; pass absolute worktree paths.
+  - Host Python 3.11 cannot import `dailies/core` (PEP 695 generics); run `pytest` under 3.12+ (`uv venv -p 3.13`
+    plus `scripts/requirements.txt` and `pytest==9.1.1`).
+  - A host jq older than 1.7 (or `jaq`) fails the `pr-metrics.sh`, `auto-qa-tuner.sh` and `quality-report.sh` tests
+    (`$label`/`$module` are keywords there); CI's jq passes them.
+  - Without the GNOME 51 SDK on the host, `scripts/sandbox.sh` runs every gate but the Flatpak build.

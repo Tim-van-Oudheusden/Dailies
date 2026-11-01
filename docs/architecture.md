@@ -19,7 +19,8 @@ built-in WebKitGTK page by default ([#9][issue-9]) or in the system browser thro
 The data is two JSON files in this repository, `data/v1/games.json` (the catalog) and `data/v1/popularity.json` (the
 weekly shelves). A snapshot ships inside the Flatpak so the app works offline from the first start; the app revalidates
 it from GitHub with ETags. Games enter the catalog through a GitHub issue form; popularity is recomputed by a Monday
-workflow. Both end in a pull request a human merges. Releases are `.flatpak` bundles for x86_64 and aarch64, built
+workflow. Both end in a pull request: the maintainer merges the catalog one, and the popularity one merges itself once
+the required checks pass. Releases are `.flatpak` bundles for x86_64 and aarch64, built
 when a `v*` tag is pushed.
 
 | Layer | Choice |
@@ -318,7 +319,7 @@ flowchart TD
     REPORT --> PR2
   end
   PR1 -->|"human merge"| MAIN["main"]
-  PR2 -->|"human merge"| MAIN
+  PR2 -->|"merges itself"| MAIN
   MAIN -->|"push touching data/v1/**"| PAGES["pages.yml<br/>GitHub Pages: /Dailies/v1/"]
   PAGES --> APP["Dailies fetcher"]
   subgraph release["Releases"]
