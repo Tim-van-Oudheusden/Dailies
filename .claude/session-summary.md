@@ -9,18 +9,12 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-10-31. #296 on `refactor/296-coverage-roots-single-source`.
+2026-11-01. #309 on `docs/309-agent-task-traceability` (ACMM L6 `aef:task-traceability`).
 
-- **Outcome:** `[tool.coverage.run] source` in `pyproject.toml` is the one list of measured roots: `coverage-gate.yml`,
-  `quality-report.sh` and `sandbox-gates.sh` run a bare `pytest --cov`. `coverage-check.sh` exits 2 when a group has
-  no measured lines but its root holds Python (an unmeasured root used to pass as "no code yet"), and builds its
-  "known groups" list from the new `coverage_groups` in `scripts/lib/coverage.sh`. Same totals as the old `--cov`
-  lists (3143/3188 lines).
-- **Open follow-ups:** none. `quality-report.sh` still prints "no code yet" for an unmeasured root; it is a report,
-  not a gate, and the gate now fails for it.
-- **Gotchas:**
-  - Host Python 3.11 cannot import `dailies/core` (PEP 695 generics); run `pytest` under 3.12+ (`uv venv -p 3.13`
-    plus `scripts/requirements.txt` and `pytest==9.1.1`).
-  - A host jq older than 1.7 (or `jaq`) fails the `pr-metrics.sh`, `auto-qa-tuner.sh` and `quality-report.sh` tests
-    (`$label`/`$module` are keywords there); CI's jq passes them.
-  - Without the GNOME 51 SDK on the host, `scripts/sandbox.sh` runs every gate but the Flatpak build.
+- **Outcome:** `docs/agent-tasks/README.md` describes the issue → claim → branch → commit → PR → merge → close chain
+  for Dailies (what the `PR review rubric` check enforces, what is convention, how to follow it either way, how
+  `session-summary.md`, `corrections.tsv` and `docs/reflections/` sit beside it). Linked from README, CONTRIBUTING,
+  `docs/README.md` and `docs/multi-agent.md`. Docs only; `scripts/acmm-self-check.py` accepts `docs/agent-tasks/`.
+- **Open follow-ups:** none.
+- **Gotchas:** Hive's topic branches (`quality/test-…`) and `claude/*` branches carry no issue number, so the PR body's
+  `Fixes #N` is the authoritative link, not the branch name.
