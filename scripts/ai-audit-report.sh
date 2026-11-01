@@ -7,8 +7,9 @@
 #
 # usage: ai-audit-report.sh --since YYYY-MM-DD
 # Sources, first match wins:
-#   Hive             the body has Hive's signature line ("— hive: agent=<a> … model=<m> …";
-#                    the agent and model come from it, contributor runs leave out agent=),
+#   Hive             the body has a Hive signature line, "— hive: agent=<a> … model=<m> …" or a
+#                    contributor run's "— omp (Claude Code), model=<m>" (agent and model come
+#                    from it; contributor runs leave out agent=),
 #                    or the author is the hive-forge-app GitHub App (gh pr list reports it
 #                    as app/hive-forge-app, the REST API as hive-forge-app[bot])
 #   Claude Code (CI) head branch claude/*
@@ -34,9 +35,10 @@ done
 
 jq -r --arg since "$since" '
   def none: "—";
-  # Hive ends every PR body it writes with its signature line.
+  # Hive ends every PR body it writes with a signature line; contributor runs sign as omp.
   def signature:
-    (.body // "") | split("\n") | map(rtrimstr("\r") | select(startswith("— hive: "))) | .[0];
+    (.body // "") | split("\n")
+    | map(rtrimstr("\r") | select(startswith("— hive: ") or test("^— omp \\(Claude Code\\), model="))) | .[0];
   def fields($line):
     if $line == null then {}
     else [$line | scan("([A-Za-z_]+)=([^ ]+)")] | map({(.[0]): .[1]}) | add // {} end;
