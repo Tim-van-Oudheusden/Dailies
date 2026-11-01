@@ -184,6 +184,12 @@ def policy_coverage_violations(policy: dict, workflows: dict[str, dict]) -> list
     return [
         *(f"{name}: no rule in the workflow permissions policy" for name in sorted(set(workflows) - set(rules))),
         *(f"{name}: rule names a workflow that does not exist" for name in sorted(set(rules) - set(workflows))),
+        # Only `jobs` is read, so a typo such as `job:` would otherwise leave the rule empty without a word.
+        *(
+            f"{name}: rule has key {key}; the only key is jobs"
+            for name in sorted(rules)
+            for key in sorted(set(rules[name]) - {"jobs"})
+        ),
         *(
             f"{name}: rule names job {job_id}, which does not exist"
             for name in sorted(set(rules) & set(workflows))
@@ -817,6 +823,13 @@ def test_fixture_rule_for_a_missing_job_fails() -> None:
     policy = {"default": {"contents": "read"}, "workflows": {"x.yml": {"jobs": {"gone": {"contents": "write"}}}}}
     assert policy_coverage_violations(policy, {"x.yml": load_yaml("jobs:\n  build: {}\n")}) == [
         "x.yml: rule names job gone, which does not exist"
+    ]
+
+
+def test_fixture_rule_with_a_misspelled_key_fails() -> None:
+    policy = {"default": {"contents": "read"}, "workflows": {"x.yml": {"job": {"build": {"contents": "write"}}}}}
+    assert policy_coverage_violations(policy, {"x.yml": load_yaml("jobs:\n  build: {}\n")}) == [
+        "x.yml: rule has key job; the only key is jobs"
     ]
 
 
