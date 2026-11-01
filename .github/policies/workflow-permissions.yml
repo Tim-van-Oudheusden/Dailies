@@ -1,8 +1,8 @@
 # Policy: what GITHUB_TOKEN may do in each workflow.
 # Evaluated by tests/tooling/test_workflows.py, which `pytest` runs in CI: it fails
 # when a workflow under .github/workflows/ has no rule here, when a rule names a
-# workflow or job that does not exist, or when a workflow's `permissions:` blocks
-# differ from its rule in either direction.
+# workflow or job that does not exist or has a key other than `jobs`, or when a
+# workflow's `permissions:` blocks differ from its rule in either direction.
 #
 # Every workflow declares a top-level `permissions:` block equal to `default`, so
 # a job without its own block can only read the repository. A rule is:
