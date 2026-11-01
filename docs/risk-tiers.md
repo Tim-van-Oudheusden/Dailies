@@ -50,6 +50,14 @@ justify every `finish-args` entry in one line, and never add `--talk-name=org.fr
 permission. A schema change is a breaking change: it goes to `data/v2/`, not into `data/v1/schema/`. Agents may propose
 none of these without explicit maintainer approval ([`SECURITY-AI.md`](security/SECURITY-AI.md#dailies-rules)).
 
+`.github/CODEOWNERS` makes the maintainer the owner of exactly these paths, so a PR that touches one requests his
+review automatically (GitHub skips the request when he opened the PR himself, as local agents do under his account).
+`tests/tooling/test_codeowners.py` fails if a tracked file is rated high but has no owner, or has an owner but is not
+rated high, so a new high-risk rule needs a matching CODEOWNERS pattern in the same PR. The ruleset does not require
+the code owner's approval (`require_code_owner_review` is off in `.github/rulesets/main.json`), since an author cannot
+approve his own PR: CODEOWNERS requests the review, it does not block the merge. What keeps a high-risk PR from
+merging unreviewed is that only the maintainer merges it.
+
 ## Tier: medium
 
 Application code and catalog data: `dailies/**` and `data/v1/*.json`, plus anything not otherwise classified, such as
