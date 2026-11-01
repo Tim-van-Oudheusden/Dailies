@@ -1,0 +1,92 @@
+# Policy: what GITHUB_TOKEN may do in each workflow.
+# Evaluated by tests/tooling/test_workflows.py, which `pytest` runs in CI (`Build, lint, test`). It fails when a
+# workflow under .github/workflows/ has no rule here, when a rule names a workflow or job that does not exist, or when
+# a workflow's `permissions:` blocks differ from its rule in either direction.
+#
+# Every workflow declares a top-level `permissions:` block equal to `default`, so a job without its own block can only
+# read the repository. A rule lists under `jobs` the exact `permissions:` block of each job that needs more; a job's
+# block replaces the top-level one. Jobs not listed must not declare a block. A rule of `{}` means no job-level blocks.
+#
+# Widening a grant is a change to this file and to the workflow, both high risk (docs/risk-tiers.md), so the
+# maintainer reviews and merges it.
+
+default:
+  contents: read
+
+workflows:
+  auto-issues.yml:
+    jobs:
+      # Download the Nightly compliance run's report artifact; open, update or close the nightly compliance issue.
+      compliance-issue: { actions: read, contents: read, issues: write }
+
+  auto-review.yml:
+    jobs:
+      # Push the suggestions commit to the PR branch; react to the command and post the report comment.
+      apply: { contents: write, pull-requests: write }
+
+  ci.yml: {}
+
+  claude.yml:
+    jobs:
+      # claude-code-action's documented minimum: push claude/* branches, open and comment on PRs and issues, and mint
+      # its GitHub App token via OIDC.
+      claude: { contents: write, pull-requests: write, issues: write, id-token: write }
+
+  coverage-gate.yml: {}
+
+  external-data-checker.yml:
+    jobs:
+      # The checker edits the manifest; create-pull-request pushes the update branch and opens the PR.
+      flatpak-external-data-checker: { contents: write, pull-requests: write }
+
+  game-submission-approve.yml:
+    jobs:
+      # Stage B: comment on an invalid submission. The pull request job opens the PR with the bot App's token.
+      add: { contents: read, issues: write }
+      # Link the pull request, opened with the bot App's token, on the submission issue.
+      pull-request: { contents: read, issues: write }
+
+  game-submission-check.yml:
+    jobs:
+      # Comment the validation report on the submission issue and set its labels.
+      check: { contents: read, issues: write }
+
+  # The sanctioned pull_request_target exception (docs/security/SECURITY-AI.md): checks out nothing and only labels
+  # the PR.
+  labeler.yml:
+    jobs:
+      # actions/labeler reads .github/labeler.yml and labels the PR.
+      label: { contents: read, pull-requests: write }
+
+  nightly-compliance.yml:
+    jobs:
+      # List Dependabot alerts; open or update the broken-links `data` issue; download last week's link-check state
+      # artifact.
+      compliance: { actions: read, contents: read, issues: write, vulnerability-alerts: read }
+
+  pages.yml:
+    jobs:
+      # actions/deploy-pages: deploy the artifact, authenticated through OIDC.
+      deploy: { pages: write, id-token: write }
+
+  popularity.yml: {}
+
+  pr-metrics.yml:
+    jobs:
+      # Check out scripts/ and list closed PRs.
+      acceptance: { contents: read, pull-requests: read }
+      # Check out scripts/ and the popularity.json history, list popularity.yml runs and merged data/popularity PRs.
+      popularity: { contents: read, actions: read, pull-requests: read }
+
+  quality-report.yml: {}
+
+  release.yml:
+    jobs:
+      # Create the GitHub Release and upload the bundles.
+      publish: { contents: write }
+
+  review.yml: {}
+
+  tier-classifier.yml: {}
+
+  windows.yml: {}

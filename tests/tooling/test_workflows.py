@@ -2,8 +2,8 @@
 
 Each check is a function that returns a list of violations for one parsed workflow (or for the labeler and policy
 files). The tests at the top run them over the repository's files; the tests at the bottom feed each one an inline
-YAML fixture that breaks it. A new workflow passes as is when it asks for nothing beyond `contents: read`; a job that
-needs more gets a reviewed row in `JOB_PERMISSIONS`.
+YAML fixture that breaks it. The token grants are policy as code in .github/policies/workflow-permissions.yml: a new
+workflow needs a rule there, and a job that needs more than `contents: read` gets its exact `permissions:` block in it.
 """
 
 import fnmatch
@@ -18,55 +18,9 @@ ROOT = Path(__file__).resolve().parents[2]
 WORKFLOWS = ROOT / ".github" / "workflows"
 LABELER = ROOT / ".github" / "labeler.yml"
 POLICY = ROOT / ".github" / "policies" / "risk-tiers.policy"
-
-# Every workflow's top-level token: jobs that need more declare it themselves.
-TOP_LEVEL_PERMISSIONS = {"contents": "read"}
-
-# Reviewed job-level token scopes, by (workflow file, job id). A job that declares `permissions:` must match its row
-# exactly; a job without a row must not declare any (it inherits the read-only top level).
-JOB_PERMISSIONS: dict[tuple[str, str], dict[str, str]] = {
-    # Push the suggestions commit to the PR branch; react to the command and post the report comment.
-    ("auto-review.yml", "apply"): {"contents": "write", "pull-requests": "write"},
-    # Download the Nightly compliance run's report artifact; open, update or close the nightly compliance issue.
-    ("auto-issues.yml", "compliance-issue"): {"actions": "read", "contents": "read", "issues": "write"},
-    # claude-code-action's documented minimum: push claude/* branches, open and comment on PRs and issues, and mint
-    # its GitHub App token via OIDC.
-    ("claude.yml", "claude"): {
-        "contents": "write",
-        "pull-requests": "write",
-        "issues": "write",
-        "id-token": "write",
-    },
-    # The checker edits the manifest; create-pull-request pushes the update branch and opens the PR.
-    ("external-data-checker.yml", "flatpak-external-data-checker"): {
-        "contents": "write",
-        "pull-requests": "write",
-    },
-    # Comment the validation report on the submission issue and set its labels.
-    ("game-submission-check.yml", "check"): {"contents": "read", "issues": "write"},
-    # Stage B: comment on an invalid submission. The pull request job opens the PR with the bot App's token.
-    ("game-submission-approve.yml", "add"): {"contents": "read", "issues": "write"},
-    # Link the pull request, opened with the bot App's token, on the submission issue.
-    ("game-submission-approve.yml", "pull-request"): {"contents": "read", "issues": "write"},
-    # actions/labeler reads .github/labeler.yml and labels the PR.
-    ("labeler.yml", "label"): {"contents": "read", "pull-requests": "write"},
-    # List Dependabot alerts; open or update the broken-links `data` issue; download last week's link-check state
-    # artifact.
-    ("nightly-compliance.yml", "compliance"): {
-        "actions": "read",
-        "contents": "read",
-        "issues": "write",
-        "vulnerability-alerts": "read",
-    },
-    # actions/deploy-pages: deploy the artifact, authenticated through OIDC.
-    ("pages.yml", "deploy"): {"pages": "write", "id-token": "write"},
-    # Check out scripts/ and list closed PRs.
-    ("pr-metrics.yml", "acceptance"): {"contents": "read", "pull-requests": "read"},
-    # Check out scripts/ and the popularity.json history, list popularity.yml runs and merged data/popularity PRs.
-    ("pr-metrics.yml", "popularity"): {"contents": "read", "actions": "read", "pull-requests": "read"},
-    # Create the GitHub Release and upload the bundles.
-    ("release.yml", "publish"): {"contents": "write"},
-}
+PERMISSIONS_POLICY = ROOT / ".github" / "policies" / "workflow-permissions.yml"
+# The keys a workflow's rule in workflow-permissions.yml may have.
+PERMISSIONS_RULE_KEYS = frozenset({"jobs"})
 
 # docker:// actions referenced by tag instead of a digest, with the reason. Prefer pinning by digest
 # (`docker://image@sha256:<64 hex>`); external-data-checker.yml does.
@@ -184,26 +138,47 @@ def triggers_of(workflow: dict) -> set[str]:
 # --- checks -----------------------------------------------------------------------------------------------------------
 
 
-def top_level_permission_violations(name: str, workflow: dict) -> list[str]:
-    permissions = workflow.get("permissions")
-    if permissions != TOP_LEVEL_PERMISSIONS:
-        return [f"{name}: top-level permissions are {permissions!r}, expected {TOP_LEVEL_PERMISSIONS!r}"]
+def top_level_permission_violations(name: str, workflow: dict, policy: dict) -> list[str]:
+    permissions, expected = workflow.get("permissions"), policy["default"]
+    if permissions != expected:
+        return [f"{name}: top-level permissions are {permissions!r}, expected {expected!r}"]
     return []
 
 
-def job_permission_violations(
-    name: str, workflow: dict, reviewed: dict[tuple[str, str], dict[str, str]] = JOB_PERMISSIONS
-) -> list[str]:
+def job_permission_violations(name: str, workflow: dict, policy: dict) -> list[str]:
+    if name not in policy["workflows"]:
+        return [f"{name}: has no rule in workflow-permissions.yml"]
+    reviewed = (policy["workflows"][name] or {}).get("jobs") or {}
     violations = []
     for job_id, job in jobs_of(workflow).items():
-        expected = reviewed.get((name, job_id))
+        expected = reviewed.get(job_id)
         if "permissions" not in job:
             if expected is not None:
-                violations.append(f"{name}: job {job_id} declares no permissions but has a reviewed row {expected!r}")
+                violations.append(f"{name}: job {job_id} declares no permissions but its rule grants {expected!r}")
         elif expected is None:
-            violations.append(f"{name}: job {job_id} declares unreviewed permissions {job['permissions']!r}")
+            violations.append(f"{name}: job {job_id} declares permissions {job['permissions']!r} without a rule")
         elif job["permissions"] != expected:
-            violations.append(f"{name}: job {job_id} permissions are {job['permissions']!r}, reviewed {expected!r}")
+            violations.append(f"{name}: job {job_id} permissions are {job['permissions']!r}, its rule {expected!r}")
+    return violations
+
+
+def permissions_policy_violations(policy: dict, workflows: dict[str, dict]) -> list[str]:
+    """Rules in workflow-permissions.yml that name no workflow or job, or that have a key the checks do not read."""
+    violations = []
+    for name, rule in policy["workflows"].items():
+        if name not in workflows:
+            violations.append(f"workflow-permissions.yml: rule for {name}, which is not a workflow")
+            continue
+        entry = rule or {}
+        violations.extend(
+            f"workflow-permissions.yml: rule for {name} has unknown key {key!r}"
+            for key in sorted(set(entry) - PERMISSIONS_RULE_KEYS)
+        )
+        violations.extend(
+            f"workflow-permissions.yml: rule for {name} names job {job_id}, which {name} does not have"
+            for job_id in entry.get("jobs") or {}
+            if job_id not in jobs_of(workflows[name])
+        )
     return violations
 
 
@@ -635,23 +610,25 @@ def load(path: Path) -> dict:
     return load_yaml(path.read_text(encoding="utf-8"))
 
 
+PERMISSIONS = load(PERMISSIONS_POLICY)
+
+
 def test_there_are_workflows_to_check() -> None:
     assert FILES
 
 
 @pytest.mark.parametrize("path", FILES, ids=IDS)
-def test_top_level_permissions_are_read_only(path: Path) -> None:
-    assert top_level_permission_violations(path.name, load(path)) == []
+def test_top_level_permissions_match_the_policy_default(path: Path) -> None:
+    assert top_level_permission_violations(path.name, load(path), PERMISSIONS) == []
 
 
 @pytest.mark.parametrize("path", FILES, ids=IDS)
-def test_job_permissions_match_the_reviewed_map(path: Path) -> None:
-    assert job_permission_violations(path.name, load(path)) == []
+def test_job_permissions_match_the_policy_rule(path: Path) -> None:
+    assert job_permission_violations(path.name, load(path), PERMISSIONS) == []
 
 
-def test_every_reviewed_job_permission_row_names_an_existing_job() -> None:
-    existing = {(path.name, job_id) for path in FILES for job_id in jobs_of(load(path))}
-    assert sorted(set(JOB_PERMISSIONS) - existing) == []
+def test_every_permissions_rule_names_an_existing_workflow_and_job() -> None:
+    assert permissions_policy_violations(PERMISSIONS, {path.name: load(path) for path in FILES}) == []
 
 
 @pytest.mark.parametrize("path", FILES, ids=IDS)
@@ -773,6 +750,14 @@ def test_every_reviewed_merge_row_names_a_job_that_merges() -> None:
 PIN = "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
 
 
+def permissions_fixture(rules: str) -> dict:
+    """A workflow-permissions.yml with the repository's default and the given `workflows:` body."""
+    return load_yaml("default:\n  contents: read\nworkflows:\n" + rules)
+
+
+BUILD_WRITES = permissions_fixture("  x.yml:\n    jobs:\n      build: { contents: write }\n")
+
+
 def test_fixture_top_level_write_permission_fails() -> None:
     workflow = load_yaml("""
 on: push
@@ -780,41 +765,66 @@ permissions:
   contents: write
 jobs: {}
 """)
-    assert top_level_permission_violations("x.yml", workflow) == [
+    assert top_level_permission_violations("x.yml", workflow, BUILD_WRITES) == [
         "x.yml: top-level permissions are {'contents': 'write'}, expected {'contents': 'read'}"
     ]
 
 
 def test_fixture_missing_top_level_permissions_fails() -> None:
-    assert top_level_permission_violations("x.yml", load_yaml("on: push\njobs: {}\n"))
+    assert top_level_permission_violations("x.yml", load_yaml("on: push\njobs: {}\n"), BUILD_WRITES)
 
 
-def test_fixture_unreviewed_job_permissions_fail() -> None:
-    workflow = load_yaml("""
-jobs:
-  build:
-    permissions:
-      contents: write
-""")
-    assert job_permission_violations("x.yml", workflow, reviewed={}) == [
-        "x.yml: job build declares unreviewed permissions {'contents': 'write'}"
+def test_fixture_workflow_without_a_permissions_rule_fails() -> None:
+    workflow = load_yaml("jobs:\n  build:\n    runs-on: ubuntu-latest\n")
+    assert job_permission_violations("y.yml", workflow, BUILD_WRITES) == [
+        "y.yml: has no rule in workflow-permissions.yml"
     ]
 
 
-def test_fixture_job_permissions_wider_than_reviewed_fail() -> None:
+def test_fixture_job_permissions_without_a_rule_fail() -> None:
     workflow = load_yaml("""
 jobs:
   build:
     permissions:
       contents: write
-      issues: write
 """)
-    assert job_permission_violations("x.yml", workflow, reviewed={("x.yml", "build"): {"contents": "write"}})
+    assert job_permission_violations("x.yml", workflow, permissions_fixture("  x.yml: {}\n")) == [
+        "x.yml: job build declares permissions {'contents': 'write'} without a rule"
+    ]
 
 
-def test_fixture_reviewed_job_without_permissions_fails() -> None:
+@pytest.mark.parametrize("permissions", ["{ contents: write, issues: write }", "{ contents: read }"])
+def test_fixture_job_permissions_other_than_its_rule_fail(permissions: str) -> None:
+    workflow = load_yaml(f"jobs:\n  build:\n    permissions: {permissions}\n")
+    assert job_permission_violations("x.yml", workflow, BUILD_WRITES)
+
+
+def test_fixture_job_without_the_permissions_its_rule_grants_fails() -> None:
     workflow = load_yaml("jobs:\n  build:\n    runs-on: ubuntu-latest\n")
-    assert job_permission_violations("x.yml", workflow, reviewed={("x.yml", "build"): {"contents": "write"}})
+    assert job_permission_violations("x.yml", workflow, BUILD_WRITES) == [
+        "x.yml: job build declares no permissions but its rule grants {'contents': 'write'}"
+    ]
+
+
+def test_fixture_job_permissions_equal_to_its_rule_pass() -> None:
+    workflow = load_yaml("jobs:\n  build:\n    permissions:\n      contents: write\n  test:\n    runs-on: x\n")
+    assert job_permission_violations("x.yml", workflow, BUILD_WRITES) == []
+
+
+def test_fixture_permissions_rule_for_a_missing_workflow_or_job_fails() -> None:
+    policy = permissions_fixture("  x.yml:\n    jobs:\n      build: { contents: write }\n  gone.yml: {}\n")
+    workflows = {"x.yml": load_yaml("jobs:\n  test:\n    runs-on: x\n")}
+    assert permissions_policy_violations(policy, workflows) == [
+        "workflow-permissions.yml: rule for x.yml names job build, which x.yml does not have",
+        "workflow-permissions.yml: rule for gone.yml, which is not a workflow",
+    ]
+
+
+def test_fixture_permissions_rule_with_an_unknown_key_fails() -> None:
+    policy = permissions_fixture("  x.yml:\n    permissions: { contents: write }\n")
+    assert permissions_policy_violations(policy, {"x.yml": load_yaml("jobs: {}\n")}) == [
+        "workflow-permissions.yml: rule for x.yml has unknown key 'permissions'"
+    ]
 
 
 def test_fixture_job_without_timeout_fails() -> None:

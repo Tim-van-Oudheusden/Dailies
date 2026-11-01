@@ -44,10 +44,11 @@ behave. A mistake here can bypass every other check or ship to every user.
 
 Review: a human reviews the full diff line by line. Dependency changes follow the rules in `AGENTS.md` (approved, exact
 version, `scripts/requirements.txt` pinned with hashes). Workflow changes keep event fields in `env:`, never inline in
-`run:`, and update `tests/tooling/test_workflows.py` when they add a workflow or widen a token scope. Manifest changes
-justify every `finish-args` entry in one line, and never add `--talk-name=org.freedesktop.Flatpak` or a `--filesystem`
-permission. A schema change is a breaking change: it goes to `data/v2/`, not into `data/v1/schema/`. Agents may propose
-none of these without explicit maintainer approval ([`SECURITY-AI.md`](security/SECURITY-AI.md#dailies-rules)).
+`run:`, and update `.github/policies/workflow-permissions.yml` when they add a workflow or widen a token scope.
+Manifest changes justify every `finish-args` entry in one line, and never add `--talk-name=org.freedesktop.Flatpak`
+or a `--filesystem` permission. A schema change is a breaking change: it goes to `data/v2/`, not into
+`data/v1/schema/`. Agents may propose none of these without explicit maintainer approval
+([`SECURITY-AI.md`](security/SECURITY-AI.md#dailies-rules)).
 
 ## Tier: medium
 

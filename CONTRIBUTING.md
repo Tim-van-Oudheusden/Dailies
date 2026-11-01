@@ -75,8 +75,10 @@ read from GLib APIs and render with GTK. UI layout lives in Blueprint files unde
 **Where a test goes.** In the `tests/` directory that mirrors the code it covers: a test for `dailies/core/catalog.py`
 goes in `tests/core/test_catalog.py`, one for `scripts/validate_submission.py` in `tests/scripts/`. Checks on the
 committed data files go in `tests/data/`; checks on `.github/` (workflow invariants, label and policy parity) go in
-`tests/tooling/`. A workflow job that needs more than `contents: read` declares its own `permissions:` and gets a
-reviewed row in `JOB_PERMISSIONS` in `tests/tooling/test_workflows.py`.
+`tests/tooling/`. Every workflow has a rule in `.github/policies/workflow-permissions.yml`, the policy that sets what
+`GITHUB_TOKEN` may do; a job that needs more than `contents: read` declares its own `permissions:` and gets the same
+block, with a one-line reason, under its workflow's `jobs:` there. `tests/tooling/test_workflows.py` evaluates the
+policy against every workflow.
 
 ## Finding and claiming work
 
@@ -525,6 +527,8 @@ AI agents working in this repo are bounded by several layers:
    history-rewriting commands, and denies reading secrets (`.env*`), force-pushes and `--no-verify` commits.
 3. **Personal overrides** — `.claude/settings.local.json` (gitignored). Deny rules from the project file still apply.
 4. **Structural gates** — the ruleset on `main` and CI must pass before merge, regardless of who wrote the change.
+   `.github/policies/` holds policies CI enforces: `workflow-permissions.yml` sets what `GITHUB_TOKEN` may do in each
+   workflow, and `pytest` fails when a workflow grants more, grants less, or has no rule.
 
 The security side of these layers (trust boundaries, secrets, supply chain, review focus, reporting) is set out in
 [`docs/security/SECURITY-AI.md`](docs/security/SECURITY-AI.md). How the agents share the issue queue without stepping on

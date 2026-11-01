@@ -9,18 +9,18 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-10-31. #296 on `refactor/296-coverage-roots-single-source`.
+2026-11-01. #312 on `ci/312-workflow-permissions-policy`.
 
-- **Outcome:** `[tool.coverage.run] source` in `pyproject.toml` is the one list of measured roots: `coverage-gate.yml`,
-  `quality-report.sh` and `sandbox-gates.sh` run a bare `pytest --cov`. `coverage-check.sh` exits 2 when a group has
-  no measured lines but its root holds Python (an unmeasured root used to pass as "no code yet"), and builds its
-  "known groups" list from the new `coverage_groups` in `scripts/lib/coverage.sh`. Same totals as the old `--cov`
-  lists (3143/3188 lines).
-- **Open follow-ups:** none. `quality-report.sh` still prints "no code yet" for an unmeasured root; it is a report,
-  not a gate, and the gate now fails for it.
+- **Outcome:** the reviewed `GITHUB_TOKEN` grants moved from `JOB_PERMISSIONS`/`TOP_LEVEL_PERMISSIONS` in
+  `tests/tooling/test_workflows.py` to `.github/policies/workflow-permissions.yml` (port of website#990, Dailies
+  shape: one `default` top-level block, per-job blocks under `jobs:`). Every workflow needs a rule; a rule for a
+  missing workflow or job, or an unknown rule key, fails `pytest`. Keeps `acmm:policy-as-code` met once #307 moves
+  `risk-tiers.policy` out of `.github/policies/` (checked with `acmm-self-check.py --root` on a copy without it).
+- **Open follow-ups:** none. #307 moves `risk-tiers.policy` and so changes `POLICY` in `test_workflows.py`; the
+  permissions policy stays in `.github/policies/`.
 - **Gotchas:**
-  - Host Python 3.11 cannot import `dailies/core` (PEP 695 generics); run `pytest` under 3.12+ (`uv venv -p 3.13`
-    plus `scripts/requirements.txt` and `pytest==9.1.1`).
-  - A host jq older than 1.7 (or `jaq`) fails the `pr-metrics.sh`, `auto-qa-tuner.sh` and `quality-report.sh` tests
-    (`$label`/`$module` are keywords there); CI's jq passes them.
+  - Host Python 3.11 cannot import `dailies/core` (PEP 695 generics); run `pytest` under 3.12+
+    (`~/.local/bin/python3.13 -m venv`, then `scripts/requirements.txt` and `pytest==9.1.1`).
+  - The host `jq` is `jaq`, which fails the `pr-metrics.sh`, `auto-qa-tuner.sh` and `quality-report.sh` tests (13
+    failures, `$label`/`$module` are keywords there); CI's jq passes them.
   - Without the GNOME 51 SDK on the host, `scripts/sandbox.sh` runs every gate but the Flatpak build.
