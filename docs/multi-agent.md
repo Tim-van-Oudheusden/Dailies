@@ -168,7 +168,8 @@ own pull request.
 The weekly `PR metrics` workflow counts agent-authored pull requests that were merged against those closed unmerged.
 Agent-authored means a `claude/*` head branch or the `hive-forge-app` author. The weekly quality report and the nightly
 compliance run show whether the combined output keeps the gates green. [`docs/metrics/README.md`](metrics/README.md)
-lists every metric.
+lists every metric. The weekly `AI audit trail` workflow records which agent and model are behind each pull request
+merged into `main`, and who merged it ([`metrics/README.md`](metrics/README.md#ai-audit-trail)).
 
 The weekly `Strategy report` workflow shows whether the agents keep up: issues opened against issues closed, the open
 backlog per stage label and milestone, and the ACMM gaps still open per level. A stage where issues pile up is where

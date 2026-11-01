@@ -9,14 +9,15 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-01. #306 on `ci/306-strategy-report`.
+2026-11-01. #311 on `ci/311-ai-audit-trail`.
 
-- **Outcome:** weekly `Strategy report` workflow (`strategy-report.yml`, Mon 06:17 UTC, manual `days` input) and
-  `scripts/strategy-report.sh`, ported from MinimalUI. It prints flow, backlog per `stage/*`, backlog per
-  `milestone::*` (Dailies-specific) and ACMM gaps per level to the job summary. Documented in
-  `docs/metrics/README.md`, `CONTRIBUTING.md` and `docs/multi-agent.md`; satisfies the ACMM `strategic-dashboard`
-  criterion.
-- **Open follow-ups:** none. The workflow only reads (`issues: read`, `pull-requests: read`), so no maintainer setup.
+- **Outcome:** `ai-audit.yml` (Mon 06:17 UTC, past 7 days; manual with `days`) runs `scripts/ai-audit-report.sh` over
+  the PRs merged into `main` and attributes each to Hive (`— hive:` signature, agent and model from it, or the
+  `hive-forge-app` author), Claude Code (CI) (`claude/*`), Dependabot (`dependabot/*`) or Other, with author and
+  merger. Job summary plus a 90-day `ai-audit` artifact with the raw PR JSON. Ported from MinimalUI (#256); the rules
+  match Dailies' real PRs (maintainer's local agent signs `— hive: backend=omp`). Tests:
+  `tests/scripts/test_ai_audit_report.py`, a `JOB_PERMISSIONS` row. Satisfies `aef:audit-trail`.
+- **Open follow-ups:** none. The PR touches `.github/workflows/`, so the maintainer merges it.
 - **Gotchas:**
-  - Dashboard-filed ACMM issues are titled `[dashboard] [ACMM L6] Add ...`; the level regex is unanchored for that.
-  - Host jq older than 1.7 fails jq-based script tests; run them in the `development` distrobox.
+  - A host jq older than 1.7 (or `jaq`) fails the jq-based script tests; CI's jq passes them.
+  - `gh pr list` names a GitHub App author `app/<slug>`, the REST API `<slug>[bot]`; the script accepts both.

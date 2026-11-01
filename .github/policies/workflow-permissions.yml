@@ -18,6 +18,11 @@ default:
   contents: read
 
 workflows:
+  ai-audit.yml:
+    jobs:
+      # Check out scripts/ and list merged PRs.
+      audit: { contents: read, pull-requests: read }
+
   # Download the Nightly compliance run's report artifact; open, update or close the
   # nightly compliance issue.
   auto-issues.yml:
