@@ -274,8 +274,9 @@ def test_fixture_matching_edges_pass() -> None:
     assert merge_edge_violations("d.md", markdown, {"popularity.yml"}) == []
 
 
-def test_fixture_prose_with_a_person_merging_the_popularity_pull_request_fails() -> None:
-    text = "The popularity job opens a pull request\nthat a human merges.\n\nOther text."
+@pytest.mark.parametrize("says", ["that a human merges", "a human-merged one", "a person merges", "merged by a person"])
+def test_fixture_prose_with_a_person_merging_the_popularity_pull_request_fails(says: str) -> None:
+    text = f"The popularity job opens a pull request\n{says}.\n\nOther text."
     assert len(merge_prose_violations("d.md", text, {"popularity.yml"})) == 1
 
 
@@ -322,6 +323,12 @@ def test_fixture_workflow_with_a_row_passes() -> None:
     workflow = load_yaml("jobs:\n  a:\n    permissions:\n      issues: write\n")
     table = "## Work the workflows generate\n\n| Workflow |\n| --- |\n| `new.yml` (link check) | x |\n\n## Next\n"
     assert work_table_violations({"new.yml": workflow}, table) == []
+
+
+def test_fixture_workflow_named_only_in_another_rows_second_column_needs_a_row() -> None:
+    workflow = load_yaml("jobs:\n  a:\n    permissions:\n      issues: write\n")
+    table = "## Work the workflows generate\n\n| Workflow |\n| --- |\n| `other.yml` | after `new.yml` |\n\n## Next\n"
+    assert len(work_table_violations({"new.yml": workflow}, table)) == 1
 
 
 def test_fixture_table_rows_are_checked_one_by_one() -> None:
