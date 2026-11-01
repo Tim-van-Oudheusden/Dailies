@@ -9,18 +9,15 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-10-31. #296 on `refactor/296-coverage-roots-single-source`.
+2026-11-01. #311 on `ci/311-ai-audit-trail`.
 
-- **Outcome:** `[tool.coverage.run] source` in `pyproject.toml` is the one list of measured roots: `coverage-gate.yml`,
-  `quality-report.sh` and `sandbox-gates.sh` run a bare `pytest --cov`. `coverage-check.sh` exits 2 when a group has
-  no measured lines but its root holds Python (an unmeasured root used to pass as "no code yet"), and builds its
-  "known groups" list from the new `coverage_groups` in `scripts/lib/coverage.sh`. Same totals as the old `--cov`
-  lists (3143/3188 lines).
-- **Open follow-ups:** none. `quality-report.sh` still prints "no code yet" for an unmeasured root; it is a report,
-  not a gate, and the gate now fails for it.
+- **Outcome:** `ai-audit.yml` (Mon 06:17 UTC, past 7 days; manual with `days`) runs `scripts/ai-audit-report.sh` over
+  the PRs merged into `main` and attributes each to Hive (`— hive:` signature, agent and model from it, or the
+  `hive-forge-app` author), Claude Code (CI) (`claude/*`), Dependabot (`dependabot/*`) or Other, with author and
+  merger. Job summary plus a 90-day `ai-audit` artifact with the raw PR JSON. Ported from MinimalUI (#256); the rules
+  match Dailies' real PRs (maintainer's local agent signs `— hive: backend=omp`). Tests:
+  `tests/scripts/test_ai_audit_report.py`, a `JOB_PERMISSIONS` row. Satisfies `aef:audit-trail`.
+- **Open follow-ups:** none. The PR touches `.github/workflows/`, so the maintainer merges it.
 - **Gotchas:**
-  - Host Python 3.11 cannot import `dailies/core` (PEP 695 generics); run `pytest` under 3.12+ (`uv venv -p 3.13`
-    plus `scripts/requirements.txt` and `pytest==9.1.1`).
-  - A host jq older than 1.7 (or `jaq`) fails the `pr-metrics.sh`, `auto-qa-tuner.sh` and `quality-report.sh` tests
-    (`$label`/`$module` are keywords there); CI's jq passes them.
-  - Without the GNOME 51 SDK on the host, `scripts/sandbox.sh` runs every gate but the Flatpak build.
+  - A host jq older than 1.7 (or `jaq`) fails the jq-based script tests; CI's jq passes them.
+  - `gh pr list` names a GitHub App author `app/<slug>`, the REST API `<slug>[bot]`; the script accepts both.

@@ -25,6 +25,8 @@ TOP_LEVEL_PERMISSIONS = {"contents": "read"}
 # Reviewed job-level token scopes, by (workflow file, job id). A job that declares `permissions:` must match its row
 # exactly; a job without a row must not declare any (it inherits the read-only top level).
 JOB_PERMISSIONS: dict[tuple[str, str], dict[str, str]] = {
+    # Check out scripts/ and list merged PRs.
+    ("ai-audit.yml", "audit"): {"contents": "read", "pull-requests": "read"},
     # Push the suggestions commit to the PR branch; react to the command and post the report comment.
     ("auto-review.yml", "apply"): {"contents": "write", "pull-requests": "write"},
     # Download the Nightly compliance run's report artifact; open, update or close the nightly compliance issue.
