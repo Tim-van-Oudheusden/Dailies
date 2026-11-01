@@ -124,3 +124,7 @@ The weekly `PR metrics` workflow counts agent-authored pull requests that were m
 Agent-authored means a `claude/*` head branch or the `hive-forge-app` author. The weekly quality report and the nightly
 compliance run show whether the combined output keeps the gates green. [`docs/metrics/README.md`](metrics/README.md)
 lists every metric.
+
+The weekly `Strategy report` workflow shows whether the agents keep up: issues opened against issues closed, the open
+backlog per stage label and milestone, and the ACMM gaps still open per level. A stage where issues pile up is where
+work stalls.

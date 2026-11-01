@@ -1,0 +1,49 @@
+name: Strategy report
+
+# Strategic dashboard: where the project is heading rather than how one change
+# fared. Issue and PR flow over the reporting window, the open backlog per
+# pipeline stage and milestone, and the ACMM maturity gaps per level, computed
+# by scripts/strategy-report.sh. Results land in the run's job summary.
+
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      days:
+        description: Reporting window in days
+        required: false
+        default: '28'
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    name: Strategy report
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # contents: read for the checkout of scripts/; issues: read and pull-requests: read for `gh issue list` and
+    # `gh pr list`.
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Generate strategy report
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          DAYS: ${{ inputs.days || '28' }}
+        run: |
+          set -euo pipefail
+          [[ "$DAYS" =~ ^[0-9]+$ ]] || { echo "::error::days must be a whole number, got '$DAYS'"; exit 1; }
+          since="$(date -u -d "${DAYS} days ago" +%Y-%m-%d)"
+          gh issue list --repo "$REPO" --state all --limit 10000 \
+            --json number,title,state,labels,createdAt,closedAt > issues.json
+          gh pr list --repo "$REPO" --state merged --limit 1000 \
+            --search "merged:>=${since}" --json mergedAt > prs.json
+          scripts/strategy-report.sh --since "$since" --issues issues.json --prs prs.json | tee -a "$GITHUB_STEP_SUMMARY"

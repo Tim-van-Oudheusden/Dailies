@@ -9,18 +9,14 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-10-31. #296 on `refactor/296-coverage-roots-single-source`.
+2026-11-01. #306 on `ci/306-strategy-report`.
 
-- **Outcome:** `[tool.coverage.run] source` in `pyproject.toml` is the one list of measured roots: `coverage-gate.yml`,
-  `quality-report.sh` and `sandbox-gates.sh` run a bare `pytest --cov`. `coverage-check.sh` exits 2 when a group has
-  no measured lines but its root holds Python (an unmeasured root used to pass as "no code yet"), and builds its
-  "known groups" list from the new `coverage_groups` in `scripts/lib/coverage.sh`. Same totals as the old `--cov`
-  lists (3143/3188 lines).
-- **Open follow-ups:** none. `quality-report.sh` still prints "no code yet" for an unmeasured root; it is a report,
-  not a gate, and the gate now fails for it.
+- **Outcome:** weekly `Strategy report` workflow (`strategy-report.yml`, Mon 06:17 UTC, manual `days` input) and
+  `scripts/strategy-report.sh`, ported from MinimalUI. It prints flow, backlog per `stage/*`, backlog per
+  `milestone::*` (Dailies-specific) and ACMM gaps per level to the job summary. Documented in
+  `docs/metrics/README.md`, `CONTRIBUTING.md` and `docs/multi-agent.md`; satisfies the ACMM `strategic-dashboard`
+  criterion.
+- **Open follow-ups:** none. The workflow only reads (`issues: read`, `pull-requests: read`), so no maintainer setup.
 - **Gotchas:**
-  - Host Python 3.11 cannot import `dailies/core` (PEP 695 generics); run `pytest` under 3.12+ (`uv venv -p 3.13`
-    plus `scripts/requirements.txt` and `pytest==9.1.1`).
-  - A host jq older than 1.7 (or `jaq`) fails the `pr-metrics.sh`, `auto-qa-tuner.sh` and `quality-report.sh` tests
-    (`$label`/`$module` are keywords there); CI's jq passes them.
-  - Without the GNOME 51 SDK on the host, `scripts/sandbox.sh` runs every gate but the Flatpak build.
+  - Dashboard-filed ACMM issues are titled `[dashboard] [ACMM L6] Add ...`; the level regex is unanchored for that.
+  - Host jq older than 1.7 fails jq-based script tests; run them in the `development` distrobox.
