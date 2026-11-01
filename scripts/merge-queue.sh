@@ -17,8 +17,8 @@
 #       Hold a pull request that failed verification, link the run, move on.
 #
 # Ready means: from this repository (not a fork), not a draft, none of the
-# KEEP_OUT_LABELS, every required check passing (merge state CLEAN, which also
-# needs the review threads resolved), and not high risk by
+# KEEP_OUT_LABELS, merge state CLEAN (no failing check, required or not, so
+# UNSTABLE stays out; review threads resolved), and not high risk by
 # scripts/tier-classify.sh: high-risk changes wait for the maintainer.
 # Needs gh authenticated (GH_TOKEN) and pointed at the repository (GH_REPO, or
 # run from a checkout).
@@ -92,8 +92,9 @@ next() {
   local candidates number head tier
   # gh lists open pull requests by default; --jq runs gh's built-in jq, so the
   # runner needs no jq. Listed into a variable so a failed listing fails the
-  # job (set -e) instead of passing for an empty queue.
-  candidates="$(gh pr list --base main --limit 100 \
+  # job (set -e) instead of passing for an empty queue. gh lists newest first,
+  # so the limit sits far above the number of pull requests ever open at once.
+  candidates="$(gh pr list --base main --limit 1000 \
     --json number,headRefOid,isDraft,isCrossRepository,labels \
     --jq "sort_by(.number) | .[]
       | select((.isDraft or .isCrossRepository) | not)

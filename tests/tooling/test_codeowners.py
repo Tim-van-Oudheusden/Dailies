@@ -4,7 +4,6 @@ The two files use different glob dialects (`*` crosses `/` in the risk rules, no
 what each selects among the tracked files rather than the patterns themselves.
 """
 
-import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -69,7 +68,11 @@ def test_codeowners_owns_exactly_the_tracked_files_rated_high(tmp_path: Path) ->
     assert sorted(set(owned) - set(high)) == [], "owned but not high risk"
 
 
-def test_codeowners_gives_every_pattern_an_owner() -> None:
+def test_codeowners_gives_every_pattern_the_maintainer_as_its_only_owner() -> None:
+    # On GitHub the last matching pattern wins, so any other owner on any line could take a file from the maintainer.
     assert rules(), "no rules"
     for rule in rules():
-        assert re.fullmatch(r"\S+(\s+@[\w-]+(/[\w-]+)?)+", rule), rule
+        pattern, *owners = rule.split()
+        assert owners == ["@Tim-van-Oudheusden"], rule
+        # git's exclude syntax lets dir/* match nested files, GitHub's CODEOWNERS does not.
+        assert not pattern.endswith("/*"), f"{pattern}: use {pattern[:-1]} to own the whole directory"
