@@ -188,7 +188,7 @@ flowchart TD
     REPORT --> PR2
   end
   PR1 -->|"human merge"| MAIN["main"]
-  PR2 -->|"human merge"| MAIN
+  PR2 -->|"merges itself"| MAIN
   MAIN -->|"push touching data/v1/**"| PAGES["pages.yml<br/>GitHub Pages: /Dailies/v1/"]
   PAGES --> APP["Dailies fetcher"]
   subgraph release["Releases"]
@@ -197,9 +197,10 @@ flowchart TD
   end
 ```
 
-Data changes and releases both end in something a human merges or tags: the weekly popularity job opens a numbers-only
-pull request, and `pages.yml` publishes `data/v1/` to GitHub Pages, which the app tries before
-`raw.githubusercontent.com`. A game submission ends the same way: when the maintainer labels a checked submission
+Data changes and releases both end in something the maintainer merges or tags, except the weekly numbers: the popularity
+job opens a numbers-only pull request that merges itself once the required checks pass, and `pages.yml` publishes
+`data/v1/` to GitHub Pages, which the app tries before
+`raw.githubusercontent.com`. A game submission ends with the maintainer: when the maintainer labels a checked submission
 `approved`, stage B validates it again and opens a `data(games): add <name>` pull request that closes the issue
 ([Approving game submissions](CONTRIBUTING.md#approving-game-submissions)). More in
 [`docs/architecture.md`](docs/architecture.md).

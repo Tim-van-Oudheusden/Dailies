@@ -9,15 +9,16 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-10-31. #296 on `refactor/296-coverage-roots-single-source`.
+2026-11-01. #293 on `test/293-docs-claims`.
 
-- **Outcome:** `[tool.coverage.run] source` in `pyproject.toml` is the one list of measured roots: `coverage-gate.yml`,
-  `quality-report.sh` and `sandbox-gates.sh` run a bare `pytest --cov`. `coverage-check.sh` exits 2 when a group has
-  no measured lines but its root holds Python (an unmeasured root used to pass as "no code yet"), and builds its
-  "known groups" list from the new `coverage_groups` in `scripts/lib/coverage.sh`. Same totals as the old `--cov`
-  lists (3143/3188 lines).
-- **Open follow-ups:** none. `quality-report.sh` still prints "no code yet" for an unmeasured root; it is a report,
-  not a gate, and the gate now fails for it.
+- **Outcome:** `tests/tooling/test_docs_claims.py` checks four repeated doc claims against their code: release assets
+  (the `release.yml` publish step) in both release diagrams and `bad-release.md`; who merges (`AUTO_MERGE_JOBS`) in
+  diagram edges and prose; the data files `fetcher.py` requests in the README privacy bullet and `data/v1/README.md`;
+  every workflow with an issue or pull request write scope or the `bot` environment in the "Work the workflows
+  generate" table. Drift fixed: four "human merge" sentences (README, `docs/architecture.md`) and three missing table
+  rows (`auto-review.yml`, `claude.yml`, `labeler.yml`). `docs/testing.md` has a "Docs claims" row.
+- **Open follow-ups:** a new workflow that opens issues or pull requests now fails the suite until it has a row in
+  `docs/multi-agent.md`; the metainfo download list stays a manual check.
 - **Gotchas:**
   - Host Python 3.11 cannot import `dailies/core` (PEP 695 generics); run `pytest` under 3.12+ (`uv venv -p 3.13`
     plus `scripts/requirements.txt` and `pytest==9.1.1`).

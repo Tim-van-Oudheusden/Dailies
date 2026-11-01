@@ -91,6 +91,9 @@ The other stages:
 | `popularity.yml` | Weekly (Mon 04:17 UTC), or a manual run | The `data/popularity` pull request, the only one that merges itself once the required checks pass |
 | `game-submission-check.yml`, `game-submission-approve.yml` | A game submission issue, then the maintainer's `approved` label | Labels and a comment on the submission, then the `data/add-<slug>` pull request |
 | `external-data-checker.yml` | Weekly (Mon 05:37 UTC), or a manual run | A pull request that moves the release manifest's source to a newer `v*` tag |
+| `auto-review.yml` | A maintainer comments `/apply-suggestions` on a pull request | A commit with the review suggestions on that pull request's branch, and a comment listing what was applied and skipped |
+| `claude.yml` | The `ai-fix-requested` label applied by a person, or `@claude` from an `OWNER`, `MEMBER` or `COLLABORATOR` | Pull requests on `claude/*` branches, and comments on the issue or pull request |
+| `labeler.yml` | A pull request is opened, updated or reopened | The path labels from `.github/labeler.yml` on the pull request |
 
 Every pull request the workflows open is labelled `automated`. So is the nightly compliance issue (with `ci`); the
 broken-links issue is labelled `data`. Whatever opens it, an issue goes into the same queue as the rest.
