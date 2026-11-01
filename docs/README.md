@@ -10,5 +10,6 @@
 | [`data-format.md`](data-format.md) | Reference for `data/v1/games.json` and `popularity.json`: fields, categories, tags, difficulty rubric, submission rules, licences | current for `data/v1` |
 | [`multi-agent.md`](multi-agent.md) | How Hive's agents, Claude Code, CLI agents and the workflows share the issue queue: who does what, claim and stage labels, hand-offs, merging | current |
 | [`agent-tasks/`](agent-tasks/README.md) | How an agent's change links back to its issue and the issue forward to the change: branch, commit, PR, merge, close | current |
+| [`ai-ops-runbook.md`](ai-ops-runbook.md) | How to watch the agents and workflows, debug them when they stall or misbehave, and pause or stop each one | current |
 
 Workflow: Research (done) → Design (3 proposals) → Judge (3 lenses) → Draft `architecture.md` → Adversarial verify → Revise.

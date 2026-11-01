@@ -9,15 +9,18 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-01. #311 on `ci/311-ai-audit-trail`.
+2026-11-01. #308 on `docs/308-ai-ops-runbook`.
 
-- **Outcome:** `ai-audit.yml` (Mon 06:17 UTC, past 7 days; manual with `days`) runs `scripts/ai-audit-report.sh` over
-  the PRs merged into `main` and attributes each to Hive (`— hive:` signature, agent and model from it, or the
-  `hive-forge-app` author), Claude Code (CI) (`claude/*`), Dependabot (`dependabot/*`) or Other, with author and
-  merger. Job summary plus a 90-day `ai-audit` artifact with the raw PR JSON. Ported from MinimalUI (#256); the rules
-  match Dailies' real PRs (maintainer's local agent signs `— hive: backend=omp`). Tests:
-  `tests/scripts/test_ai_audit_report.py`, a `JOB_PERMISSIONS` row. Satisfies `aef:audit-trail`.
-- **Open follow-ups:** none. The PR touches `.github/workflows/`, so the maintainer merges it.
+- **Outcome:** `docs/ai-ops-runbook.md` answers the on-call questions: the automations and what runs as what, where
+  to look (`gh` command per question), Monday routine checks, playbooks (Claude Code skipped or failed, a PR that
+  does not merge, `hold` from the merge queue, no CI after a queued merge, the PR review rubric, a permissions-policy
+  failure, two agents on one issue, an agent acting outside its instructions) and a stop/undo table per automation
+  (workflows, `hold`, revoking the Claude token, Hive, the bot App key). Ported from MinimalUI (#253, #261) and the
+  website, adapted to Dailies' workflows, labels and checks. Linked from `README.md`, `CONTRIBUTING.md`,
+  `docs/README.md`, `docs/multi-agent.md` and `docs/runbooks/README.md`. Satisfies `acmm:observability-runbook`.
+- **Open follow-ups:** none. Docs only; no test, since the siblings added none.
 - **Gotchas:**
-  - A host jq older than 1.7 (or `jaq`) fails the jq-based script tests; CI's jq passes them.
-  - `gh pr list` names a GitHub App author `app/<slug>`, the REST API `<slug>[bot]`; the script accepts both.
+  - Every command, label, workflow and job name in the runbook was checked against `gh label list`,
+    `gh workflow list` and the tree. `merge-queue.yml`, `strategy-report.yml` and `ai-audit.yml` are not on `main`
+    yet, so `gh workflow list` omits them until their PRs merge; `gh workflow disable` works once they do.
+  - Relative paths in the read and edit tools resolve against the main checkout; pass absolute worktree paths.
