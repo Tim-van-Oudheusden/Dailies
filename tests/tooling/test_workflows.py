@@ -50,6 +50,22 @@ JOB_PERMISSIONS: dict[tuple[str, str], dict[str, str]] = {
     ("game-submission-approve.yml", "pull-request"): {"contents": "read", "issues": "write"},
     # actions/labeler reads .github/labeler.yml and labels the PR.
     ("labeler.yml", "label"): {"contents": "read", "pull-requests": "write"},
+    # Land: merge the verified PR, close the issues it links, start main's push workflows and the next run.
+    ("merge-queue.yml", "land"): {
+        "actions": "write",
+        "contents": "write",
+        "issues": "write",
+        "pull-requests": "write",
+    },
+    # Pick: list open PRs and read their merge state and head.
+    ("merge-queue.yml", "pick"): {"contents": "read", "pull-requests": "read"},
+    # Reject: label a PR that failed verification `hold`, comment the run, start the next queue run.
+    ("merge-queue.yml", "reject"): {
+        "actions": "write",
+        "contents": "read",
+        "issues": "write",
+        "pull-requests": "write",
+    },
     # List Dependabot alerts; open or update the broken-links `data` issue; download last week's link-check state
     # artifact.
     ("nightly-compliance.yml", "compliance"): {
@@ -95,8 +111,14 @@ BOT_ENVIRONMENT_JOBS: dict[tuple[str, str], str] = {
 }
 
 # Jobs reviewed to merge pull requests (`gh pr merge`), by (workflow file, job id). Only the weekly popularity numbers
-# merge themselves once the required checks pass (#79); catalog and link-status changes stay human-merged.
+# merge themselves once the required checks pass (#79); catalog and link-status changes stay human-merged. The merge
+# queue merges the rest, except high-risk changes and pull requests labelled `automated`, `hold`, `blocked` or
+# `sentinel-alert` (scripts/merge-queue.sh).
 AUTO_MERGE_JOBS: dict[tuple[str, str], str] = {
+    (
+        "merge-queue.yml",
+        "land",
+    ): "scripts/merge-queue.sh land: gh pr merge --merge --match-head-commit on a verified PR",
     ("popularity.yml", "pull-request"): "gh pr merge --auto --merge on the data/popularity pull request",
 }
 
@@ -612,7 +634,8 @@ def bot_environment_violations(
     return violations
 
 
-GH_PR_MERGE = re.compile(r"\bgh\s+pr\s+merge\b")
+# `scripts/merge-queue.sh land` runs `gh pr merge` itself, so a job that calls it merges pull requests too.
+GH_PR_MERGE = re.compile(r"\bgh\s+pr\s+merge\b|\bmerge-queue\.sh\s+land\b")
 
 
 def merge_violations(name: str, workflow: dict, reviewed: dict[tuple[str, str], str] = AUTO_MERGE_JOBS) -> list[str]:
@@ -1384,8 +1407,13 @@ jobs:
 
 @pytest.mark.parametrize(
     "run",
-    ['gh pr merge --auto --merge "$PR_URL"', "gh  pr merge 12", "set -e\nGH_TOKEN=x gh pr merge --squash 3"],
-    ids=["auto", "spaced", "later-line"],
+    [
+        'gh pr merge --auto --merge "$PR_URL"',
+        "gh  pr merge 12",
+        "set -e\nGH_TOKEN=x gh pr merge --squash 3",
+        'scripts/merge-queue.sh land "$NUMBER" "$HEAD_SHA" "$MAIN_SHA"',
+    ],
+    ids=["auto", "spaced", "later-line", "merge-queue-script"],
 )
 def test_fixture_unreviewed_job_that_merges_pull_requests_fails(run: str) -> None:
     workflow = load_yaml("jobs:\n  links:\n    steps:\n      - run: |\n          " + run.replace("\n", "\n          "))

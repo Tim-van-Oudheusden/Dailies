@@ -110,8 +110,9 @@ The step is boxed in by Claude Code's permissions and checked afterwards:
   the pull-request jobs of `popularity.yml` and `game-submission-approve.yml`, and `link-status` and `checker-pin` in
   `nightly-compliance.yml`. Each starts on a fresh runner from artifacts and the repository's own scripts; none may
   run a `docker://` image or a model step, or read issue text or fetched pages itself. Only the popularity job may
-  merge (`AUTO_MERGE_JOBS`). Each run mints a one-hour token with only the permissions it needs. To revoke, delete the
-  key under the App's settings, **Private keys**, then generate a new one and replace the secret.
+  merge with it (`AUTO_MERGE_JOBS` also lists the merge queue's `land` job, which uses the workflow's `GITHUB_TOKEN`).
+  Each run mints a one-hour token with only the permissions it needs. To revoke, delete the key under the App's
+  settings, **Private keys**, then generate a new one and replace the secret.
 - If an agent exposes a secret, rotate it right away, then record what happened (see [Reporting](#reporting)).
 
 ## Supply chain
@@ -137,7 +138,7 @@ Enforced by `.claude/settings.json` (see the safety layers in `CONTRIBUTING.md`)
 | `git push --force` / `-f`, `git commit --no-verify` | Denied |
 | `sudo`, `rm -rf` on `/` or `~` | Denied |
 | `git rebase`, `git reset`, `git clean`, `git branch -D` | Needs confirmation |
-| `gh pr merge` | Needs confirmation; agents never merge their own PRs |
+| `gh pr merge` | Needs confirmation; agents never merge their own PRs (the merge queue workflow merges, see `docs/multi-agent.md`) |
 
 Personal `.claude/settings.local.json` overrides may add permissions but cannot lift the project's deny rules.
 
@@ -148,13 +149,20 @@ Agent changes go through the same gates as human ones, with no shortcuts:
 - The `main` ruleset (`.github/rulesets/main.json`) requires a pull request and the required checks; CI
   (`.github/workflows/ci.yml`) runs the quality gates, which include the `tests/tooling` tests that pin the workflows'
   security invariants. The PR review rubric (`.github/workflows/review.yml`) runs as well.
-- A human reviews and merges every PR. Look harder at changes that touch:
+- The merge queue (`.github/workflows/merge-queue.yml`) merges low- and medium-risk PRs once their required checks
+  pass; review them before then or add `hold`. A human reviews and merges every high-risk PR
+  ([`docs/risk-tiers.md`](../risk-tiers.md)), and every PR labelled `blocked` or `sentinel-alert`, and every `automated` one except the weekly popularity PR, which merges
+  itself. The
+  queue's `verify` job is the only one that runs a PR's code, with a read-only token; `pick`, `land` and `reject` run
+  `main`'s scripts. Look harder at changes that touch:
   - `.github/workflows/`: keep `permissions:` least-privilege (the reviewed scopes are listed in
     `tests/tooling/test_workflows.py`). Don't add `pull_request_target` to a job that checks out or runs PR code, and
     don't interpolate event fields into `run:` (pass them through `env:`). `labeler.yml` is the sanctioned
-    `pull_request_target` exception: it checks out nothing and runs only `actions/labeler`. `auto-issues.yml` is the
-    only `workflow_run` workflow: it runs from `main` with an `issues: write` token, so it takes only Nightly compliance
-    runs of `main` in this repository and uses their report artifact as issue text, never as code.
+    `pull_request_target` exception: it checks out nothing and runs only `actions/labeler`. Two
+    workflows run on `workflow_run`. `auto-issues.yml` runs from `main` with an `issues: write` token, so it takes
+    only Nightly compliance runs of `main` in this repository and uses their report artifact as issue text, never as
+    code. `merge-queue.yml` takes no data from the run that started it (only that a required check succeeded) and
+    reads the open pull requests itself.
   - `.claude/settings.json`, `AGENTS.md`, `CLAUDE.md`, `prompts/`, and this file: any change that loosens agent
     boundaries needs explicit maintainer approval.
   - `build-aux/flatpak/*.json`: any new `finish-args` entry changes what the app can reach outside its sandbox.

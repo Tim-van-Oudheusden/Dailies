@@ -26,8 +26,9 @@ gh pr create --title "type(scope): summary (#<number>)" --body-file <file>   # L
 
 - Before working an issue: read it with `gh issue view <number>`, claim/assign it there, then branch off an up-to-date
   `main` as `<type>/<number>-<slug>` (e.g. `feat/12-game-search`)
-- When done: push the branch and open a pull request whose body says `Fixes #<number>`; the maintainer merges it once
-  the required checks pass, and the merge closes the issue
+- When done: push the branch and open a pull request whose body says `Fixes #<number>`; once the required checks
+  pass, the merge queue (`docs/multi-agent.md#merge-queue`) merges it, or the maintainer does if it is high risk or
+  labelled `hold`, `blocked`, `sentinel-alert` or `automated`; the merge closes the issue
 
 ## Session Completion
 

@@ -9,18 +9,20 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-10-31. #296 on `refactor/296-coverage-roots-single-source`.
+2026-11-01. #305 on `ci/305-merge-queue`.
 
-- **Outcome:** `[tool.coverage.run] source` in `pyproject.toml` is the one list of measured roots: `coverage-gate.yml`,
-  `quality-report.sh` and `sandbox-gates.sh` run a bare `pytest --cov`. `coverage-check.sh` exits 2 when a group has
-  no measured lines but its root holds Python (an unmeasured root used to pass as "no code yet"), and builds its
-  "known groups" list from the new `coverage_groups` in `scripts/lib/coverage.sh`. Same totals as the old `--cov`
-  lists (3143/3188 lines).
-- **Open follow-ups:** none. `quality-report.sh` still prints "no code yet" for an unmeasured root; it is a report,
-  not a gate, and the gate now fails for it.
+- **Outcome:** `.github/workflows/merge-queue.yml` and `scripts/merge-queue.sh` (ported from MinimalUI #249/#260 and
+  website #967/#983/#986/#994) merge ready PRs one at a time after re-running CI's `Build, lint, test` commands on the
+  PR merged onto main. Keep-out labels: `hold`, `blocked`, `sentinel-alert`, `automated` (the last keeps catalog and
+  link-status PRs human-merged, #79); high-risk PRs are left for the maintainer. `coverage-gate.yml` gained
+  `workflow_dispatch` so the queue can start it on main. `test_workflows.py` counts `merge-queue.sh land` as a merging
+  job (row in `AUTO_MERGE_JOBS`) and has `JOB_PERMISSIONS` rows for pick, land and reject. Docs that said "the
+  maintainer merges" now describe the queue.
+- **Open follow-ups:** none. No repository setting is needed (merge commits are on, the jobs declare their own token
+  scopes). The queue only runs once this PR is merged, since `workflow_run` workflows start from main.
 - **Gotchas:**
-  - Host Python 3.11 cannot import `dailies/core` (PEP 695 generics); run `pytest` under 3.12+ (`uv venv -p 3.13`
-    plus `scripts/requirements.txt` and `pytest==9.1.1`).
-  - A host jq older than 1.7 (or `jaq`) fails the `pr-metrics.sh`, `auto-qa-tuner.sh` and `quality-report.sh` tests
-    (`$label`/`$module` are keywords there); CI's jq passes them.
-  - Without the GNOME 51 SDK on the host, `scripts/sandbox.sh` runs every gate but the Flatpak build.
+  - The `write` and `edit` tools resolve relative paths against the main checkout, not the worktree; use absolute paths.
+  - `GITHUB_TOKEN` merges start no push workflows and close no issues, so `land` dispatches every push-to-main workflow
+    (each needs `workflow_dispatch`; `tests/scripts/test_merge_queue.py` checks it) and closes the linked issues.
+  - `test_nightly_compliance.py`'s ACMM-gap test scored the real repo and named `acmm:merge-queue`; it now runs a copy
+    of the two scripts in an empty checkout, so it holds as the other L6 files land.
