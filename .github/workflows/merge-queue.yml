@@ -5,7 +5,8 @@ name: Merge queue
 #
 #   pick   - scripts/merge-queue.sh next: the oldest same-repo, non-draft PR
 #            without a `hold`, `blocked`, `sentinel-alert` or `automated` label
-#            whose required checks all pass and whose risk tier is not high
+#            in merge state CLEAN (no failing check, required or not) and whose
+#            risk tier is not high
 #            (docs/risk-tiers.md).
 #   verify - merges that PR onto the current main and runs CI's Build, lint,
 #            test gate on the result, with a read-only token and the PR's code.
@@ -20,8 +21,9 @@ name: Merge queue
 # on demand. See docs/multi-agent.md#merge-queue.
 #
 # Security: no step with write access runs code from a PR; pick, land and
-# reject run main's scripts. Fork PRs are never picked, and their events would
-# get a read-only token anyway. A `pull_request` event runs this file as the PR
+# reject run main's scripts. Fork PRs are never picked, and their events (which
+# get a read-only token) neither start pick nor join the queue's concurrency
+# group, so they cannot replace a pending run. A `pull_request` event runs this file as the PR
 # has it, which gives a same-repo author nothing beyond the write access they
 # already have. PR fields reach shell steps only through env.
 
@@ -41,7 +43,7 @@ permissions:
 # One run drains the queue at a time; a newer pending run replaces an older
 # pending one, which is fine since every run looks at all open PRs. Events that
 # cannot make a PR ready (another label removed, a label a bot removed, a
-# failed run) get their own group, so they never replace a pending run that
+# failed run, any event from a fork) get their own group, so they never replace a pending run that
 # would merge. The label list here and in pick's `if` is KEEP_OUT_LABELS in
 # scripts/merge-queue.sh; tests/tooling/test_merge_queue_workflow.py fails when
 # either copy differs from it.
@@ -51,6 +53,7 @@ concurrency:
       (github.event_name == 'workflow_dispatch'
         || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
         || (github.event_name == 'pull_request'
+            && github.event.pull_request.head.repo.full_name == github.repository
             && (github.event.action == 'ready_for_review'
                 || (github.event.sender.type == 'User'
                     && contains(fromJSON('["hold", "blocked", "sentinel-alert", "automated"]'), github.event.label.name)))))
@@ -65,6 +68,7 @@ jobs:
       github.event_name == 'workflow_dispatch'
       || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
       || (github.event_name == 'pull_request'
+          && github.event.pull_request.head.repo.full_name == github.repository
           && (github.event.action == 'ready_for_review'
               || (github.event.sender.type == 'User'
                   && contains(fromJSON('["hold", "blocked", "sentinel-alert", "automated"]'), github.event.label.name))))

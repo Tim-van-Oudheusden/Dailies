@@ -121,7 +121,8 @@ Actions. Whenever CI, the coverage gate or the PR review rubric succeeds, a draf
 
 - comes from this repository, not a fork, and is not a draft;
 - has none of the labels `hold`, `blocked`, `sentinel-alert` or `automated`;
-- passes every required check (merge state `CLEAN`, so the review threads are resolved too);
+- is in merge state `CLEAN`: no check failing, required or not (a failing optional check makes it `UNSTABLE`, which
+  the queue leaves), and the review threads resolved;
 - is not high risk ([`risk-tiers.md`](risk-tiers.md)), rated by `main`'s `scripts/tier-classify.sh`.
 
 It merges that pull request onto the current `main` and runs the `Build, lint, test` commands on the result: lint,
