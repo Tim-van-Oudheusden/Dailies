@@ -36,7 +36,8 @@ Every runbook here should say which of the two paths it concerns.
   appear, failed, or shows wrong shelves.
 - [Re-enable a scheduled workflow](re-enable-cron.md): no Monday popularity pull request; the app shows "as of".
 - [Game link hijacked, moved or dead](catalog-link.md): a catalog entry leads somewhere it should not; retire, break or
-  move it by hand without waiting for the weekly link check.
+  move it by hand without waiting for the weekly link check. Its last section, Growing the catalog, is the monthly
+  check for games The Dles has added that the catalog lacks.
 - [Game icon taken down, wrong or inappropriate](game-icon.md): a site asks for its icon to be removed, or a tile shows
   an icon it should not; take it down or replace it by hand.
 - [Published data not reaching users](pages.md): a merged data change is missing from GitHub Pages, or Pages no longer

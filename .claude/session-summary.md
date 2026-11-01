@@ -9,18 +9,17 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-10-31. #296 on `refactor/296-coverage-roots-single-source`.
+2026-11-01. #313 on `data/313-catalog-candidates`.
 
-- **Outcome:** `[tool.coverage.run] source` in `pyproject.toml` is the one list of measured roots: `coverage-gate.yml`,
-  `quality-report.sh` and `sandbox-gates.sh` run a bare `pytest --cov`. `coverage-check.sh` exits 2 when a group has
-  no measured lines but its root holds Python (an unmeasured root used to pass as "no code yet"), and builds its
-  "known groups" list from the new `coverage_groups` in `scripts/lib/coverage.sh`. Same totals as the old `--cov`
-  lists (3143/3188 lines).
-- **Open follow-ups:** none. `quality-report.sh` still prints "no code yet" for an unmeasured root; it is a report,
-  not a gate, and the gate now fails for it.
+- **Outcome:** `scripts/catalog_candidates.py --commit SHA [--since DAY]` downloads aukspot/dles at one commit (GitHub
+  tarball, urlcheck's public-https `fetch`, 32 MiB cap), reads its `data/dles/*.yaml` records with ruamel.yaml from the
+  scripts' lock, and prints the `active` ones whose registrable domain the catalog lacks, newest first. Run at
+  31afcb9 with `--since 2026-10-16`: 10 of the 11 games the issue names; Tagline is left out because
+  merriam-webster.com is already in the catalog. "Growing the catalog" in `docs/runbooks/catalog-link.md` is the
+  monthly procedure.
+- **Open follow-ups:** a scheduled workflow that files the list as a monthly issue is the owner's call (needs a
+  workflow file); not filed.
 - **Gotchas:**
-  - Host Python 3.11 cannot import `dailies/core` (PEP 695 generics); run `pytest` under 3.12+ (`uv venv -p 3.13`
-    plus `scripts/requirements.txt` and `pytest==9.1.1`).
-  - A host jq older than 1.7 (or `jaq`) fails the `pr-metrics.sh`, `auto-qa-tuner.sh` and `quality-report.sh` tests
-    (`$label`/`$module` are keywords there); CI's jq passes them.
-  - Without the GNOME 51 SDK on the host, `scripts/sandbox.sh` runs every gate but the Flatpak build.
+  - The Dles' descriptions are GPL-3.0 and the catalog is CC0: never copy one into a submission.
+  - Host Python 3.11 cannot import `dailies/core`; a host jq older than 1.7 fails 13 `pr-metrics`/`auto-qa-tuner`/
+    `quality-report` tests that pass in CI.

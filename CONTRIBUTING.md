@@ -272,6 +272,10 @@ repository's bot GitHub App token (#79), so the required checks run on it: revie
 `icon` and `icon_source`, `generated_at`, and `data/v1/icons/<slug>.png`, or only `icon_source: "none"` when the site
 has no usable icon) and merge it once they pass. Catalog pull requests never merge themselves.
 
+Submissions alone do not grow the catalog. Once a month, `scripts/catalog_candidates.py` lists the games The Dles has
+added that the catalog lacks; [Growing the catalog](docs/runbooks/catalog-link.md#growing-the-catalog) says how to run
+it and how to pick from the list, and each pick goes through the same form.
+
 ## Releasing
 
 A release is a pushed tag `vX.Y.Z`. Three places name the version and must agree: `version:` in `project()` in

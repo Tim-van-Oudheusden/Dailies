@@ -1,0 +1,9 @@
+# A record-shaped file outside data/dles/: not a game record, so never a candidate.
+id: 0
+name: Template
+url: https://template.example
+category: Words
+status: active
+history:
+- date: '2026-10-31'
+  event: added
