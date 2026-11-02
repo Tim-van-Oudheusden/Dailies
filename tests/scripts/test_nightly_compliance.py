@@ -51,7 +51,9 @@ HIGH_ALERT = {
 }
 
 
-def run(tmp_path: Path, alerts: list[dict], *args: str, **env: str) -> subprocess.CompletedProcess[str]:
+def run(
+    tmp_path: Path, alerts: list[dict], *args: str, script: Path = SCRIPT, **env: str
+) -> subprocess.CompletedProcess[str]:
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir(exist_ok=True)
     for name, body in STUBS.items():
@@ -78,7 +80,7 @@ def run(tmp_path: Path, alerts: list[dict], *args: str, **env: str) -> subproces
         **env,
     }
     return subprocess.run(  # noqa: S603 - fixed script, test-controlled environment
-        [BASH, str(SCRIPT), *args], env=environment, capture_output=True, text=True, check=False, timeout=60
+        [BASH, str(script), *args], env=environment, capture_output=True, text=True, check=False, timeout=60
     )
 
 
@@ -160,8 +162,13 @@ def test_an_unreachable_registry_fails_the_checker_image_row(tmp_path: Path) -> 
 
 
 def test_an_acmm_level_below_the_minimum_fails_with_the_gaps(tmp_path: Path) -> None:
-    # No checkout reaches L6 (Hive's own guidance is not to chase it), so this row fails.
-    result = run(tmp_path, [], ACMM_MIN_LEVEL="6")
+    # The script scores the checkout it sits in. A checkout holding only the two scripts meets no criterion, so this
+    # row fails whatever the repository itself has reached.
+    checkout = tmp_path / "checkout"
+    (checkout / "scripts").mkdir(parents=True)
+    for name in ("nightly-compliance.sh", "acmm-self-check.py"):
+        shutil.copy(ROOT / "scripts" / name, checkout / "scripts" / name)
+    result = run(tmp_path, [], script=checkout / "scripts" / "nightly-compliance.sh", ACMM_MIN_LEVEL="6")
     assert result.returncode == 1
     assert "| ACMM codebase level (L6+) | ❌ fail |" in result.stdout
     assert "### ACMM self-check" in result.stdout

@@ -6,6 +6,9 @@ fetches from GitHub, and the scheduled workflows that keep those files current. 
 telemetry (see [`docs/metrics/README.md`](../metrics/README.md)). Every runbook here starts from a user-visible symptom
 and ends with the concrete commands that resolve it.
 
+Agents misbehaving in the repository rather than the app in production (a stuck merge queue, Claude Code not picking
+up an issue, two agents on one issue) are covered by the [AI operations runbook](../ai-ops-runbook.md).
+
 ## Format
 
 One Markdown file per scenario, with:

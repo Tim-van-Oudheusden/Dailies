@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # The merge queue starts main's run this way: its merges, made with GITHUB_TOKEN, trigger no push run.
+  workflow_dispatch:
 
 permissions:
   contents: read

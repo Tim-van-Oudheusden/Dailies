@@ -5,10 +5,12 @@ repository's own workflows. None of them directs the others. They coordinate thr
 
 - **Issues** are the one work queue.
 - **Labels and assignees** say who holds an issue and which stage it is in.
-- **Pull requests** are the only way into `main`, and `main` is protected by the ruleset and the maintainer.
+- **Pull requests** are the only way into `main`, and `main` is protected by the ruleset. The [merge queue](#merge-queue)
+  or the maintainer merges them.
 
 This page maps who does what and how work moves between them. [`AGENTS.md`](../AGENTS.md) holds the rules each agent
-follows, and [`docs/security/SECURITY-AI.md`](security/SECURITY-AI.md) sets out the trust boundaries.
+follows, and [`docs/security/SECURITY-AI.md`](security/SECURITY-AI.md) sets out the trust boundaries. How to monitor
+agent work, debug it when it gets stuck and stop it is in [`ai-ops-runbook.md`](ai-ops-runbook.md).
 
 ## Who works here
 
@@ -32,7 +34,9 @@ the `github-issue-flow` skill in `.claude/skills/`. Hive agents work through the
 ## The shared queue
 
 Every agent takes work from GitHub issues and lands it through a pull request whose body says `Fixes #<number>`
-(`AGENTS.md`, "Issue Tracking"). One issue is worked at a time, and child issues wait for their parents.
+(`AGENTS.md`, "Issue Tracking"). One issue is worked at a time, and child issues wait for their parents. How each
+change links back to its issue, and how to follow that link either way, is in
+[`agent-tasks/`](agent-tasks/README.md).
 
 Before starting an issue, an agent checks that nobody else holds it:
 
@@ -88,9 +92,13 @@ The other stages:
 | `nightly-compliance.yml` (link check) | Sundays, or a manual run with `force_links` | The `data: N broken links (week W)` issue, and the `data/link-status` pull request when a game's status should change |
 | `nightly-compliance.yml` (`checker-pin`) | Nightly, once a newer checker image has settled | The `ci/checker-pin` pull request |
 | `auto-issues.yml` | After each Nightly compliance run on `main` | Opens or updates the `ci: nightly compliance: N failing checks` issue, and closes it once every check passes ([`docs/testing.md`](testing.md#the-nightly-compliance-issue)) |
+| `merge-queue.yml` | Whenever a workflow holding a required check succeeds, a draft is marked ready, or a person removes `hold`, `blocked`, `sentinel-alert` or `automated`; or a manual run | Merges the oldest ready pull request (see [Merging](#merging)), closes the issues it links, and comments on and labels `hold` a pull request that fails verification |
 | `popularity.yml` | Weekly (Mon 04:17 UTC), or a manual run | The `data/popularity` pull request, the only one that merges itself once the required checks pass |
 | `game-submission-check.yml`, `game-submission-approve.yml` | A game submission issue, then the maintainer's `approved` label | Labels and a comment on the submission, then the `data/add-<slug>` pull request |
 | `external-data-checker.yml` | Weekly (Mon 05:37 UTC), or a manual run | A pull request that moves the release manifest's source to a newer `v*` tag |
+| `auto-review.yml` | A maintainer comments `/apply-suggestions` on a pull request | A commit with the review suggestions on that pull request's branch, and a comment listing what was applied and skipped |
+| `claude.yml` | The `ai-fix-requested` label applied by a person, or `@claude` from an `OWNER`, `MEMBER` or `COLLABORATOR` | Pull requests on `claude/*` branches, and comments on the issue or pull request |
+| `labeler.yml` | A pull request is opened, updated or reopened | The path labels from `.github/labeler.yml` on the pull request |
 
 Every pull request the workflows open is labelled `automated`. So is the nightly compliance issue (with `ci`); the
 broken-links issue is labelled `data`. Whatever opens it, an issue goes into the same queue as the rest.
@@ -98,13 +106,54 @@ broken-links issue is labelled `data`. Whatever opens it, an issue goes into the
 ## Merging
 
 Only pull requests change `main`. The ruleset in `.github/rulesets/main.json` requires the `PR review rubric`,
-`Build, lint, test`, `Unit-test coverage floors`, `Static checks` and `Flatpak (x86_64)` checks. The maintainer merges,
-with a merge commit. The weekly popularity pull request is the only exception: it merges itself (`AUTO_MERGE_JOBS` in
-`tests/tooling/test_workflows.py`).
+`Build, lint, test`, `Unit-test coverage floors`, `Static checks` and `Flatpak (x86_64)` checks and allows merge commits
+only. The [merge queue](#merge-queue) merges ready pull requests with a merge commit; the maintainer merges the rest.
+The weekly popularity pull request merges itself (`AUTO_MERGE_JOBS` in `tests/tooling/test_workflows.py`); catalog and
+link-status pull requests carry the `automated` label, which keeps them out of the queue, so the maintainer merges
+them.
 
 `tier-classifier.yml` posts each pull request's risk tier ([`docs/risk-tiers.md`](risk-tiers.md)). A `high` change, for
-example to `.github/workflows/**`, `AGENTS.md` or `.claude/**`, needs a line-by-line review whoever wrote it. Hive's
-review and merge stages (`050` to `100`) describe its own lane; they do not replace the ruleset or the maintainer.
+example to `.github/workflows/**`, `AGENTS.md` or `.claude/**`, needs a line-by-line review whoever wrote it, so the
+queue never merges one: the maintainer does, after that review. Hive's review and merge stages (`050` to `100`)
+describe its own lane; they do not replace the ruleset.
+
+### Merge queue
+
+GitHub's own merge queue needs an organization-owned repository, so `.github/workflows/merge-queue.yml` runs one on
+Actions. Whenever CI, the coverage gate or the PR review rubric succeeds, a draft is marked ready, or a person removes
+`hold`, `blocked`, `sentinel-alert` or `automated` from a pull request, it takes the oldest open pull request that:
+
+- comes from this repository, not a fork, and is not a draft;
+- has none of the labels `hold`, `blocked`, `sentinel-alert` or `automated`;
+- is in merge state `CLEAN`: no check failing, required or not (a failing optional check makes it `UNSTABLE`, which
+  the queue leaves), and the review threads resolved;
+- is not high risk ([`risk-tiers.md`](risk-tiers.md)), rated by `main`'s `scripts/tier-classify.sh`.
+
+It merges that pull request onto the current `main` and runs the `Build, lint, test` commands on the result: lint,
+format check, the unit, script, tooling and data tests, and the schema validation. Static checks, the coverage floors
+and the Flatpak build are not re-run there. If it passes and neither the pull request nor `main` moved, the queue merges
+the pull request (a merge commit), closes the issues its body links with `Fixes #N`, and starts `main`'s push workflows
+(CI, the coverage gate, Pages, the quality report and the Windows build). A merge made with `GITHUB_TOKEN` closes no
+issue and starts no push run, so the queue does both itself. If verification fails, the pull request gets `hold` and a
+comment linking the run; fix it and remove `hold` to queue it again. Each run starts the next, so the queue merges one
+pull request at a time.
+
+| Label | Set by | Effect |
+| --- | --- | --- |
+| `hold` | The maintainer, Hive, or the queue | Keeps the pull request out of the queue until it is removed; the queue sets it on a pull request that failed verification |
+| `blocked` | The maintainer | The pull request waits on something outside this repository |
+| `sentinel-alert` | Hive's sentinel | Flags a sensitive change; the maintainer reviews it and removes the label |
+| `automated` | Workflows | Opened by a workflow, whose merge policy is its own (#79); the queue leaves it |
+
+To keep a pull request out of the queue, add `hold` or leave it a draft. Dependabot's pull requests change workflow or
+script-lock files, which are high risk, so the maintainer merges them. A label removed by a bot starts no run; the next
+required check that finishes does. To drain the queue by hand: `gh workflow run merge-queue.yml`. The logic lives in
+`scripts/merge-queue.sh`, and `tests/scripts/test_merge_queue.py` and `tests/tooling/test_merge_queue_workflow.py`
+cover it.
+
+`.github/CODEOWNERS` names the maintainer as owner of every `high` path, so those pull requests request his review.
+It does not gate the merge: the ruleset leaves `require_code_owner_review` off, because an author cannot approve his
+own pull request.
 
 ## Keeping agents apart
 
@@ -123,4 +172,9 @@ review and merge stages (`050` to `100`) describe its own lane; they do not repl
 The weekly `PR metrics` workflow counts agent-authored pull requests that were merged against those closed unmerged.
 Agent-authored means a `claude/*` head branch or the `hive-forge-app` author. The weekly quality report and the nightly
 compliance run show whether the combined output keeps the gates green. [`docs/metrics/README.md`](metrics/README.md)
-lists every metric.
+lists every metric. The weekly `AI audit trail` workflow records which agent and model are behind each pull request
+merged into `main`, and who merged it ([`metrics/README.md`](metrics/README.md#ai-audit-trail)).
+
+The weekly `Strategy report` workflow shows whether the agents keep up: issues opened against issues closed, the open
+backlog per stage label and milestone, and the ACMM gaps still open per level. A stage where issues pile up is where
+work stalls.

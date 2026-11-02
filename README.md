@@ -188,7 +188,7 @@ flowchart TD
     REPORT --> PR2
   end
   PR1 -->|"human merge"| MAIN["main"]
-  PR2 -->|"human merge"| MAIN
+  PR2 -->|"merges itself"| MAIN
   MAIN -->|"push touching data/v1/**"| PAGES["pages.yml<br/>GitHub Pages: /Dailies/v1/"]
   PAGES --> APP["Dailies fetcher"]
   subgraph release["Releases"]
@@ -197,9 +197,10 @@ flowchart TD
   end
 ```
 
-Data changes and releases both end in something a human merges or tags: the weekly popularity job opens a numbers-only
-pull request, and `pages.yml` publishes `data/v1/` to GitHub Pages, which the app tries before
-`raw.githubusercontent.com`. A game submission ends the same way: when the maintainer labels a checked submission
+Data changes and releases both end in something the maintainer merges or tags, except the weekly numbers: the popularity
+job opens a numbers-only pull request that merges itself once the required checks pass, and `pages.yml` publishes
+`data/v1/` to GitHub Pages, which the app tries before
+`raw.githubusercontent.com`. A game submission ends with the maintainer: when the maintainer labels a checked submission
 `approved`, stage B validates it again and opens a `data(games): add <name>` pull request that closes the issue
 ([Approving game submissions](CONTRIBUTING.md#approving-game-submissions)). More in
 [`docs/architecture.md`](docs/architecture.md).
@@ -212,9 +213,11 @@ pull request, and `pages.yml` publishes `data/v1/` to GitHub Pages, which the ap
 | [`docs/data-format.md`](docs/data-format.md) | `games.json` and `popularity.json`: fields, categories, difficulty, submission rules, licences |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Setup, project layout, workflow, quality gates, releasing |
 | [`docs/testing.md`](docs/testing.md) | Where each test runs, coverage floors, headless GTK tests |
-| [`docs/risk-tiers.md`](docs/risk-tiers.md) | How pull requests are classified by risk |
+| [`docs/risk-tiers.md`](docs/risk-tiers.md) | How pull requests are classified by risk, and who owns the high-risk paths (`.github/CODEOWNERS`) |
 | [`docs/runbooks/README.md`](docs/runbooks/README.md) | What to do when something breaks |
 | [`docs/metrics/README.md`](docs/metrics/README.md) | Quality, coverage and agent-work metrics |
+| [`docs/agent-tasks/README.md`](docs/agent-tasks/README.md) | Tracing agent changes back to their issues, and issues forward to their changes |
+| [`docs/ai-ops-runbook.md`](docs/ai-ops-runbook.md) | Monitoring agent work, debugging stuck or misbehaving agents, and stopping them |
 | [`SECURITY.md`](SECURITY.md) | Supported versions and how to report a vulnerability privately |
 | [`docs/security/SECURITY-AI.md`](docs/security/SECURITY-AI.md) | Security model for AI agents in this repository |
 | [`BRANDING.md`](BRANDING.md) | Name, voice, colours and icon |

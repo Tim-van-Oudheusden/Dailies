@@ -1,0 +1,34 @@
+# Risk assessment for pull requests: the risk tier of each changed path.
+# Evaluated by scripts/tier-classify.sh, which tier-classifier.yml runs on every
+# PR. What each tier asks of reviewers is in docs/risk-tiers.md.
+#
+# `rules` is an ordered list of `<tier> <glob>` items, where tier is low,
+# medium or high. A changed path takes the tier of the FIRST rule whose glob
+# matches it, so high-risk rules come before the broad ones (AGENTS.md is high
+# even though *.md is low; data/v1/schema/* is high even though data/v1/*.json
+# is medium). `*` matches across `/`. A path matching no rule is medium.
+#
+# The classifier reads a strict line subset of YAML: the `rules:` line, one
+# `- <tier> <glob>` item per line, blank lines and whole-line `#` comments.
+
+rules:
+  # high — gates, tooling, packaging, schemas, agent instructions
+  - high .github/*
+  - high scripts/*
+  - high build-aux/*
+  - high meson.build
+  - high meson_options.txt
+  - high data/*.metainfo.xml.in
+  - high data/*.gschema.xml.in
+  - high data/v1/schema/*
+  - high AGENTS.md
+  - high CLAUDE.md
+  - high .claude/*
+  - high .cursor/*
+  - high prompts/*
+  # medium — app code and catalog data
+  - medium dailies/*
+  - medium data/v1/*.json
+  # low — prose
+  - low docs/*
+  - low *.md

@@ -29,9 +29,11 @@ To add a metric:
 | [Unit-test coverage](#unit-test-coverage) | Line and branch coverage of `core` and `scripts` | `scripts/quality-report.sh` via `quality-report.yml` | Same as above | Job summary + `quality-report` artifact |
 | [Coverage floors](#coverage-floors) | Minimum coverage each module must keep | `.github/auto-qa-tuning.json`, enforced by `coverage-gate.yml` | Every PR and push to `main` | `Unit-test coverage floors` check; proposed floors as `auto-qa-tuning` artifact |
 | [PR acceptance rate](#pr-acceptance-rate) | Merged vs. closed-unmerged PRs, agent vs. other | `scripts/pr-metrics.sh` via `pr-metrics.yml` | Weekly (Mon 06:17 UTC), manual | Job summary |
+| [Strategy report](#strategy-report) | Issue and PR flow, open backlog per stage and milestone, ACMM gaps per level | `scripts/strategy-report.sh` via `strategy-report.yml` | Weekly (Mon 06:17 UTC), manual | Job summary |
 | [Nightly compliance](#nightly-compliance) | Checks that can go stale without a code change | `scripts/nightly-compliance.sh` via `nightly-compliance.yml` | Nightly (03:23 UTC), manual | Job summary + `nightly-compliance` artifact; failing checks open the `ci: nightly compliance` issue (`auto-issues.yml`) |
 | [Risk tier](#risk-tier) | Review risk of each PR from the paths it changes | `scripts/tier-classify.sh` via `tier-classifier.yml` | Every PR | `Risk tier` job summary |
 | [Popularity report](#popularity-report) | Weekly popularity run success, stale weeks, data PRs merged unchanged vs edited | `scripts/popularity-report.sh` via `pr-metrics.yml`, over `popularity.yml` runs, `data/popularity` PRs and `data/v1/popularity.json` history | Weekly (Mon 06:17 UTC), manual | Job summary |
+| [AI audit trail](#ai-audit-trail) | Every PR merged into `main`: source (Hive agent and model, Claude Code in CI, Dependabot, other), author, merger | `scripts/ai-audit-report.sh` via `ai-audit.yml` | Weekly (Mon 06:17 UTC, past 7 days), manual | Job summary + `ai-audit` artifact (report and raw PR data, kept 90 days) |
 
 ## Quality gates
 
@@ -86,6 +88,62 @@ gh pr list -R Tim-van-Oudheusden/Dailies --state closed --limit 1000 --search "c
   --json number,mergedAt,headRefName,author | scripts/pr-metrics.sh --since "$since" --days 28
 ```
 
+## AI audit trail
+
+A record of what reached `main` and who was behind it. Each PR merged in the window (default 7 days) is attributed to
+one source, checked in this order:
+
+- **Hive**: the PR body has a Hive signature line, `— hive: agent=<name> … model=<model> …` or
+  `— omp (Claude Code), model=<model>`, from which the agent and model are taken (contributor runs, such as the
+  maintainer's local agent, sign without `agent=`, shown as `—`), or the PR is authored by the `hive-forge-app` GitHub
+  App.
+- **Claude Code (CI)**: head branch `claude/*`.
+- **Dependabot**: head branch `dependabot/*`.
+- **Other**: anything else, such as the maintainer's own PRs or the data PRs `github-actions` opens
+  ([`multi-agent.md`](../multi-agent.md)).
+
+The report counts merges per source and per merging account (a merge with no recorded merger is listed last as
+unknown), then lists every merge oldest first with its source, agent, model, author, merger, branch and title. The
+weekly run covers the past 7 days, so consecutive runs leave no gap. The `ai-audit` artifact keeps the report and the
+raw `gh pr list` output for 90 days.
+
+Run it with a different window from the Actions tab (**AI audit trail → Run workflow → days**), or locally with an
+authenticated `gh`:
+
+```sh
+since="$(date -u -d '7 days ago' +%Y-%m-%d)"
+gh pr list -R Tim-van-Oudheusden/Dailies --base main --state merged --limit 1000 --search "merged:>=${since}" \
+  --json number,title,author,headRefName,mergedAt,mergedBy,body | scripts/ai-audit-report.sh --since "$since"
+```
+
+## Strategy report
+
+The strategic dashboard: where the project is heading rather than how one change fared. Four tables:
+
+- **Flow:** issues opened and closed and PRs merged in the reporting window (default 28 days), the net change in the
+  backlog, and how many issues are open now. A backlog that grows week on week is outrunning the agents working it.
+- **Backlog by stage:** open issues per `stage/*` label, the pipeline Hive moves issues through
+  ([`docs/multi-agent.md`](../multi-agent.md)), in pipeline order; open issues with no stage label are counted last.
+  Issues piling up in one stage show where work stalls.
+- **Backlog by milestone:** open issues per `milestone::M*` label, in milestone order; open issues with no milestone
+  label are counted last. Work piling up in an early milestone is what delays the later releases.
+- **ACMM progress:** per maturity level, the `acmm` issues the Hive ACMM evaluation filed
+  (`[ACMM L<level>] Add <criterion>`, with or without a `[dashboard]` prefix), closed and still open, naming the open
+  ones. It counts only the gaps the evaluation filed, not every criterion of a level.
+
+`scripts/strategy-report.sh` computes them from the JSON of `gh issue list` and `gh pr list`. The `Strategy report`
+workflow publishes the tables to its job summary every Monday at 06:17 UTC; **Strategy report → Run workflow → days**
+runs it with another window. To reproduce it locally with an authenticated `gh`:
+
+```sh
+since="$(date -u -d '28 days ago' +%Y-%m-%d)"
+gh issue list -R Tim-van-Oudheusden/Dailies --state all --limit 10000 \
+  --json number,title,state,labels,createdAt,closedAt > issues.json
+gh pr list -R Tim-van-Oudheusden/Dailies --state merged --limit 1000 --search "merged:>=${since}" \
+  --json mergedAt > prs.json
+scripts/strategy-report.sh --since "$since" --issues issues.json --prs prs.json
+```
+
 ## Nightly compliance
 
 Checks that can go stale without a code change, run every night so drift shows up before the next PR trips over it:
@@ -103,7 +161,7 @@ scripts/nightly-compliance.sh > nightly-compliance.md
 ## Risk tier
 
 Classifies each PR as low, medium, or high risk from its changed paths; the highest tier of any file wins.
-Informational only; it never fails the run. The path rules live in `.github/policies/risk-tiers.policy`; tiers and the
+Informational only; it never fails the run. The path rules live in `.github/risk-assessment.yml`; tiers and the
 review each expects are defined in [`docs/risk-tiers.md`](../risk-tiers.md).
 
 ```sh
