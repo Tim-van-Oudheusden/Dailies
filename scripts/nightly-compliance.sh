@@ -35,9 +35,10 @@
 #      broken link is a warning, not a failure (#302): its report goes to a
 #      Warnings section and, in GitHub Actions (GITHUB_ACTIONS=true), into the
 #      one `data: N broken links (week W)` issue it opens or updates (needs
-#      GH_TOKEN with issues: write). Only an error of the check itself (exit
-#      2: a crash, a malformed catalog, an issue it could not write) fails the
-#      row. CHECK_LINKS replaces the script; the tests use it.
+#      GH_TOKEN with issues: write). Only an error of the check itself fails
+#      the row: exit 2 (a malformed catalog, an issue it could not write), or
+#      exit 1 with no report (Python died before main(), e.g. on a missing
+#      dependency). CHECK_LINKS replaces the script; the tests use it.
 #      With LINKS_STATUS_DIR set, it also tracks the weekly streaks: it reads
 #      the last run's state from LINKS_PREVIOUS_STATE (when set), writes this
 #      run's to $LINKS_STATUS_DIR/state.json and, when a game's status should
@@ -221,26 +222,24 @@ if [ "$force_links" = 1 ] || [ "$(date -u +%u)" = 7 ]; then
   # -I: ignore PYTHON* variables and the user site; the script finds scripts/lib by its own path.
   links_out="$(python3 -I "${CHECK_LINKS:-scripts/check_links.py}" "${links_args[@]}" 2>&1)"
   links_check=$?
-  case "$links_check" in
-    0)
-      row "Catalog links (weekly)" 0
-      ;;
-    1)
-      # Broken links: the report, and in Actions the `data` issue, carry them.
-      echo "$links_out" >&2
-      warnings+="$(cat "$links_md")"$'\n\n'
-      warning_row "Catalog links (weekly)"
-      ;;
-    *)
-      echo "$links_out" >&2
-      if [ -s "$links_md" ]; then
-        details+="$(cat "$links_md")"$'\n\n'
-      else
-        detail_block "scripts/check_links.py failed" "$links_out"
-      fi
-      row "Catalog links (weekly)" "$links_check"
-      ;;
-  esac
+  if [ "$links_check" -eq 0 ]; then
+    row "Catalog links (weekly)" 0
+  elif [ "$links_check" -eq 1 ] && [ -s "$links_md" ]; then
+    # Broken links: the report, and in Actions the `data` issue, carry them.
+    echo "$links_out" >&2
+    warnings+="$(cat "$links_md")"$'\n\n'
+    warning_row "Catalog links (weekly)"
+  else
+    # An error of the check itself (exit 2), or exit 1 with no report: Python died before main() ran, e.g. on a
+    # missing dependency after `Install script dependencies` failed. No link was checked, so the row fails.
+    echo "$links_out" >&2
+    if [ -s "$links_md" ]; then
+      details+="$(cat "$links_md")"$'\n\n'
+    else
+      detail_block "scripts/check_links.py failed" "$links_out"
+    fi
+    row "Catalog links (weekly)" "$links_check"
+  fi
   rm -f "$links_md"
 fi
 

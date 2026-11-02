@@ -240,6 +240,17 @@ def test_a_links_check_error_fails_with_its_log(tmp_path: Path) -> None:
     assert "check_links: moviedle" in result.stdout
 
 
+def test_a_links_check_exit_1_without_a_report_fails_with_its_log(tmp_path: Path) -> None:
+    # Python exits 1 when it dies before main(), e.g. on a module the failed dependency install left out: no link was
+    # checked, so this is not a warning.
+    result = run(tmp_path, [], "--force-links", FAKE_LINKS_RC="1", FAKE_LINKS_REPORT="")
+
+    assert result.returncode == 1
+    assert "| Catalog links (weekly) | ❌ fail |" in result.stdout
+    assert "## Warnings" not in result.stdout
+    assert "check_links: moviedle" in result.stdout
+
+
 def test_an_unknown_argument_is_a_usage_error(tmp_path: Path) -> None:
     result = run(tmp_path, [], "--nope")
 
