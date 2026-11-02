@@ -6,10 +6,11 @@ the untrusted submission issue and fetches the submitted page, then opens the pu
 Before that, the checkout may differ from main only in data/v1/games.json and files under data/v1/icons/. Any other
 changed path fails, and so does an allowed path that is a symlink or not a regular file: pages.yml copies data/v1 with
 `cp -rL`, so a link there would publish whatever it points to on the Pages runner. The catalog must also still be a
-regular file. The changed paths come from scripts/popularity/report_guard.py, the weekly report's guard.
+regular file. The changed paths come from scripts/popularity/report_guard.py, the weekly report's guard. The patch
+could rewrite either script, so the workflow copies both before applying it, keeping report_guard.py under popularity/.
 
 Usage:
-    python3 -I scripts/catalog_guard.py [--repo DIR]
+    python3 -I "$RUNNER_TEMP/trusted/catalog_guard.py" [--repo DIR]
 
 Exits 0 when only allowed changes were found and 1 when the guard failed, with a ::error:: line per problem.
 """

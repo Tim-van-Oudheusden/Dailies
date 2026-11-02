@@ -125,10 +125,15 @@ def test_a_checkout_without_git_fails(tmp_path: Path, capsys: pytest.CaptureFixt
     assert error.startswith("::error::catalog guard failed:")
 
 
-def test_runs_as_the_workflow_runs_it(repo: Path) -> None:
-    """`python3 -I scripts/catalog_guard.py` from the checkout: report_guard is found without the script's directory."""
+def test_runs_as_the_workflow_runs_it(repo: Path, tmp_path: Path) -> None:
+    """`python3 -I "$RUNNER_TEMP/trusted/catalog_guard.py"` from the checkout, with report_guard.py copied next to it
+    under popularity/: report_guard is found without the script's directory on sys.path."""
+    trusted = tmp_path / "trusted"
+    (trusted / "popularity").mkdir(parents=True)
+    shutil.copy(SCRIPT, trusted)
+    shutil.copy(ROOT / "scripts" / "popularity" / "report_guard.py", trusted / "popularity")
     result = subprocess.run(  # noqa: S603 - test-controlled
-        [sys.executable, "-I", str(SCRIPT)], cwd=repo, check=False, capture_output=True, text=True
+        [sys.executable, "-I", str(trusted / "catalog_guard.py")], cwd=repo, check=False, capture_output=True, text=True
     )
 
     assert result.returncode == 0, result.stdout + result.stderr

@@ -179,24 +179,17 @@ jobs:
         with:
           name: catalog-change
           path: ${{ runner.temp }}/change
+      # The patch could rewrite the guard and the report_guard.py it imports, so they run from a copy taken first.
+      - name: Copy the guard
+        run: |
+          mkdir -p "$RUNNER_TEMP/trusted/popularity"
+          cp scripts/catalog_guard.py "$RUNNER_TEMP/trusted/"
+          cp scripts/popularity/report_guard.py "$RUNNER_TEMP/trusted/popularity/"
       - name: Apply the catalog change
         run: git apply "$RUNNER_TEMP/change/catalog.patch"
-      # Only the catalog and its icons may change.
+      # Only the catalog and its icons may change, as regular files (#314).
       - name: Guard the changed paths
-        run: |
-          set -euo pipefail
-          status=0
-          while IFS= read -r line; do
-            path=${line:3}
-            case "$path" in
-              data/v1/games.json | data/v1/icons/*) ;;
-              *)
-                echo "::error::Unexpected change: $path"
-                status=1
-                ;;
-            esac
-          done < <(git status --porcelain --untracked-files=all)
-          exit "$status"
+        run: python3 -I "$RUNNER_TEMP/trusted/catalog_guard.py"
       # A one-hour installation token with only the permissions the pull request needs.
       - name: Create the bot token
         id: bot

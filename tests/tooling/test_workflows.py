@@ -47,7 +47,7 @@ BOT_ENVIRONMENT_JOBS: dict[tuple[str, str], str] = {
     ): "apply_link_status.py on the compliance artifact, then create-pull-request",
     # Puts the compute job's shelves and the report file in place, guards them and opens data/popularity.
     ("popularity.yml", "pull-request"): "report_guard.py on the compute and report artifacts, then create-pull-request",
-    # Applies the add job's catalog patch and opens data/add-<slug>.
+    # Applies the add job's catalog patch, guards it and opens data/add-<slug>.
     ("game-submission-approve.yml", "pull-request"): "git apply of the add job's patch, then create-pull-request",
 }
 
@@ -551,6 +551,38 @@ def icon_fetch_violations(name: str, workflow: dict) -> list[str]:
     return violations
 
 
+GIT_APPLY = re.compile(r"\bgit\s+apply\b")
+CATALOG_GUARD_RUN = re.compile(r"\bpython3?\s+-I\s+(\S*catalog_guard\.py)\b")
+TRUSTED = "$RUNNER_TEMP/trusted/"
+GUARD_SOURCES = ("scripts/catalog_guard.py", "scripts/popularity/report_guard.py")
+
+
+def catalog_guard_violations(name: str, workflow: dict) -> list[str]:
+    """A job that applies a patch and opens a pull request runs scripts/catalog_guard.py in between (#314, #327).
+
+    The guard fails on any change besides the catalog and its icons, and on a symlink among them, which pages.yml
+    would follow with `cp -rL`. `git apply` can rewrite any file, the guard and the report_guard.py it imports
+    included, so the guard runs from a copy in $RUNNER_TEMP/trusted/ taken before the patch is applied.
+    """
+    violations = []
+    for job_id, job in jobs_of(workflow).items():
+        steps = job.get("steps") or []
+        runs = [str(step.get("run", "")) for step in steps]
+        applies = [i for i, run in enumerate(runs) if GIT_APPLY.search(run)]
+        prs = [i for i, step in enumerate(steps) if str(step.get("uses", "")).startswith(CREATE_PULL_REQUEST)]
+        if not applies or not prs or prs[0] < applies[0]:
+            continue
+        apply, pr = applies[0], prs[0]
+        guards = [match for run in runs[apply + 1 : pr] if (match := CATALOG_GUARD_RUN.search(run))]
+        if not guards:
+            violations.append(f"{name}: job {job_id} applies a patch but does not run catalog_guard.py before its PR")
+            continue
+        copied = any(TRUSTED in run and all(f"cp {source}" in run for source in GUARD_SOURCES) for run in runs[:apply])
+        if not copied or not guards[0].group(1).strip("\"'").startswith(TRUSTED):
+            violations.append(f"{name}: job {job_id} runs catalog_guard.py from a path the patch can change")
+    return violations
+
+
 CHECKER = "docker://ghcr.io/flathub/flatpak-external-data-checker"
 
 
@@ -721,6 +753,11 @@ def test_strict_repo_lint_builds_with_mirrored_screenshots(path: Path) -> None:
 @pytest.mark.parametrize("path", FILES, ids=IDS)
 def test_a_game_added_for_a_pull_request_gets_its_icon(path: Path) -> None:
     assert icon_fetch_violations(path.name, load(path)) == []
+
+
+@pytest.mark.parametrize("path", FILES, ids=IDS)
+def test_an_applied_patch_is_guarded_from_a_trusted_copy(path: Path) -> None:
+    assert catalog_guard_violations(path.name, load(path)) == []
 
 
 @pytest.mark.parametrize("path", FILES, ids=IDS)
@@ -1306,6 +1343,66 @@ def test_fixture_added_game_without_an_icon_fetch_before_a_dependent_pull_reques
     assert icon_fetch_violations("approve.yml", workflow) == [
         "approve.yml: job add adds a game but does not fetch its icon"
     ]
+
+
+GUARD_COPY = """
+      - run: |
+          mkdir -p "$RUNNER_TEMP/trusted/popularity"
+          cp scripts/catalog_guard.py "$RUNNER_TEMP/trusted/"
+          cp scripts/popularity/report_guard.py "$RUNNER_TEMP/trusted/popularity/\""""
+APPLY = """
+      - run: git apply "$RUNNER_TEMP/change/catalog.patch\""""
+TRUSTED_GUARD = """
+      - run: python3 -I "$RUNNER_TEMP/trusted/catalog_guard.py\""""
+
+
+def patch_fixture(steps: str) -> dict:
+    return load_yaml(f"""
+jobs:
+  pull-request:
+    steps:{steps}
+      - uses: {CREATE_PULL_REQUEST}5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          add-paths: data/v1/games.json
+""")
+
+
+def test_fixture_applied_patch_without_the_guard_fails() -> None:
+    assert catalog_guard_violations("approve.yml", patch_fixture(GUARD_COPY + APPLY)) == [
+        "approve.yml: job pull-request applies a patch but does not run catalog_guard.py before its PR"
+    ]
+
+
+def test_fixture_guard_after_the_pull_request_fails() -> None:
+    workflow = patch_fixture(GUARD_COPY + APPLY)
+    workflow["jobs"]["pull-request"]["steps"].append({"run": 'python3 -I "$RUNNER_TEMP/trusted/catalog_guard.py"'})
+    assert catalog_guard_violations("approve.yml", workflow) == [
+        "approve.yml: job pull-request applies a patch but does not run catalog_guard.py before its PR"
+    ]
+
+
+@pytest.mark.parametrize(
+    "steps",
+    [
+        APPLY + "\n      - run: python3 -I scripts/catalog_guard.py",
+        GUARD_COPY + APPLY + "\n      - run: python3 -I scripts/catalog_guard.py",
+        APPLY + GUARD_COPY + TRUSTED_GUARD,
+        APPLY + TRUSTED_GUARD,
+    ],
+    ids=["from the checkout", "copied but run from the checkout", "copied after the patch", "never copied"],
+)
+def test_fixture_guard_the_patch_can_change_fails(steps: str) -> None:
+    assert catalog_guard_violations("approve.yml", patch_fixture(steps)) == [
+        "approve.yml: job pull-request runs catalog_guard.py from a path the patch can change"
+    ]
+
+
+def test_fixture_guard_copied_before_the_patch_passes() -> None:
+    assert catalog_guard_violations("approve.yml", patch_fixture(GUARD_COPY + APPLY + TRUSTED_GUARD)) == []
+
+
+def test_fixture_job_that_applies_no_patch_needs_no_guard() -> None:
+    assert catalog_guard_violations("checker.yml", patch_fixture("\n      - run: echo edit")) == []
 
 
 def checker_fixture(args: str, then: str = "") -> dict:
