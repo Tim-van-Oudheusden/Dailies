@@ -9,18 +9,16 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-02. #313 / PR #326 on `feat/313-catalog-candidates`.
+2026-11-02. #302 on `ci/302-link-check-non-blocking`.
 
-- **Outcome:** `scripts/catalog_candidates.py --commit SHA [--since DAY]` downloads aukspot/dles at one commit (GitHub
-  tarball, urlcheck's public-https `fetch`, 32 MiB cap and a whole-body deadline), reads its `data/dles/*.yaml`
-  records with ruamel.yaml from the scripts' lock, and prints the `active` ones whose registrable domain the catalog
-  lacks, newest first. Review round: merged `main` (kept #314's catalog-guard row in `docs/testing.md`), each record
-  is now refused above `MAX_RECORD` (64 KiB, from the tar header) before it is decompressed, and the quality lane's
-  mutant-killing tests are in. Run at 31afcb9 with `--since 2026-10-16`: 10 of the 11 games the issue names; Tagline
-  is left out because merriam-webster.com is already in the catalog.
-- **Open follow-ups:** a scheduled workflow that files the list as a monthly issue is the owner's call (needs a
-  workflow file); not filed.
+- **Outcome:** the owner checked every W44 link by hand (all live) and asked to keep the `data` issue but stop the link
+  check failing CI. `scripts/nightly-compliance.sh` now gives broken links (check_links exit 1) a `⚠️ warning` row and
+  a `## Warnings` section, so the Nightly compliance run stays green; the `data` issue, the streaks and the
+  `data/link-status` PR are unchanged. An error of the link check itself (exit 2) still fails the row, and
+  `scripts/compliance_issue.py` no longer leaves a failing `Catalog links` row out of the compliance issue: no `data`
+  issue covers a checker error.
+- **Open follow-ups:** none filed.
 - **Gotchas:**
-  - The Dles' descriptions are GPL-3.0 and the catalog is CC0: never copy one into a submission.
-  - Host Python 3.11 cannot import `dailies/core`; a host jq older than 1.7 fails 13 `pr-metrics`/`auto-qa-tuner`/
-    `quality-report` tests that pass in CI.
+  - The `immaculate-footy` http-500 was a one-off origin error; scripts usually get Cloudflare's 403 challenge there.
+  - Host Python 3.11 cannot import `dailies/core`; a host jq older than 1.7 fails 15 `pr-metrics`/`auto-qa-tuner`/
+    `quality-report`/`validate_submission`/`potfiles` tests that fail on `main` too and pass in CI.

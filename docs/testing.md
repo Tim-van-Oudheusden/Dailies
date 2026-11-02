@@ -182,8 +182,8 @@ is committed automatically: to adopt the proposal, download the artifact, review
 
 `.github/workflows/nightly-compliance.yml` runs nightly (`23 3 * * *` UTC) and on manual dispatch, for checks that can
 go stale without a code change. It runs `scripts/nightly-compliance.sh > nightly-compliance.md` and publishes the report
-as the job summary and the `nightly-compliance` artifact. The script reports one pass/fail row per check, runs every
-check even when an earlier one fails, and exits non-zero if any failed:
+as the job summary and the `nightly-compliance` artifact. The script reports one pass/fail row per check (the link
+check also has a warning result), runs every check even when an earlier one fails, and exits non-zero if any failed:
 
 | Check | Fails when |
 | --- | --- |
@@ -192,7 +192,7 @@ check even when an earlier one fails, and exits non-zero if any failed:
 | GNOME runtime | `flatpak remote-info flathub org.gnome.Platform//51` reports the runtime as end-of-life |
 | ACMM self-check | `scripts/acmm-self-check.py` finds that a file a Hive ACMM criterion looks for has gone missing |
 | External data checker image | `scripts/check_checker_digest.py` finds that the `flatpak-external-data-checker` digest pinned in `.github/workflows/external-data-checker.yml` is not the image's `:latest` on ghcr.io, and that `:latest` was built 10 or more days ago (see [The checker pin](#the-checker-pin)), or cannot read ghcr.io |
-| Catalog links (weekly) | Sundays (UTC) only, or with `--force-links` / `DAILIES_FORCE_LINKS=1` (the manual run's `force_links` input): `scripts/check_links.py` finds an active catalog entry that is `redirected-cross-domain`, `blocked-title`, `hijacked`, `http-<code>`, `timeout` or `unreachable`. A `bot-walled` entry (a Cloudflare challenge, or a 403 or timeout on an entry tagged `bot-walled`) is a warning, not a failure |
+| Catalog links (weekly) | Sundays (UTC) only, or with `--force-links` / `DAILIES_FORCE_LINKS=1` (the manual run's `force_links` input): `scripts/check_links.py` itself errors (exit 2: a crash, a malformed catalog, or the `data` issue could not be written). An active catalog entry that is `redirected-cross-domain`, `blocked-title`, `hijacked`, `http-<code>`, `timeout` or `unreachable` is a `⚠️ warning` row with the link report under `## Warnings`, not a failure (#302): a site's one-off server error must not turn the run red, and the `data` issue and the status pull request (below) already track it. A `bot-walled` entry (a Cloudflare challenge, or a 403 or timeout on an entry tagged `bot-walled`) is a warning inside that report |
 
 The alerts come from `gh api repos/$GITHUB_REPOSITORY/dependabot/alerts?state=open`, read with the job's `GITHUB_TOKEN`
 through the `vulnerability-alerts: read` permission, so no secret is needed.
@@ -207,10 +207,11 @@ fit GitHub's 65536-character body limit), or updates the open one. The open issu
 title. The first run where every check passes comments on it and closes it. A run that left no report (it failed before
 the upload) opens or updates it as `ci: nightly compliance: no report`, and so does a report cut short (the job timed
 out or the script exited before every check had its row): `scripts/nightly-compliance.sh` ends every report with
-`<!-- nightly-compliance: end -->`, and a report without that last line never closes the issue. The
-`Catalog links (weekly)` row is left out: broken links have their own `data` issue (below). The script exits 0 once the
-issue matches the report and 2 on a usage error or when GitHub refuses a request. Cancelled runs and runs of other
-branches are ignored.
+`<!-- nightly-compliance: end -->`, and a report without that last line never closes the issue. Broken links are not in
+it: their `Catalog links (weekly)` row is a warning, and they have their own `data` issue (below). A failing
+`Catalog links (weekly)` row, an error of the link check itself, is listed like any other check. The script exits 0
+once the issue matches the report and 2 on a usage error or when GitHub refuses a request. Cancelled runs and runs of
+other branches are ignored.
 
 ### Broken game links
 

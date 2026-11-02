@@ -31,19 +31,22 @@
 #      CHECKER_DIGEST replaces the script; the tests use it.
 #   6. Catalog links, Sundays (UTC) only, or any day with --force-links or
 #      DAILIES_FORCE_LINKS=1: scripts/check_links.py checks every active
-#      entry of data/v1/games.json with the submission validator's rules. In
-#      GitHub Actions (GITHUB_ACTIONS=true) a failure also opens, or updates,
-#      the one `data: N broken links (week W)` issue (needs GH_TOKEN with
-#      issues: write). CHECK_LINKS replaces the script; the tests use it.
+#      entry of data/v1/games.json with the submission validator's rules. A
+#      broken link is a warning, not a failure (#302): its report goes to a
+#      Warnings section and, in GitHub Actions (GITHUB_ACTIONS=true), into the
+#      one `data: N broken links (week W)` issue it opens or updates (needs
+#      GH_TOKEN with issues: write). Only an error of the check itself (exit
+#      2: a crash, a malformed catalog, an issue it could not write) fails the
+#      row. CHECK_LINKS replaces the script; the tests use it.
 #      With LINKS_STATUS_DIR set, it also tracks the weekly streaks: it reads
 #      the last run's state from LINKS_PREVIOUS_STATE (when set), writes this
 #      run's to $LINKS_STATUS_DIR/state.json and, when a game's status should
 #      change, $LINKS_STATUS_DIR/changes.json and pr-body.md for the
 #      data/link-status pull request (issue #81).
-# Diagnostics go to stderr and to a Failures section in the report, so stdout
-# stays a clean report. Every check runs even when an earlier one fails; the
-# script exits non-zero if any failed, and 2 on a usage error. Needs jq and
-# python3.
+# Diagnostics go to stderr and to a Failures (or Warnings) section in the
+# report, so stdout stays a clean report. Every check runs even when an earlier
+# one fails; the script exits non-zero if any failed, and 2 on a usage error.
+# Needs jq and python3.
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -65,6 +68,7 @@ runtime_ref="${RUNTIME_REF:-org.gnome.Platform//51}"
 acmm_min_level="${ACMM_MIN_LEVEL:-5}"
 failed=0
 details=""
+warnings=""
 force_links="${DAILIES_FORCE_LINKS:-0}"
 
 for arg in "$@"; do
@@ -84,6 +88,11 @@ row() {
     echo "| $1 | ❌ fail |"
     failed=1
   fi
+}
+
+# A row that does not fail the run.
+warning_row() {
+  echo "| $1 | ⚠️ warning |"
 }
 
 # Appends a titled block of command output to the Failures section.
@@ -212,16 +221,27 @@ if [ "$force_links" = 1 ] || [ "$(date -u +%u)" = 7 ]; then
   # -I: ignore PYTHON* variables and the user site; the script finds scripts/lib by its own path.
   links_out="$(python3 -I "${CHECK_LINKS:-scripts/check_links.py}" "${links_args[@]}" 2>&1)"
   links_check=$?
-  if [ "$links_check" -ne 0 ]; then
-    echo "$links_out" >&2
-    if [ -s "$links_md" ]; then
-      details+="$(cat "$links_md")"$'\n\n'
-    else
-      detail_block "scripts/check_links.py failed" "$links_out"
-    fi
-  fi
+  case "$links_check" in
+    0)
+      row "Catalog links (weekly)" 0
+      ;;
+    1)
+      # Broken links: the report, and in Actions the `data` issue, carry them.
+      echo "$links_out" >&2
+      warnings+="$(cat "$links_md")"$'\n\n'
+      warning_row "Catalog links (weekly)"
+      ;;
+    *)
+      echo "$links_out" >&2
+      if [ -s "$links_md" ]; then
+        details+="$(cat "$links_md")"$'\n\n'
+      else
+        detail_block "scripts/check_links.py failed" "$links_out"
+      fi
+      row "Catalog links (weekly)" "$links_check"
+      ;;
+  esac
   rm -f "$links_md"
-  row "Catalog links (weekly)" "$links_check"
 fi
 
 if [ -n "$details" ]; then
@@ -229,6 +249,13 @@ if [ -n "$details" ]; then
   echo "## Failures"
   echo
   printf '%s' "$details"
+fi
+
+if [ -n "$warnings" ]; then
+  echo
+  echo "## Warnings"
+  echo
+  printf '%s' "$warnings"
 fi
 
 # The last line: scripts/compliance_issue.py treats a report without it as cut short (a timeout or an early exit),

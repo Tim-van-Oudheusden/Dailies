@@ -8,7 +8,9 @@ A run that left no report (it failed before the upload), or one cut short before
 the issue as "ci: nightly compliance: no report" and never closes it. The open issue is found by MARKER in its body or
 by its title, so it is still found after its body was edited.
 
-Catalog links are left out: on a failure the link check opens its own `data` issue (scripts/check_links.py).
+Broken catalog links are not failing checks: nightly-compliance.sh gives them a warning row, which this script ignores,
+and the link check opens its own `data` issue for them (scripts/check_links.py). A failing `Catalog links` row means
+the link check itself broke, so it counts like any other failing check (#302).
 
 Usage:
     python -I scripts/compliance_issue.py --report nightly-compliance.md --run-url URL [--repo OWNER/REPO]
@@ -41,8 +43,6 @@ REPORT_HEADING = "# Nightly compliance\n"
 # missing rows cannot be read as passing.
 REPORT_END = "<!-- nightly-compliance: end -->"
 FAILING_ROW = re.compile(r"^\| (?P<check>.+) \| ❌ fail \|$", re.MULTILINE)
-# The link check reports its failures in its own `data` issue.
-OWN_ISSUE_CHECKS = ("Catalog links",)
 REPOSITORY = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 # GitHub refuses an issue body longer than 65536 characters.
 MAX_BODY = 65536
@@ -83,14 +83,13 @@ def github_api(token: str) -> Api:
 
 
 def failing_checks(report: str) -> list[str] | None:
-    """The failing checks of a nightly compliance report, minus those with their own issue; None if it is no report.
+    """The failing checks of a nightly compliance report; None if it is no report.
 
     A report that does not end with REPORT_END was cut short and counts as no report.
     """
     if not report.startswith(REPORT_HEADING) or report.rstrip().splitlines()[-1] != REPORT_END:
         return None
-    checks = [match["check"] for match in FAILING_ROW.finditer(report)]
-    return [check for check in checks if not check.startswith(OWN_ISSUE_CHECKS)]
+    return [match["check"] for match in FAILING_ROW.finditer(report)]
 
 
 def issue_title(failing: list[str] | None) -> str:

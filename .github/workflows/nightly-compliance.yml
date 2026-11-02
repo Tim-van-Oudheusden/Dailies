@@ -121,7 +121,7 @@ jobs:
             ${{ runner.temp }}/link-status/pr-body.md
           if-no-files-found: ignore
           retention-days: 7
-      # A failing link check fails this job, which is exactly when a status may change.
+      # Broken links only warn (#302), but another failing check fails the job; the status changes still count.
       - name: Read the status changes
         id: status
         if: ${{ !cancelled() }}
