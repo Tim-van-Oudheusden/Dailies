@@ -340,11 +340,13 @@ formatting, so the diff is the new entry plus that one line; `scripts/icons/fetc
 game's icon (see **Game icons** below); the whole catalog is checked with `check-jsonschema` and `pytest tests/data`,
 and `data/add-<slug>` becomes a pull request `data(games): add <name>` that closes the issue.
 Stage B's `add` job, which reads the issue and fetches the icon, holds no write token; its `pull-request` job applies
-the change on a fresh runner and opens the pull request with the repository's bot GitHub App token (#79), so the
-required checks run on it, and the maintainer reviews and merges it. A weekly link check (Sundays, in the nightly
-compliance workflow) opens one issue listing broken entries, and a `data/link-status` pull request with the `status`
-change once a game failed the same check two weeks in a row (or passed again two weeks in a row, or was hijacked to a
-gambling page), never a deletion; it is opened with the same token and the maintainer merges it.
+the change on a fresh runner, where `scripts/catalog_guard.py`, copied before the patch is applied, fails it unless
+only the catalog and its icons changed, as regular files (#314). It then opens the pull request with the repository's
+bot GitHub App token (#79), so the required checks run on it, and the maintainer reviews and merges it.
+A weekly link check (Sundays, in the nightly compliance workflow) opens one issue listing broken entries, and a
+`data/link-status` pull request with the `status` change once a game failed the same check two weeks in a row (or
+passed again two weeks in a row, or was hijacked to a gambling page), never a deletion; it is opened with the same
+token and the maintainer merges it.
 
 **Popularity.** Numbers are computed by deterministic Python; a language model may only write prose. The main source
 is the Tranco rank of each game's registrable domain, smoothed over seven days and log-scaled; every game on a

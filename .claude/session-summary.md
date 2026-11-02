@@ -9,16 +9,14 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-01. #293 on `test/293-docs-claims`.
+2026-11-02. #327 on `ci/327-catalog-guard-step`.
 
-- **Outcome:** `tests/tooling/test_docs_claims.py` checks four repeated doc claims against their code: release assets
-  (the `release.yml` publish step) in both release diagrams and `bad-release.md`; who merges (`AUTO_MERGE_JOBS`) in
-  diagram edges and prose; the data files `fetcher.py` requests in the README privacy bullet and `data/v1/README.md`;
-  every workflow with an issue or pull request write scope or the `bot` environment in the "Work the workflows
-  generate" table. Drift fixed: four "human merge" sentences (README, `docs/architecture.md`) and three missing table
-  rows (`auto-review.yml`, `claude.yml`, `labeler.yml`). `docs/testing.md` has a "Docs claims" row.
-- **Open follow-ups:** a new workflow that opens issues or pull requests now fails the suite until it has a row in
-  `docs/multi-agent.md`; the metainfo download list stays a manual check.
+- **Outcome:** `game-submission-approve.yml`'s pull-request job runs `scripts/catalog_guard.py` instead of the inline
+  `case` loop, from a copy in `$RUNNER_TEMP/trusted/` taken before `git apply`: the patch can rewrite any file, and a
+  patched guard (or the `report_guard.py` it imports) exiting 0 let a symlinked icon through. `test_workflows.py`
+  checks that every job applying a patch before `create-pull-request` runs the trusted copy in between.
+- **Open follow-ups:** `nightly-compliance.yml` still has two inline path guards (`link-status`, `checker-pin`); they
+  match names only but commit through `add-paths`, and neither applies a patch.
 - **Gotchas:**
   - Host Python 3.11 cannot import `dailies/core` (PEP 695 generics); run `pytest` under 3.12+ (`uv venv -p 3.13`
     plus `scripts/requirements.txt` and `pytest==9.1.1`).
