@@ -9,17 +9,18 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-02. #327 on `ci/327-catalog-guard-step`.
+2026-11-02. #313 / PR #326 on `feat/313-catalog-candidates`.
 
-- **Outcome:** `game-submission-approve.yml`'s pull-request job runs `scripts/catalog_guard.py` instead of the inline
-  `case` loop, from a copy in `$RUNNER_TEMP/trusted/` taken before `git apply`: the patch can rewrite any file, and a
-  patched guard (or the `report_guard.py` it imports) exiting 0 let a symlinked icon through. `test_workflows.py`
-  checks that every job applying a patch before `create-pull-request` runs the trusted copy in between.
-- **Open follow-ups:** `nightly-compliance.yml` still has two inline path guards (`link-status`, `checker-pin`); they
-  match names only but commit through `add-paths`, and neither applies a patch.
+- **Outcome:** `scripts/catalog_candidates.py --commit SHA [--since DAY]` downloads aukspot/dles at one commit (GitHub
+  tarball, urlcheck's public-https `fetch`, 32 MiB cap and a whole-body deadline), reads its `data/dles/*.yaml`
+  records with ruamel.yaml from the scripts' lock, and prints the `active` ones whose registrable domain the catalog
+  lacks, newest first. Review round: merged `main` (kept #314's catalog-guard row in `docs/testing.md`), each record
+  is now refused above `MAX_RECORD` (64 KiB, from the tar header) before it is decompressed, and the quality lane's
+  mutant-killing tests are in. Run at 31afcb9 with `--since 2026-10-16`: 10 of the 11 games the issue names; Tagline
+  is left out because merriam-webster.com is already in the catalog.
+- **Open follow-ups:** a scheduled workflow that files the list as a monthly issue is the owner's call (needs a
+  workflow file); not filed.
 - **Gotchas:**
-  - Host Python 3.11 cannot import `dailies/core` (PEP 695 generics); run `pytest` under 3.12+ (`uv venv -p 3.13`
-    plus `scripts/requirements.txt` and `pytest==9.1.1`).
-  - A host jq older than 1.7 (or `jaq`) fails the `pr-metrics.sh`, `auto-qa-tuner.sh` and `quality-report.sh` tests
-    (`$label`/`$module` are keywords there); CI's jq passes them.
-  - Without the GNOME 51 SDK on the host, `scripts/sandbox.sh` runs every gate but the Flatpak build.
+  - The Dles' descriptions are GPL-3.0 and the catalog is CC0: never copy one into a submission.
+  - Host Python 3.11 cannot import `dailies/core`; a host jq older than 1.7 fails 13 `pr-metrics`/`auto-qa-tuner`/
+    `quality-report` tests that pass in CI.

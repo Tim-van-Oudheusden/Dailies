@@ -136,3 +136,36 @@ so say so. If the game opened in their own browser, that browser holds the data 
 - Not covered: the check runs only on Sundays; a hijack whose page title holds no blocklisted keyword counts as
   `redirected-cross-domain` and needs two weeks to become `broken`; nothing looks at the page beyond its title; and
   nothing alerts the maintainer except the issue and the pull request.
+
+## Growing the catalog
+
+The other side of the same data path: the link check only moves games toward `broken` or `retired`, and new games
+come only through the **Add a game** form, which few people use. Once a month, look at what
+[The Dles](https://github.com/aukspot/dles), the catalog the seed list was checked against, has added since:
+
+```sh
+python -m venv .venv && .venv/bin/pip install --require-hashes -r scripts/requirements.txt
+commit=$(git ls-remote https://github.com/aukspot/dles refs/heads/main | cut -f1)
+.venv/bin/python -I scripts/catalog_candidates.py --commit "$commit" --since <day of the previous run>
+```
+
+`scripts/catalog_candidates.py` downloads that one commit of The Dles and prints a Markdown table of its `active`
+games whose registrable domain no catalog entry has, newest first: the day The Dles added (or readded) the game, its
+name, The Dles' category and its URL. It changes nothing. `--since` keeps the games added on or after that day; give
+the day of the previous run, so a skipped month only makes the next list longer. Without it the script lists the whole
+backlog (about 650 games in October 2026). A game on a site the catalog already has is never listed: another New York
+Times or Merriam-Webster game, or another mode of a listed game, has to be found by hand. It exits 2, printing why,
+when the download fails or a record is not in the shape it expects.
+
+Not every candidate belongs in the catalog, which is curated on purpose. Pick by the
+[submission rules](../data-format.md#submission-rules): a new puzzle every day, playable in full without an account
+or subscription, and a site that stays on its own domain (no redirect to a gambling page; the validator checks this
+again). It also has to fit one of the ten categories: The Dles' category is only a hint, and some of its categories
+(Novelty, History, Shapes/Patterns, Estimation and others) have no counterpart here. Open the site yourself before
+picking it.
+
+File each pick through the **Add a game** issue form. Write the description and tags yourself: The Dles' text is
+GPL-3.0 and the catalog is CC0 ([Licences](../data-format.md#licences)), which is why the script does not print it.
+From there the usual path takes over ([Approving game submissions](../../CONTRIBUTING.md#approving-game-submissions)):
+stage A checks the form, and adding `approved` makes stage B validate it again, fetch the icon and open the
+`data(games): add <name>` pull request for review.
