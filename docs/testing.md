@@ -144,6 +144,23 @@ scripts/coverage-check.sh coverage.xml .github/auto-qa-tuning.json
 
 `pytest --cov --cov-report=html` writes a browsable report to `htmlcov/`.
 
+## Shell mutants
+
+pytest-cov measures Python only, so no floor sees the `scripts/*.sh` files. A branch of a shell script that runs but
+that no test asserts is found only by mutating the script and watching the tests still pass (#198, #329).
+`tests/scripts/test_shell_mutants.py` (#331) keeps those hand mutants as a table, and plain `pytest` runs it.
+
+Each row names a script, a string `old` that occurs exactly once in it, its replacement `new`, and the pytest node id
+of the test that must fail on the result. For each row the test copies the files git sees (tracked, and untracked but
+not ignored) to a temporary directory, applies the replacement there, runs `python -m pytest -x -q <node>` in the copy
+and requires exit 1 (tests failed). A mutant that passes is a missing assertion, and so is one that fails to collect
+(exit 2 to 5). A row whose `old` no longer occurs exactly once fails too, so a refactor that moves the line shows up
+instead of mutating nothing. A control runs every killing test on an unmutated copy and requires it to pass. Each row
+costs about half a second.
+
+When a hand mutation pass finds a surviving mutant of a shell script, add the test that kills it and a row for it in
+the same pull request. Python scripts are not in the table: the coverage floors above measure them.
+
 ## Quality report
 
 `.github/workflows/quality-report.yml` (job **Quality report**: every push to `main`, weekly on Monday at 06:17 UTC,

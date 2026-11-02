@@ -9,16 +9,17 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-02. #302 on `ci/302-link-check-non-blocking`.
+2026-11-02. #331 on `test/331-shell-mutants`.
 
-- **Outcome:** the owner checked every W44 link by hand (all live) and asked to keep the `data` issue but stop the link
-  check failing CI. `scripts/nightly-compliance.sh` now gives broken links (check_links exit 1) a `⚠️ warning` row and
-  a `## Warnings` section, so the Nightly compliance run stays green; the `data` issue, the streaks and the
-  `data/link-status` PR are unchanged. An error of the link check itself (exit 2) still fails the row, and
-  `scripts/compliance_issue.py` no longer leaves a failing `Catalog links` row out of the compliance issue: no `data`
-  issue covers a checker error.
-- **Open follow-ups:** none filed.
+- **Outcome:** the owner accepted the shell-mutant gate. `tests/scripts/test_shell_mutants.py` copies the files git
+  sees to `tmp_path`, applies one `(script, old, new, node)` row and requires the node to exit 1; a control requires
+  each killing node to pass on an unmutated copy. Rows: the four #198 mutants of `scripts/popularity-report.sh` plus
+  its `--weeks` guard, and two mutants of the exit-2-with-a-report branch of `scripts/nightly-compliance.sh`, killed
+  by the new `test_a_links_check_error_with_a_report_puts_the_report_under_failures` (both survived the 22 nightly
+  tests before it). Documented in `docs/testing.md#shell-mutants`.
+- **Open follow-ups:** none filed; new rows go in with the test that kills them.
 - **Gotchas:**
-  - The `immaculate-footy` http-500 was a one-off origin error; scripts usually get Cloudflare's 403 challenge there.
-  - Host Python 3.11 cannot import `dailies/core`; a host jq older than 1.7 fails 15 `pr-metrics`/`auto-qa-tuner`/
-    `quality-report`/`validate_submission`/`potfiles` tests that fail on `main` too and pass in CI.
+  - The inner pytest drops the outer `PYTEST_*`, `COV_CORE_*` and `COVERAGE_*` variables and gets its own
+    `--basetemp`, so `pytest --cov` and the outer `tmp_path` are not disturbed.
+  - Host Python 3.11 cannot import `dailies/core` (use a 3.13 venv); the host `jq` is jaq, which fails the
+    `pr-metrics`/`auto-qa-tuner`/`quality-report` tests on `main` too.
