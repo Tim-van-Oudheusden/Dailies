@@ -9,14 +9,15 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-01. #313 on `data/313-catalog-candidates`.
+2026-11-02. #313 / PR #326 on `feat/313-catalog-candidates`.
 
 - **Outcome:** `scripts/catalog_candidates.py --commit SHA [--since DAY]` downloads aukspot/dles at one commit (GitHub
-  tarball, urlcheck's public-https `fetch`, 32 MiB cap), reads its `data/dles/*.yaml` records with ruamel.yaml from the
-  scripts' lock, and prints the `active` ones whose registrable domain the catalog lacks, newest first. Run at
-  31afcb9 with `--since 2026-10-16`: 10 of the 11 games the issue names; Tagline is left out because
-  merriam-webster.com is already in the catalog. "Growing the catalog" in `docs/runbooks/catalog-link.md` is the
-  monthly procedure.
+  tarball, urlcheck's public-https `fetch`, 32 MiB cap and a whole-body deadline), reads its `data/dles/*.yaml`
+  records with ruamel.yaml from the scripts' lock, and prints the `active` ones whose registrable domain the catalog
+  lacks, newest first. Review round: merged `main` (kept #314's catalog-guard row in `docs/testing.md`), each record
+  is now refused above `MAX_RECORD` (64 KiB, from the tar header) before it is decompressed, and the quality lane's
+  mutant-killing tests are in. Run at 31afcb9 with `--since 2026-10-16`: 10 of the 11 games the issue names; Tagline
+  is left out because merriam-webster.com is already in the catalog.
 - **Open follow-ups:** a scheduled workflow that files the list as a monthly issue is the owner's call (needs a
   workflow file); not filed.
 - **Gotchas:**

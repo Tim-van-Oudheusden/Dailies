@@ -74,10 +74,10 @@ def resolve_public(_host: str) -> list[str]:
     return [PUBLIC_IP]
 
 
-def tarball(extra: dict[str, str] | None = None) -> bytes:
+def tarball(extra: dict[str, str | bytes] | None = None) -> bytes:
     """The fixture repository as GitHub serves it: a gzipped tar under one top-level directory."""
     files = {path.relative_to(UPSTREAM).as_posix(): path.read_bytes() for path in UPSTREAM.rglob("*") if path.is_file()}
-    files.update({name: text.encode() for name, text in (extra or {}).items()})
+    files.update({name: text.encode() if isinstance(text, str) else text for name, text in (extra or {}).items()})
     buffer = io.BytesIO()
     with tarfile.open(fileobj=buffer, mode="w:gz") as archive:
         for name, data in sorted(files.items()):
@@ -148,7 +148,12 @@ def test_since_keeps_games_added_or_readded_on_or_after_that_day(
     # Echo Chess was added on 2024-04-10, removed, and readded on 2025-04-16.
     run(tmp_path, "--since", "2025-04-16")
 
-    assert names(capsys.readouterr().out) == ["Collagedle", "Cramdle", "Echo Chess"]
+    output = capsys.readouterr().out
+    assert names(output) == ["Collagedle", "Cramdle", "Echo Chess"]
+    assert output.splitlines()[0] == (
+        f"Active games in aukspot/dles at {COMMIT} whose site is not in the catalog, added there on or after"
+        " 2025-04-16: 3."
+    )
 
 
 def test_since_after_every_addition_lists_no_games(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -181,6 +186,31 @@ def test_upstream_text_stays_inert_inside_its_cell(tmp_path: Path, capsys: pytes
     line = next(line for line in capsys.readouterr().out.splitlines() if "pipedle" in line)
     assert line.count(" | ") == 3
     assert "`Pipe \\| [dle](https://evil.example) @someone`" in line
+
+
+def test_a_record_that_is_not_a_mapping_is_not_a_game(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    session = upstream(tarball({"data/dles/0902-empty.yaml": "", "data/dles/0903-list.yaml": "- status: active\n"}))
+
+    status = run(tmp_path, session=session)
+
+    assert status == 0
+    assert names(capsys.readouterr().out) == ["Collagedle", "Cramdle", "Echo Chess", "Absurdle"]
+
+
+@pytest.mark.parametrize("text", [None, "{not json"], ids=["missing", "not-json"])
+def test_an_unreadable_catalog_exits_2_before_any_download(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], text: str | None
+) -> None:
+    path = tmp_path / "games.json"
+    if text is not None:
+        path.write_text(text, encoding="utf-8")
+    session = upstream()
+
+    status = cc.main(["--commit", COMMIT, "--catalog", str(path)], session=session, resolve=resolve_public)
+
+    assert status == 2
+    assert session.calls == []
+    assert capsys.readouterr().err.startswith("catalog_candidates: ")
 
 
 def test_only_full_commit_hashes_are_accepted(tmp_path: Path) -> None:
@@ -256,10 +286,19 @@ def test_a_download_that_is_not_a_tarball_exits_2(tmp_path: Path, capsys: pytest
             id="date-not-iso",
         ),
         pytest.param("id: 901\nname: [Broken\nstatus: active\n", id="not-yaml"),
+        pytest.param(
+            "id: 901\nurl: https://broken.example\nstatus: active\nhistory:\n- date: '2026-10-30'\n  event: added\n",
+            id="no-name",
+        ),
+        pytest.param(
+            "id: 901\nname: Broken\nurl: https://broken.example\nstatus: active\nhistory:\n- added 2026-10-30\n",
+            id="history-entry-not-a-mapping",
+        ),
+        pytest.param("id: 901\nname: Br\xf6ken\nstatus: active\n".encode("latin-1"), id="not-utf-8"),
     ],
 )
 def test_a_malformed_active_record_exits_2_naming_it(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str], record: str
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], record: str | bytes
 ) -> None:
     session = upstream(tarball({"data/dles/0901-broken.yaml": record}))
 
@@ -268,4 +307,16 @@ def test_a_malformed_active_record_exits_2_naming_it(
     captured = capsys.readouterr()
     assert status == 2
     assert "0901-broken.yaml" in captured.err
+    assert captured.out == ""
+
+
+def test_a_record_too_large_to_be_a_game_exits_2_naming_it(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    # A YAML comment compresses about 1000:1, so the archive cap alone would let it decompress into memory.
+    session = upstream(tarball({"data/dles/0904-huge.yaml": "#" * (1024 * 1024)}))
+
+    status = run(tmp_path, session=session)
+
+    captured = capsys.readouterr()
+    assert status == 2
+    assert "0904-huge.yaml is larger than" in captured.err
     assert captured.out == ""

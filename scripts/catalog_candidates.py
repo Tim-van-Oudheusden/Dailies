@@ -14,7 +14,8 @@ The Dles' text is GPL-3.0 and the catalog is CC0, so a submission's description 
 The download follows the rules of scripts/lib/urlcheck.py: https only, every redirect hop and the connected peer on
 a public address, urlcheck.TIMEOUT seconds per request, at most urlcheck.MAX_REDIRECTS redirects. The whole download
 is bounded by a deadline of urlcheck.TIMEOUT seconds; the tarball is read in memory up to MAX_ARCHIVE bytes and never
-extracted; records are parsed as safe YAML, and their text is printed as inert code spans.
+extracted, and each record is decompressed only when its tar header says it is at most MAX_RECORD bytes; records are
+parsed as safe YAML, and their text is printed as inert code spans.
 
 Usage:
     python -I scripts/catalog_candidates.py --commit SHA [--since YYYY-MM-DD] [--catalog data/v1/games.json]
@@ -56,6 +57,9 @@ UPSTREAM = "aukspot/dles"
 CATALOG = Path(__file__).resolve().parent.parent / "data" / "v1" / "games.json"
 # The whole repository is about 1.4 MB compressed (888 records, October 2026).
 MAX_ARCHIVE = 32 * 1024 * 1024
+# A record is a few hundred bytes. The tar header's size is checked before the record is decompressed into memory,
+# since gzip shrinks repetitive text about 1000:1 and MAX_ARCHIVE only bounds the compressed download.
+MAX_RECORD = 64 * 1024
 RECORDS = ("data", "dles")
 ADDED_EVENTS = frozenset({"added", "readded"})
 
@@ -126,7 +130,7 @@ def read_records(archive: bytes) -> dict[str, Any]:
     """The parsed data/dles/*.yaml records of a GitHub tarball, by file name.
 
     Raises:
-        UpstreamError: The archive is not a gzipped tarball, or a record is not valid YAML.
+        UpstreamError: The archive is not a gzipped tarball, or a record is larger than MAX_RECORD or not valid YAML.
     """
     yaml = YAML(typ="safe", pure=True)
     records: dict[str, Any] = {}
@@ -137,6 +141,9 @@ def read_records(archive: bytes) -> dict[str, Any]:
                 data = tar.extractfile(member) if member.isfile() else None
                 if data is None or path.parent.parts[1:] != RECORDS or path.suffix != ".yaml":
                     continue
+                if member.size > MAX_RECORD:
+                    msg = f"{path.name} is larger than {MAX_RECORD} bytes"
+                    raise UpstreamError(msg)
                 try:
                     records[path.name] = yaml.load(data.read().decode("utf-8"))
                 except (YAMLError, UnicodeDecodeError) as error:
