@@ -208,17 +208,28 @@ def test_force_flag_0_does_not_force(tmp_path: Path) -> None:
     assert "Catalog links" not in result.stdout
 
 
-def test_broken_links_fail_with_the_report_and_open_the_issue_in_actions(tmp_path: Path) -> None:
+def test_broken_links_warn_with_the_report_and_open_the_issue_in_actions(tmp_path: Path) -> None:
+    # A dead game is a data problem with its own `data` issue, and a one-off server error is common: it must not fail
+    # the run (#302). Only an error of the link check itself does (below).
     report = "### Link check: 1 broken links\n\n| `moviedle` | ❌ redirected-cross-domain |"
 
     result = run(tmp_path, [], FAKE_WEEKDAY="7", FAKE_LINKS_RC="1", FAKE_LINKS_REPORT=report, GITHUB_ACTIONS="true")
 
-    assert result.returncode == 1
-    assert "| Catalog links (weekly) | ❌ fail |" in result.stdout
-    assert "## Failures" in result.stdout
+    assert result.returncode == 0, result.stderr
+    assert "| Catalog links (weekly) | ⚠️ warning |" in result.stdout
+    assert "## Warnings" in result.stdout
+    assert "## Failures" not in result.stdout
     assert report in result.stdout
     assert "moviedle: redirected-cross-domain" in result.stderr
     assert (links_args(tmp_path) or "").endswith(" --open-issue")
+
+
+def test_broken_links_do_not_hide_another_failing_check(tmp_path: Path) -> None:
+    result = run(tmp_path, [HIGH_ALERT], FAKE_WEEKDAY="7", FAKE_LINKS_RC="1")
+
+    assert result.returncode == 1
+    assert "| Dependabot alerts (high+) | ❌ fail |" in result.stdout
+    assert "| Catalog links (weekly) | ⚠️ warning |" in result.stdout
 
 
 def test_a_links_check_error_fails_with_its_log(tmp_path: Path) -> None:
@@ -226,6 +237,17 @@ def test_a_links_check_error_fails_with_its_log(tmp_path: Path) -> None:
 
     assert result.returncode == 1
     assert "| Catalog links (weekly) | ❌ fail |" in result.stdout
+    assert "check_links: moviedle" in result.stdout
+
+
+def test_a_links_check_exit_1_without_a_report_fails_with_its_log(tmp_path: Path) -> None:
+    # Python exits 1 when it dies before main(), e.g. on a module the failed dependency install left out: no link was
+    # checked, so this is not a warning.
+    result = run(tmp_path, [], "--force-links", FAKE_LINKS_RC="1", FAKE_LINKS_REPORT="")
+
+    assert result.returncode == 1
+    assert "| Catalog links (weekly) | ❌ fail |" in result.stdout
+    assert "## Warnings" not in result.stdout
     assert "check_links: moviedle" in result.stdout
 
 
@@ -264,11 +286,13 @@ def test_the_compliance_issue_script_reads_the_failing_rows_of_this_report(tmp_p
     spec.loader.exec_module(compliance_issue)
 
     failing = run(tmp_path, [HIGH_ALERT], FAKE_WEEKDAY="7", FAKE_LINKS_RC="1", FAKE_DIGEST_RC="1")
+    links_error = run(tmp_path, [], FAKE_WEEKDAY="7", FAKE_LINKS_RC="2")
     passing = run(tmp_path, [], FAKE_WEEKDAY="7")
 
-    # Catalog links are left out: the link check opens its own `data` issue.
+    # Broken links are a warning row, left out: the link check opens its own `data` issue. Its error is a failure.
     assert compliance_issue.failing_checks(failing.stdout) == [
         "Dependabot alerts (high+)",
         "External data checker image is :latest",
     ]
+    assert compliance_issue.failing_checks(links_error.stdout) == ["Catalog links (weekly)"]
     assert compliance_issue.failing_checks(passing.stdout) == []

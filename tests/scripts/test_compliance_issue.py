@@ -186,16 +186,20 @@ def test_a_passing_run_without_an_open_issue_writes_nothing(tmp_path: Path, monk
     assert api.writes() == []
 
 
-def test_broken_links_alone_open_no_issue_because_the_link_check_opens_its_own(
+def test_a_failing_link_check_opens_the_issue_because_no_data_issue_covers_it(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    api = FakeGitHub([compliance_issue()])
+    # Broken links are only a warning row; a failing Catalog links row means the link check itself broke (#302).
+    api = FakeGitHub()
     links_only = report(("Dependabot alerts (high+)", True), ("Catalog links (weekly)", False))
 
     run(tmp_path, links_only, api, monkeypatch)
 
-    assert api.issues[0]["state"] == "closed"
-    assert not any(method == "POST" and path == ISSUES for method, path, _ in api.writes())
+    [(method, path, payload)] = api.writes()
+    assert (method, path) == ("POST", ISSUES)
+    assert payload is not None
+    assert payload["title"] == "ci: nightly compliance: 1 failing check"
+    assert "- Catalog links (weekly)\n" in payload["body"]
 
 
 @pytest.mark.parametrize(
