@@ -2,7 +2,7 @@
 
 One short report per ISO week about the Popular and Trending shelves in
 [`data/v1/popularity.json`](../../data/v1/popularity.json). The numbers come from deterministic Python
-(`scripts/popularity/compute.py`, described in [`data-format.md`](../data-format.md#how-method_version-2-is-computed));
+(`scripts/popularity/compute.py`, described in [`data-format.md`](../data-format.md#how-method_version-4-is-computed));
 Claude only writes the prose around them. The reports are published on GitHub Pages at
 `https://tim-van-oudheusden.github.io/Dailies/popularity/<week>.md`, and `popularity.json`'s `report` field points at
 the week's report (`../popularity/<week>.md`, relative to the JSON file).
@@ -39,5 +39,5 @@ the required checks pass (#79); no person reads the report before it is publishe
 ## Index
 
 The directory is the index: each merged data pull request adds one `<week>.md` file here, and the file names sort by
-week. This page lists no reports, because the guard lets the model write only the week's own report. No report has
-been merged yet.
+week. This page lists no reports, because the guard lets the model write only the week's own report. The first
+report is [`2026-W42.md`](2026-W42.md).
