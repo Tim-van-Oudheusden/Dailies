@@ -240,6 +240,18 @@ def test_a_links_check_error_fails_with_its_log(tmp_path: Path) -> None:
     assert "check_links: moviedle" in result.stdout
 
 
+def test_a_links_check_error_with_a_report_puts_the_report_under_failures(tmp_path: Path) -> None:
+    # Exit 2 after the links were checked (e.g. the `data` issue could not be written): the report is the evidence.
+    report = "### Link check: 1 broken links\n\n| `moviedle` | ❌ redirected-cross-domain |"
+
+    result = run(tmp_path, [], "--force-links", FAKE_LINKS_RC="2", FAKE_LINKS_REPORT=report)
+
+    assert result.returncode == 1
+    assert "| Catalog links (weekly) | ❌ fail |" in result.stdout
+    assert "## Warnings" not in result.stdout
+    assert result.stdout.index("## Failures") < result.stdout.index(report)
+
+
 def test_a_links_check_exit_1_without_a_report_fails_with_its_log(tmp_path: Path) -> None:
     # Python exits 1 when it dies before main(), e.g. on a module the failed dependency install left out: no link was
     # checked, so this is not a warning.
