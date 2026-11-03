@@ -38,6 +38,8 @@ POPULARITY_REPORT = "scripts/popularity-report.sh"
 POPULARITY_REPORT_TESTS = "tests/scripts/test_popularity_report.py"
 NIGHTLY_COMPLIANCE = "scripts/nightly-compliance.sh"
 NIGHTLY_COMPLIANCE_TESTS = "tests/scripts/test_nightly_compliance.py"
+MERGE_QUEUE = "scripts/merge-queue.sh"
+MERGE_QUEUE_TESTS = "tests/scripts/test_merge_queue.py"
 
 MUTANTS = [
     Mutant(
@@ -88,6 +90,34 @@ MUTANTS = [
         'details+="$(cat "$links_md")"',
         'warnings+="$(cat "$links_md")"',
         f"{NIGHTLY_COMPLIANCE_TESTS}::test_a_links_check_error_with_a_report_puts_the_report_under_failures",
+    ),
+    Mutant(
+        "the queue asks again while GitHub answers UNKNOWN for the merge state",
+        MERGE_QUEUE,
+        '[ "$state" != UNKNOWN ] && break',
+        "break",
+        f"{MERGE_QUEUE_TESTS}::test_next_asks_again_while_github_is_still_computing_the_merge_state",
+    ),
+    Mutant(
+        "the queue stops asking for the merge state after three answers",
+        MERGE_QUEUE,
+        "for attempt in 1 2 3; do",
+        "for attempt in 1 2 3 4; do",
+        f"{MERGE_QUEUE_TESTS}::test_next_gives_up_on_a_merge_state_still_unknown_after_three_asks",
+    ),
+    Mutant(
+        "the queue rates a pull request from the merge base, as tier-classifier.yml does",
+        MERGE_QUEUE,
+        '"HEAD...$1"',
+        '"HEAD..$1"',
+        f"{MERGE_QUEUE_TESTS}::test_next_rates_only_the_pull_requests_own_changes_when_main_moved_since_it_branched",
+    ),
+    Mutant(
+        "a linked issue the queue could not close is named in a warning",
+        MERGE_QUEUE,
+        '|| echo "::warning title=Merge queue::could not close',
+        '|| true "::warning title=Merge queue::could not close',
+        f"{MERGE_QUEUE_TESTS}::test_land_still_starts_main_push_workflows_and_the_next_run_when_closing_an_issue_fails",
     ),
 ]
 

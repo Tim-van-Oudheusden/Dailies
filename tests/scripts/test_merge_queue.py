@@ -31,7 +31,8 @@ WORKFLOW_CHANGE = {"dailies/core/search.py": "x = 1\n", ".github/workflows/ci.ym
 
 # Stands in for the gh CLI. `gh pr list` and `gh pr view <n>` answer from $FAKE_DIR/prs.json, filtered through `--jq`
 # like gh does. Every other call is appended to $FAKE_DIR/calls.log, one line per call. A call fails when it starts
-# with the text in $FAKE_DIR/fail.
+# with the text in $FAKE_DIR/fail. While $FAKE_DIR/unknown-<n> holds a count above 0, asking for the merge state of
+# pull request <n> answers UNKNOWN, as GitHub does before it has computed it, and takes one off the count.
 FAKE_GH = r"""#!/usr/bin/env bash
 set -euo pipefail
 fails() {
@@ -53,7 +54,12 @@ if [ "$1" = pr ] && { [ "$2" = list ] || [ "$2" = view ]; }; then
       *) number="$1"; shift ;;
     esac
   done
-  if [ "$sub" = view ]; then
+  countdown="$FAKE_DIR/unknown-$number"
+  left="$(cat "$countdown" 2>/dev/null || echo 0)"
+  if [ "$sub" = view ] && [ "$filter" = .mergeStateStatus ] && [ "$left" -gt 0 ]; then
+    echo $((left - 1)) > "$countdown"
+    echo UNKNOWN
+  elif [ "$sub" = view ]; then
     jq -r --argjson n "$number" ".[] | select(.number == \$n) | $filter" "$FAKE_DIR/prs.json"
   else
     jq -r "$filter" "$FAKE_DIR/prs.json"
@@ -140,6 +146,13 @@ class Queue:
 
     def fail_calls_starting_with(self, prefix: str) -> None:
         (self.work / "fail").write_text(prefix, encoding="utf-8")
+
+    def answer_unknown_merge_state(self, number: int, times: int) -> None:
+        """GitHub answers UNKNOWN for the merge state of <number> the next <times> asks; `sleep` returns at once."""
+        (self.work / f"unknown-{number}").write_text(f"{times}\n", encoding="utf-8")
+        sleep = self.work / "sleep"
+        sleep.write_text("#!/bin/sh\n", encoding="utf-8")
+        sleep.chmod(0o755)
 
     def move_main(self) -> None:
         commit_files(self.seed, {"docs/other.md": "other\n"}, "other")
@@ -278,6 +291,43 @@ def test_next_rates_a_file_moved_out_of_a_high_risk_path_by_its_old_path(tmp_pat
     assert result.outputs == {}
 
 
+def test_next_rates_only_the_pull_requests_own_changes_when_main_moved_since_it_branched(tmp_path: Path) -> None:
+    # A workflow change merged to main after the pull request branched is not part of the pull request:
+    # tier-classifier.yml rates BASE...HEAD, from the merge base, and so does the queue.
+    queue = queue_of(tmp_path, [{"number": 5, "files": APP_CHANGE}])
+    git(queue.seed, "switch", "--quiet", "main")
+    commit_files(queue.seed, {".github/workflows/ci.yml": "name: CI\n"}, "workflow")
+    git(queue.seed, "push", "--quiet", str(queue.origin), "main")
+    git(queue.clone, "pull", "--quiet")
+
+    result = queue.run("next")
+
+    assert result.status == 0, result.stderr
+    assert result.outputs == {"number": "5", "head": queue.heads[5], "main": queue.main}
+
+
+def test_next_asks_again_while_github_is_still_computing_the_merge_state(tmp_path: Path) -> None:
+    # GitHub answers UNKNOWN until it has computed the merge state; taking the first answer would skip a ready pull
+    # request until something starts the queue again.
+    queue = queue_of(tmp_path, [{"number": 7}])
+    queue.answer_unknown_merge_state(7, times=2)
+
+    result = queue.run("next")
+
+    assert result.status == 0, result.stderr
+    assert result.outputs["number"] == "7"
+
+
+def test_next_gives_up_on_a_merge_state_still_unknown_after_three_asks(tmp_path: Path) -> None:
+    queue = queue_of(tmp_path, [{"number": 7}])
+    queue.answer_unknown_merge_state(7, times=3)
+
+    result = queue.run("next")
+
+    assert result.status == 0, result.stderr
+    assert result.outputs == {}
+
+
 def test_next_picks_nothing_when_no_pull_request_is_ready(tmp_path: Path) -> None:
     result = queue_of(tmp_path, [{"number": 4, "mergeStateStatus": "BLOCKED"}]).run("next")
 
@@ -374,6 +424,10 @@ def test_land_still_starts_main_push_workflows_and_the_next_run_when_closing_an_
 
     assert result.status == 0, result.stderr
     assert len([call for call in result.calls if call.startswith("issue close ")]) == 2
+    assert (
+        "::warning title=Merge queue::could not close https://github.com/owner/dailies/issues/12 after merging #7"
+        in result.stdout
+    )
     assert runs == sorted(f"workflow run {name} --ref main" for name in [*main_push_workflows(), "merge-queue.yml"])
 
 
