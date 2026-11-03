@@ -9,17 +9,16 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-02. #331 on `test/331-shell-mutants`.
+2026-11-03. #337 on `test/337-manifest-sandbox-parity`.
 
-- **Outcome:** the owner accepted the shell-mutant gate. `tests/scripts/test_shell_mutants.py` copies the files git
-  sees to `tmp_path`, applies one `(script, old, new, node)` row and requires the node to exit 1; a control requires
-  each killing node to pass on an unmutated copy. Rows: the four #198 mutants of `scripts/popularity-report.sh` plus
-  its `--weeks` guard, and two mutants of the exit-2-with-a-report branch of `scripts/nightly-compliance.sh`, killed
-  by the new `test_a_links_check_error_with_a_report_puts_the_report_under_failures` (both survived the 22 nightly
-  tests before it). Documented in `docs/testing.md#shell-mutants`.
-- **Open follow-ups:** none filed; new rows go in with the test that kills them.
+- **Outcome:** `tests/tooling/test_manifest_parity.py` requires the Devel manifest to equal the release manifest once
+  the keys that differ on purpose are removed (top-level `id`, `tags`, `desktop-file-name-suffix`; the `dailies`
+  module's `run-tests`, `config-opts`, `sources`). Review on PR #338 turned the first allow-list (`finish-args`,
+  `cleanup`) into this deny-list. Checked against 16 one-manifest mutants (permissions, cleanup, `command`, `sdk`,
+  `runtime`, SDK extensions, build options, an extra module, app-module keys): all fail; a release tag bump, an extra
+  release `config-opts` entry and dropping Devel `run-tests` still pass. Documented in CONTRIBUTING's quality-gates
+  paragraph.
+- **Open follow-ups:** none.
 - **Gotchas:**
-  - The inner pytest drops the outer `PYTEST_*`, `COV_CORE_*` and `COVERAGE_*` variables and gets its own
-    `--basetemp`, so `pytest --cov` and the outer `tmp_path` are not disturbed.
   - Host Python 3.11 cannot import `dailies/core` (use a 3.13 venv); the host `jq` is jaq, which fails the
     `pr-metrics`/`auto-qa-tuner`/`quality-report` tests on `main` too.

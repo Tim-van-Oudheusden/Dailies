@@ -156,7 +156,10 @@ the `Flatpak (x86_64)` job, which the `main` ruleset requires, runs the Flatpak 
 `flatpak-builder-lint` on the manifest and the exported repo. [`docs/testing.md`](docs/testing.md) says which test runs
 where. The installed app runs from the files `dailies/meson.build` installs, not from the checkout, so a new module goes
 into its `install_data` list too: `tests/tooling/test_meson_install.py` fails `pytest` when one is missing, before the
-Flatpak job's launch test would.
+Flatpak job's launch test would. That job builds only the Devel manifest, so the release manifest repeats its build
+and sandbox (`runtime`, `sdk`, `command`, `finish-args`, `cleanup`, modules): change them in both manifests in one pull
+request. `tests/tooling/test_manifest_parity.py` fails while the two differ anywhere but the keys it lists as differing
+on purpose; a new intentional difference is added to that list in the same pull request.
 
 The `main` ruleset also requires the **Unit-test coverage floors** check (`.github/workflows/coverage-gate.yml`): it
 runs `pytest --cov --cov-report=xml` (measuring the roots in `[tool.coverage.run] source` in `pyproject.toml`) and fails
