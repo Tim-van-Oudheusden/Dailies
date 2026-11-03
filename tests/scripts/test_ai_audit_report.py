@@ -132,6 +132,45 @@ def test_ledger_follows_merge_time_not_pr_number() -> None:
     assert [row.split(" | ")[0] for row in rows(result, "Ledger")] == ["| #12", "| #11"]
 
 
+def test_ledger_lists_prs_merged_at_the_same_time_by_number() -> None:
+    result = report([pr(14), pr(13)])
+
+    assert [row.split(" | ")[0] for row in rows(result, "Ledger")] == ["| #13", "| #14"]
+
+
+def test_a_signature_counts_only_at_the_start_of_a_line() -> None:
+    # A body that quotes another pull request's signature is not signed by it.
+    body = "Follows #3, which ended:\n\n> — omp (Claude Code), model=anthropic/claude-opus-5-5\n"
+    result = report([pr(15, branch="claude/issue-15", body=body)])
+
+    (row,) = rows(result, "Ledger")
+    assert row.startswith("| #15 | 2026-10-10 12:00 | Claude Code (CI) | — | — |"), row
+
+
+@pytest.mark.parametrize("branch", ["claudette/x", "dependabot-config"])
+def test_a_source_branch_prefix_includes_its_slash(branch: str) -> None:
+    result = report([pr(16, branch=branch)])
+
+    (row,) = rows(result, "Ledger")
+    assert row.split(" | ")[2] == "Other", row
+
+
+def test_a_pr_with_no_body_is_attributed_by_its_branch() -> None:
+    # The REST API reports an empty body as null.
+    result = report([pr(17, branch="claude/issue-17", body=None)])
+
+    assert result.returncode == 0, result.stderr
+    (row,) = rows(result, "Ledger")
+    assert row.split(" | ")[2] == "Claude Code (CI)", row
+
+
+def test_a_merge_with_no_recorded_merger_shows_a_dash_in_the_ledger() -> None:
+    result = report([pr(18, merged_by=None)])
+
+    (row,) = rows(result, "Ledger")
+    assert row.split(" | ")[6] == "—", row
+
+
 def test_hive_forge_app_is_hive_even_without_a_signature() -> None:
     # gh reports a GitHub App author as app/<slug>; the REST API as <slug>[bot].
     result = report(
@@ -198,6 +237,8 @@ def test_input_that_is_not_a_list_fails_without_output() -> None:
     [
         pytest.param(["--since"], id="since without a value"),
         pytest.param(["--since", "1 Oct"], id="malformed date"),
+        pytest.param(["--since", "2026-10-01x"], id="date with trailing text"),
+        pytest.param(["--since", "x2026-10-01"], id="date with leading text"),
         pytest.param(["--days", "7"], id="unknown option"),
         pytest.param(["--since", "2026-10-01", "--days", "7"], id="extra option"),
     ],

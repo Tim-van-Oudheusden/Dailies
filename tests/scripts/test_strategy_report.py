@@ -141,6 +141,12 @@ def test_tallies_acmm_gap_issues_per_level_and_names_the_open_ones(tmp_path: Pat
     ]
 
 
+def test_counts_an_acmm_gap_whose_title_leaves_out_add(tmp_path: Path) -> None:
+    result = report(tmp_path, [issue(1, title="[ACMM L2] Coverage floors", labels=("acmm",))])
+
+    assert rows(result, "ACMM progress") == ["| L2 | 0 | 1 | #1 Coverage floors |"]
+
+
 def test_states_the_reporting_window(tmp_path: Path) -> None:
     assert "Since 2026-10-01." in report(tmp_path, []).stdout
 
@@ -158,12 +164,26 @@ def test_fails_naming_the_input_it_cannot_read(tmp_path: Path) -> None:
 
 
 def test_fails_on_input_that_is_not_a_list(tmp_path: Path) -> None:
-    assert report(tmp_path, {"not": "a list"}).returncode != 0
+    result = report(tmp_path, {"not": "a list"})
+
+    assert result.returncode != 0
+    assert result.stdout == ""
+    assert "expected a JSON array of issues" in result.stderr
 
 
 @pytest.mark.parametrize(
     "args",
-    [["--since", "2026-10-01", "--issues", "a.json"], ["--issues", "a.json", "--prs"], ["--bogus"]],
+    [
+        ["--since", "2026-10-01", "--issues", "a.json"],
+        ["--since", "2026-10-01", "--prs", "b.json"],
+        ["--issues", "a.json", "--prs", "b.json"],
+        ["--issues", "a.json", "--prs"],
+        ["--since", "2026-10-01", "--issues"],
+        ["--since"],
+        ["--bogus"],
+        # Usage is checked before the inputs are read, so an unknown flag is not skipped over.
+        ["--since", "2026-10-01", "--issues", "a.json", "--prs", "b.json", "--bogus"],
+    ],
 )
 def test_rejects_missing_or_valueless_flags_with_a_usage_line(args: list[str]) -> None:
     result = run(*args)

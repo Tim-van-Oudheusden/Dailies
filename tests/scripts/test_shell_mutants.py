@@ -40,6 +40,10 @@ NIGHTLY_COMPLIANCE = "scripts/nightly-compliance.sh"
 NIGHTLY_COMPLIANCE_TESTS = "tests/scripts/test_nightly_compliance.py"
 MERGE_QUEUE = "scripts/merge-queue.sh"
 MERGE_QUEUE_TESTS = "tests/scripts/test_merge_queue.py"
+STRATEGY_REPORT = "scripts/strategy-report.sh"
+STRATEGY_REPORT_TESTS = "tests/scripts/test_strategy_report.py"
+AI_AUDIT_REPORT = "scripts/ai-audit-report.sh"
+AI_AUDIT_REPORT_TESTS = "tests/scripts/test_ai_audit_report.py"
 
 MUTANTS = [
     Mutant(
@@ -118,6 +122,111 @@ MUTANTS = [
         '|| echo "::warning title=Merge queue::could not close',
         '|| true "::warning title=Merge queue::could not close',
         f"{MERGE_QUEUE_TESTS}::test_land_still_starts_main_push_workflows_and_the_next_run_when_closing_an_issue_fails",
+    ),
+    Mutant(
+        "--since with no value is a usage error",
+        STRATEGY_REPORT,
+        '--since) [ "$#" -ge 2 ] || usage; ',
+        "--since) ",
+        f"{STRATEGY_REPORT_TESTS}::test_rejects_missing_or_valueless_flags_with_a_usage_line",
+    ),
+    Mutant(
+        "--issues with no value is a usage error",
+        STRATEGY_REPORT,
+        '--issues) [ "$#" -ge 2 ] || usage; ',
+        "--issues) ",
+        f"{STRATEGY_REPORT_TESTS}::test_rejects_missing_or_valueless_flags_with_a_usage_line",
+    ),
+    Mutant(
+        "an unknown flag is a usage error, even after a complete command",
+        STRATEGY_REPORT,
+        "*) usage ;;",
+        "*) shift ;;",
+        f"{STRATEGY_REPORT_TESTS}::test_rejects_missing_or_valueless_flags_with_a_usage_line",
+    ),
+    Mutant(
+        "--since is required",
+        STRATEGY_REPORT,
+        '[ -z "$since" ] || ',
+        "",
+        f"{STRATEGY_REPORT_TESTS}::test_rejects_missing_or_valueless_flags_with_a_usage_line",
+    ),
+    Mutant(
+        "--issues is required",
+        STRATEGY_REPORT,
+        '[ -z "$issues" ] || ',
+        "",
+        f"{STRATEGY_REPORT_TESTS}::test_rejects_missing_or_valueless_flags_with_a_usage_line",
+    ),
+    Mutant(
+        "an input that is not a JSON array fails naming what it expected",
+        STRATEGY_REPORT,
+        'if type != "array" then error',
+        "if false then error",
+        f"{STRATEGY_REPORT_TESTS}::test_fails_on_input_that_is_not_a_list",
+    ),
+    Mutant(
+        "an ACMM gap title may leave out Add",
+        STRATEGY_REPORT,
+        "(?:Add )?",
+        "Add ",
+        f"{STRATEGY_REPORT_TESTS}::test_counts_an_acmm_gap_whose_title_leaves_out_add",
+    ),
+    Mutant(
+        "a --since date with trailing text is a usage error",
+        AI_AUDIT_REPORT,
+        "[0-9]{2}$ ]]",
+        "[0-9]{2} ]]",
+        f"{AI_AUDIT_REPORT_TESTS}::test_usage_errors",
+    ),
+    Mutant(
+        "a --since date with leading text is a usage error",
+        AI_AUDIT_REPORT,
+        "=~ ^[0-9]{4}",
+        "=~ [0-9]{4}",
+        f"{AI_AUDIT_REPORT_TESTS}::test_usage_errors",
+    ),
+    Mutant(
+        "a pull request with a null body is attributed, not an error",
+        AI_AUDIT_REPORT,
+        '(.body // "")',
+        ".body",
+        f"{AI_AUDIT_REPORT_TESTS}::test_a_pr_with_no_body_is_attributed_by_its_branch",
+    ),
+    Mutant(
+        "an omp signature counts only at the start of a line",
+        AI_AUDIT_REPORT,
+        'test("^— omp',
+        'test("— omp',
+        f"{AI_AUDIT_REPORT_TESTS}::test_a_signature_counts_only_at_the_start_of_a_line",
+    ),
+    Mutant(
+        "a claude/ branch prefix includes its slash",
+        AI_AUDIT_REPORT,
+        'startswith("claude/")',
+        'startswith("claude")',
+        f"{AI_AUDIT_REPORT_TESTS}::test_a_source_branch_prefix_includes_its_slash",
+    ),
+    Mutant(
+        "a dependabot/ branch prefix includes its slash",
+        AI_AUDIT_REPORT,
+        'startswith("dependabot/")',
+        'startswith("dependabot")',
+        f"{AI_AUDIT_REPORT_TESTS}::test_a_source_branch_prefix_includes_its_slash",
+    ),
+    Mutant(
+        "merges at the same time are listed by pull request number",
+        AI_AUDIT_REPORT,
+        "sort_by(.mergedAt, .number)",
+        "sort_by(.mergedAt)",
+        f"{AI_AUDIT_REPORT_TESTS}::test_ledger_lists_prs_merged_at_the_same_time_by_number",
+    ),
+    Mutant(
+        "a merge with no recorded merger shows a dash in the ledger",
+        AI_AUDIT_REPORT,
+        ".mergedBy.login // none | cell",
+        ".mergedBy.login | cell",
+        f"{AI_AUDIT_REPORT_TESTS}::test_a_merge_with_no_recorded_merger_shows_a_dash_in_the_ledger",
     ),
 ]
 
