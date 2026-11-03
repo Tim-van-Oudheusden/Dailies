@@ -97,16 +97,22 @@ def worldle(**changes: object) -> Game:
     return Game(**{**fields, **changes})
 
 
-def run_until(condition: Callable[[], bool], seconds: float = 10) -> None:
+def iterate_until(condition: Callable[[], bool], seconds: float) -> bool:
     context = GLib.MainContext.default()
     deadline = GLib.get_monotonic_time() + int(seconds * 1_000_000)
     while not condition() and GLib.get_monotonic_time() < deadline:
         context.iteration(False)
+    return condition()
+
+
+def run_until(condition: Callable[[], bool], seconds: float = 10) -> None:
+    # Fails on timeout: the asserts after a wait would otherwise check the state before it, and pass (#340).
+    assert iterate_until(condition, seconds), "the main loop did not reach the awaited state"
 
 
 def settle() -> None:
     # Long enough for a request and a decode that should not happen to have happened.
-    run_until(lambda: False, 0.5)
+    iterate_until(lambda: False, 0.5)
 
 
 class IconsTest(unittest.TestCase):
