@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # PR acceptance metric: of the pull requests closed in the reporting window,
 # how many were merged vs. closed without merging, split by agent-authored vs.
-# other PRs. Reads the JSON of `gh pr list --json number,mergedAt,headRefName,author`
+# other PRs. Reads the JSON of `gh pr list --json number,mergedAt,headRefName,author,body`
 # on stdin and prints a Markdown table.
 #
 # usage: pr-metrics.sh --since YYYY-MM-DD --days N
-# Agent-authored: head branch claude/* or author hive-worker-bee, the Hive GitHub App
-# (formerly hive-forge-app; both names count). gh pr list reports a GitHub App
-# as app/<slug>, the REST API as <slug>[bot]; both forms are accepted.
+# Agent-authored: the sources Hive and Claude Code (CI) of scripts/lib/pr-source.jq.
 set -uo pipefail
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 usage() {
   echo "usage: $0 --since YYYY-MM-DD --days N" >&2
@@ -29,10 +29,8 @@ if [ -z "$since" ] || [ -z "$days" ]; then
   usage
 fi
 
-jq -r --arg since "$since" --arg days "$days" '
-  def agent: ((.headRefName // "") | startswith("claude/"))
-    or ((.author.login // "")
-      | IN("app/hive-worker-bee", "hive-worker-bee[bot]", "app/hive-forge-app", "hive-forge-app[bot]"));
+jq -r -L "$HERE/lib" --arg since "$since" --arg days "$days" '
+  include "pr-source";
   def row($label; $set):
     ($set | length) as $total
     | ($set | map(select(.mergedAt != null)) | length) as $merged
@@ -41,8 +39,8 @@ jq -r --arg since "$since" --arg days "$days" '
          else "\(($merged * 1000 / $total | round) / 10)%" end)
       + " |";
   if type != "array" then error("expected a JSON array of pull requests") else . end
-  | map(select(agent)) as $agent
-  | map(select(agent | not)) as $other
+  | map(select(agent_authored)) as $agent
+  | map(select(agent_authored | not)) as $other
   | "## PR acceptance metric",
     "",
     "PRs closed since \($since) (last \($days) days).",
@@ -53,5 +51,5 @@ jq -r --arg since "$since" --arg days "$days" '
     row("Other"; $other),
     row("**All**"; .),
     "",
-    "Agent: head branch `claude/*` or author `hive-worker-bee` (GitHub App, formerly `hive-forge-app`)."
+    "Agent: head branch `claude/*`, author `hive-worker-bee` (GitHub App, formerly `hive-forge-app`), or a Hive signature in the PR body."
 '

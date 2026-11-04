@@ -14,14 +14,15 @@ pytestmark = pytest.mark.skipif(BASH is None or shutil.which("jq") is None, reas
 MERGED = "2026-10-01T12:00:00Z"
 
 
-def pr(number: int, branch: str | None, login: str | None, *, merged: bool) -> dict:
-    """One entry of `gh pr list --json number,mergedAt,headRefName,author`."""
-    return {
+def pr(number: int, branch: str | None, login: str | None, *, merged: bool, body: str | None = None) -> dict:
+    """One entry of `gh pr list --json number,mergedAt,headRefName,author`, with `body` too when one is given."""
+    entry = {
         "number": number,
         "mergedAt": MERGED if merged else None,
         "headRefName": branch,
         "author": None if login is None else {"login": login},
     }
+    return entry if body is None else {**entry, "body": body}
 
 
 def metrics(stdin: str, *args: str) -> subprocess.CompletedProcess[str]:
@@ -59,7 +60,8 @@ def test_splits_agent_and_other_pull_requests() -> None:
         "| Other | 3 | 1 | 2 | 33.3% |\n"
         "| **All** | 9 | 5 | 4 | 55.6% |\n"
         "\n"
-        "Agent: head branch `claude/*` or author `hive-worker-bee` (GitHub App, formerly `hive-forge-app`).\n"
+        "Agent: head branch `claude/*`, author `hive-worker-bee` (GitHub App, formerly `hive-forge-app`), "
+        "or a Hive signature in the PR body.\n"
     )
 
 
@@ -82,6 +84,41 @@ def test_all_merged_is_a_full_rate() -> None:
 def test_a_branch_named_like_claude_without_the_slash_is_not_an_agent() -> None:
     result = metrics(
         json.dumps([pr(1, "claudette/1-x", "someone", merged=True)]), "--since", "2026-09-17", "--days", "7"
+    )
+
+    assert "| Agent | 0 | 0 | 0 | n/a |" in result.stdout
+    assert "| Other | 1 | 1 | 0 | 100% |" in result.stdout
+
+
+@pytest.mark.parametrize(
+    "signature",
+    [
+        pytest.param("— hive: agent=quality backend=claude model=claude-opus-5-5 effort=high", id="hive"),
+        pytest.param("— omp (Claude Code), model=claude-opus-5-5", id="omp"),
+    ],
+)
+def test_a_signed_body_is_an_agent_on_any_branch_and_under_any_author(signature: str) -> None:
+    # A contributor run opens its PR under the maintainer's account on a <type>/<N> branch; only the signature tells.
+    prs = [pr(1, "test/1-x", "tim", merged=True, body=f"Fixes #1\n\n{signature}")]
+
+    result = metrics(json.dumps(prs), "--since", "2026-09-17", "--days", "7")
+
+    assert "| Agent | 1 | 1 | 0 | 100% |" in result.stdout
+    assert "| Other | 0 | 0 | 0 | n/a |" in result.stdout
+
+
+def test_a_body_without_a_signature_leaves_the_split_to_the_branch_and_author() -> None:
+    prs = [pr(1, "feat/1-x", "tim", merged=True, body="Fixes #1"), pr(2, "feat/2-y", "tim", merged=True, body=None)]
+
+    result = metrics(json.dumps(prs), "--since", "2026-09-17", "--days", "7")
+
+    assert "| Agent | 0 | 0 | 0 | n/a |" in result.stdout
+    assert "| Other | 2 | 2 | 0 | 100% |" in result.stdout
+
+
+def test_a_dependabot_pull_request_is_not_agent_work() -> None:
+    result = metrics(
+        json.dumps([pr(1, "dependabot/pip/x", "dependabot[bot]", merged=True)]), "--since", "2026-09-17", "--days", "7"
     )
 
     assert "| Agent | 0 | 0 | 0 | n/a |" in result.stdout
