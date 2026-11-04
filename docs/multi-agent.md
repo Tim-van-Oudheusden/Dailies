@@ -6,7 +6,8 @@ repository's own workflows. None of them directs the others. They coordinate thr
 - **Issues** are the one work queue.
 - **Labels and assignees** say who holds an issue and which stage it is in.
 - **Pull requests** are the only way into `main`, and `main` is protected by the ruleset. The [merge queue](#merge-queue)
-  or the maintainer merges them.
+  or the maintainer merges them, and Hive's merge sweep may merge low- and medium-risk ones (see
+  [Merging](#merging)).
 
 This page maps who does what and how work moves between them. [`AGENTS.md`](../AGENTS.md) holds the rules each agent
 follows, and [`docs/security/SECURITY-AI.md`](security/SECURITY-AI.md) sets out the trust boundaries. How to monitor
@@ -107,15 +108,17 @@ broken-links issue is labelled `data`. Whatever opens it, an issue goes into the
 
 Only pull requests change `main`. The ruleset in `.github/rulesets/main.json` requires the `PR review rubric`,
 `Build, lint, test`, `Unit-test coverage floors`, `Static checks` and `Flatpak (x86_64)` checks and allows merge commits
-only. The [merge queue](#merge-queue) merges ready pull requests with a merge commit; the maintainer merges the rest.
+only. The [merge queue](#merge-queue) merges ready pull requests with a merge commit, and Hive's merge sweep may
+merge low- and medium-risk ones; the maintainer merges the rest.
 The weekly popularity pull request merges itself (`AUTO_MERGE_JOBS` in `tests/tooling/test_workflows.py`); catalog and
 link-status pull requests carry the `automated` label, which keeps them out of the queue, so the maintainer merges
 them.
 
 `tier-classifier.yml` posts each pull request's risk tier ([`docs/risk-tiers.md`](risk-tiers.md)). A `high` change, for
 example to `.github/workflows/**`, `AGENTS.md` or `.claude/**`, needs a line-by-line review whoever wrote it, so the
-queue never merges one: the maintainer does, after that review. Hive's review and merge stages (`050` to `100`)
-describe its own lane; they do not replace the ruleset.
+queue never merges one: the maintainer does, after that review. Hive's merge sweep may merge low- and medium-risk
+pull requests only, and none labelled `hold`, `blocked`, `sentinel-alert` or `automated` (#363). Hive's review and merge
+stages (`050` to `100`) describe its own lane; they do not replace the ruleset.
 
 ### Merge queue
 

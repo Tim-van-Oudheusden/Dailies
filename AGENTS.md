@@ -28,7 +28,8 @@ gh pr create --title "type(scope): summary (#<number>)" --body-file <file>   # L
   `main` as `<type>/<number>-<slug>` (e.g. `feat/12-game-search`)
 - When done: push the branch and open a pull request whose body says `Fixes #<number>`; once the required checks
   pass, the merge queue (`docs/multi-agent.md#merge-queue`) merges it, or the maintainer does if it is high risk or
-  labelled `hold`, `blocked`, `sentinel-alert` or `automated`; the merge closes the issue
+  labelled `hold`, `blocked`, `sentinel-alert` or `automated`. Hive's merge sweep may also merge a low- or medium-risk
+  pull request; no other agent merges. The merge closes the issue
 
 ## Session Completion
 

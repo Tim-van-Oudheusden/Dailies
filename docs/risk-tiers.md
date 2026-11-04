@@ -4,8 +4,8 @@ Every pull request is classified into one of three risk tiers from the paths it 
 `.github/workflows/tier-classifier.yml` runs `scripts/tier-classify.sh` on each PR and posts the tier, plus every
 changed file with its own tier, to the `Risk tier` job summary. The classification never fails the run: it tells
 reviewers how closely to look, and it decides who merges. The [merge queue](multi-agent.md#merge-queue) merges low- and
-medium-risk pull requests once their required checks pass, so review them before then or add `hold`. It leaves
-high-risk pull requests for the maintainer to merge after the review below.
+medium-risk pull requests once their required checks pass, and Hive's merge sweep may do the same, so review them
+before then or add `hold`. The maintainer merges high-risk pull requests after the review below.
 
 The **highest tier of any changed file wins**, so one workflow edit makes the whole PR high risk. A path that matches no
 rule is **medium**, and medium merges without a human review, so a new kind of file that configures a gate, the build

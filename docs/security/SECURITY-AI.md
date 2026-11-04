@@ -138,7 +138,7 @@ Enforced by `.claude/settings.json` (see the safety layers in `CONTRIBUTING.md`)
 | `git push --force` / `-f`, `git commit --no-verify` | Denied |
 | `sudo`, `rm -rf` on `/` or `~` | Denied |
 | `git rebase`, `git reset`, `git clean`, `git branch -D` | Needs confirmation |
-| `gh pr merge` | Needs confirmation; agents never merge their own PRs (the merge queue workflow merges, see `docs/multi-agent.md`) |
+| `gh pr merge` | Needs confirmation. An agent merges a PR only through Hive's merge sweep, a rule this setting does not enforce: the sweep may merge low- and medium-risk PRs, including ones the Hive App wrote, and never a high-risk PR or one labelled `hold`, `blocked`, `sentinel-alert` or `automated` (otherwise the merge queue workflow or the maintainer merges, see `docs/multi-agent.md`) |
 
 Personal `.claude/settings.local.json` overrides may add permissions but cannot lift the project's deny rules.
 
@@ -150,10 +150,11 @@ Agent changes go through the same gates as human ones, with no shortcuts:
   (`.github/workflows/ci.yml`) runs the quality gates, which include the `tests/tooling` tests that pin the workflows'
   security invariants. The PR review rubric (`.github/workflows/review.yml`) runs as well.
 - The merge queue (`.github/workflows/merge-queue.yml`) merges low- and medium-risk PRs once their required checks
-  pass; review them before then or add `hold`. A human reviews and merges every high-risk PR
-  ([`docs/risk-tiers.md`](../risk-tiers.md)), every PR labelled `blocked` or `sentinel-alert`, and every `automated`
-  one except the weekly popularity PR, which merges itself. The queue's `verify` job is the only one that runs a PR's
-  code, with a read-only token; `pick`, `land` and `reject` run `main`'s scripts. Look harder at changes that touch:
+  pass, and Hive's merge sweep may also merge them; review them before then or add `hold`.
+  A human reviews and merges every high-risk PR ([`docs/risk-tiers.md`](../risk-tiers.md)), every PR labelled `hold`,
+  `blocked` or `sentinel-alert`, and every `automated` one except the weekly popularity PR, which merges itself. The
+  queue's `verify` job is the only one that runs a PR's code, with a read-only token; `pick`, `land` and `reject` run
+  `main`'s scripts. Look harder at changes that touch:
   - `.github/workflows/`: keep `permissions:` least-privilege (the reviewed scopes are policy as code in
     `.github/policies/workflow-permissions.yml`, which `tests/tooling/test_workflows.py` enforces). Don't add
     `pull_request_target` to a job that checks out or runs PR code, and
