@@ -87,7 +87,8 @@ def change(old: str, new: str) -> Change:
     A query that extends the old one can only drop matches, one the old one extends can only add matches, as long as
     the longer of the two cannot match with a typo: "wxrdle" finds Wordle by typo, "wxrd" finds nothing. A query
     containing the old one elsewhere than at its start only narrows if the old one is a single word: "is n" starts the
-    words of "Island Numbers", "s n" occurs nowhere in it.
+    words of "Island Numbers", "s n" occurs nowhere in it. Nor does a query without letters or digits narrow to one
+    with them: "-" only matches as literal text, "-w" also matches Worldle by word start.
     """
     old, new = _parse(old).needle, _parse(new).needle
     if old == new:
@@ -101,7 +102,8 @@ def change(old: str, new: str) -> Change:
 
 def _narrows(short: str, long: str) -> bool:
     """Whether every game that matches the query `long` also matches the query `short`."""
-    if _parse(long).typos:
+    parsed = _parse(long)
+    if parsed.typos or (short and parsed.words and not _parse(short).words):
         return False
     return long.startswith(short) or (short in long and _WORD.fullmatch(short) is not None)
 
