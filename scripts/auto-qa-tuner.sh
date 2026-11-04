@@ -64,7 +64,7 @@ fi
 
 # Coverage rows look like `| core | 97.50% | 93.10% |` (module, lines, branches). A cell without a percentage (a
 # failed run's `❌ n/a`, `no code yet`, `no branches`) leaves that metric unobserved.
-# Proposals are computed in hundredths and rounded before flooring, so float error (70.1 - 0.1 = 69.999...) cannot
+# Proposals are computed in hundredths and rounded before flooring, so float error (64.1 - 0.1 = 63.999...) cannot
 # drop a value below a whole percent. Only the proposal is rounded down, never the current floor, so a fractional floor
 # (79.99) is kept rather than lowered to 79.
 tune="$(
