@@ -17,8 +17,8 @@ agent work, debug it when it gets stuck and stop it is in [`ai-ops-runbook.md`](
 | Actor | Runs as | Takes work from | Produces |
 | --- | --- | --- | --- |
 | Maintainer | `Tim-van-Oudheusden` | Everything below | Triage labels, decisions, merges, release tags |
-| Hive agents | the `hive-forge-app` GitHub App | Hive's own routing over this repository's issues | Issues titled `[<agent>] …` and labelled `agent/<agent>`; pull requests on branches such as `quality/test-…`, `arch/…`, `scanner/fix-…`, `strategy/…`, `sec/fix-…` |
-| Hive ACMM Eval | the `hive-forge-app` GitHub App, started from the Hive dashboard | Missing files from Hive's ACMM checklist | `[ACMM Ln] Add …` issues labelled `acmm`, `ai-fix-requested` and `origin/dashboard` |
+| Hive agents | the `hive-worker-bee` GitHub App (formerly `hive-forge-app`) | Hive's own routing over this repository's issues | Issues titled `[<agent>] …` and labelled `agent/<agent>`; pull requests on branches such as `quality/test-…`, `arch/…`, `scanner/fix-…`, `strategy/…`, `sec/fix-…` |
+| Hive ACMM Eval | the `hive-worker-bee` GitHub App, started from the Hive dashboard | Missing files from Hive's ACMM checklist | `[ACMM Ln] Add …` issues labelled `acmm`, `ai-fix-requested` and `origin/dashboard` |
 | Claude Code in CI | `.github/workflows/claude.yml` | The `ai-fix-requested` label applied by a person, or `@claude` from an `OWNER`, `MEMBER` or `COLLABORATOR` | Pull requests on `claude/*` branches; reviews on request |
 | CLI agents (Claude Code, Copilot, Cursor) | the maintainer's local sessions | The issue the maintainer points them at | Pull requests on `<type>/<number>-<slug>` branches |
 | Workflows | `GITHUB_TOKEN`, or the repository's bot GitHub App in the `bot` environment | Schedules and repository events | The issues and pull requests listed in [Work the workflows generate](#work-the-workflows-generate) |
@@ -170,7 +170,7 @@ own pull request.
 ## Measuring it
 
 The weekly `PR metrics` workflow counts agent-authored pull requests that were merged against those closed unmerged.
-Agent-authored means a `claude/*` head branch or the `hive-forge-app` author. The weekly quality report and the nightly
+Agent-authored means a `claude/*` head branch or the `hive-worker-bee` author. The weekly quality report and the nightly
 compliance run show whether the combined output keeps the gates green. [`docs/metrics/README.md`](metrics/README.md)
 lists every metric. The weekly `AI audit trail` workflow records which agent and model are behind each pull request
 merged into `main`, and who merged it ([`metrics/README.md`](metrics/README.md#ai-audit-trail)).

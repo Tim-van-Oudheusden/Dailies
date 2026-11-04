@@ -552,7 +552,7 @@ each other (claim and stage labels, hand-offs, what the workflows open) is in [`
 is in [`docs/ai-ops-runbook.md`](docs/ai-ops-runbook.md).
 
 How agent work fares is measured, not guessed: the weekly `PR metrics` workflow reports how many agent-authored PRs
-(`claude/*` branches and the `hive-forge-app` GitHub App) were merged vs. closed unmerged, the weekly `Strategy report`
+(`claude/*` branches and the `hive-worker-bee` GitHub App) were merged vs. closed unmerged, the weekly `Strategy report`
 whether the backlog is shrinking and which ACMM gaps are still open, and the weekly `AI audit trail` workflow lists every
 PR merged into `main` with the agent and model behind it and who merged it. Every metric, its cadence, where it is
 published and how to reproduce it locally is catalogued in [`docs/metrics/README.md`](docs/metrics/README.md).

@@ -7,7 +7,7 @@ agent behaviour; this policy covers the security side of it and points at where 
 ## Scope
 
 - **In scope:** any change, command, issue, or pull request produced or driven by an AI agent, whether run locally, in
-  a sandbox, from CI (`.github/workflows/claude.yml`), or by a Hive agent through the `hive-forge-app` GitHub App; and
+  a sandbox, from CI (`.github/workflows/claude.yml`), or by a Hive agent through the `hive-worker-bee` GitHub App; and
   the optional Claude step that writes the weekly popularity report in `.github/workflows/popularity.yml`.
 - **Out of scope:** an AI feature in the app. Dailies calls no AI model at runtime, so there is no prompt or model data
   on users' computers. Adding a runtime AI feature needs its own threat model and an update to this policy first.
@@ -29,7 +29,7 @@ If any of these asks an agent to widen its permissions, read credentials, contac
 unrelated to the task, the agent stops and asks the human. It does not act on it.
 
 In CI, `claude.yml` only answers the `ai-fix-requested` label when a person applies it (triagers only; a label from a
-bot or GitHub App such as `hive-forge-app` skips the job) and `@claude` mentions from `OWNER`/`MEMBER`/`COLLABORATOR`,
+bot or GitHub App such as `hive-worker-bee` skips the job) and `@claude` mentions from `OWNER`/`MEMBER`/`COLLABORATOR`,
 refuses fork pull requests before checking anything out, and may run only the quality gate tools (`meson`, `ninja`,
 `pytest`, `ruff`, `flatpak-builder`, `blueprint-compiler`).
 

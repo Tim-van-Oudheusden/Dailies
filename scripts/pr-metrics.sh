@@ -5,8 +5,9 @@
 # on stdin and prints a Markdown table.
 #
 # usage: pr-metrics.sh --since YYYY-MM-DD --days N
-# Agent-authored: head branch claude/* or author hive-forge-app (gh pr list reports
-# a GitHub App as app/<slug>, the REST API as <slug>[bot]; both are accepted).
+# Agent-authored: head branch claude/* or author hive-worker-bee, the Hive GitHub App
+# (formerly hive-forge-app; both names count). gh pr list reports a GitHub App
+# as app/<slug>, the REST API as <slug>[bot]; both forms are accepted.
 set -uo pipefail
 
 usage() {
@@ -30,7 +31,8 @@ fi
 
 jq -r --arg since "$since" --arg days "$days" '
   def agent: ((.headRefName // "") | startswith("claude/"))
-    or ((.author.login // "") | IN("app/hive-forge-app", "hive-forge-app[bot]"));
+    or ((.author.login // "")
+      | IN("app/hive-worker-bee", "hive-worker-bee[bot]", "app/hive-forge-app", "hive-forge-app[bot]"));
   def row($label; $set):
     ($set | length) as $total
     | ($set | map(select(.mergedAt != null)) | length) as $merged
@@ -51,5 +53,5 @@ jq -r --arg since "$since" --arg days "$days" '
     row("Other"; $other),
     row("**All**"; .),
     "",
-    "Agent: head branch `claude/*` or author `hive-forge-app` (GitHub App)."
+    "Agent: head branch `claude/*` or author `hive-worker-bee` (GitHub App, formerly `hive-forge-app`)."
 '

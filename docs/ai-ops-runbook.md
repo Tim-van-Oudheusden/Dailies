@@ -21,7 +21,7 @@ The launcher itself runs no AI and sends nothing anywhere. For a bad release see
 | Claude Code in CI (`claude.yml`) | `GITHUB_TOKEN`, plus the Claude GitHub App and the `CLAUDE_CODE_OAUTH_TOKEN` secret | An `ai-fix-requested` label a person applies, or `@claude` from an `OWNER`, `MEMBER` or `COLLABORATOR` | [Stopping the agents](#stopping-the-agents) |
 | Merge queue (`merge-queue.yml`, `scripts/merge-queue.sh`) | `GITHUB_TOKEN` | A required check succeeds, a draft is marked ready, a person removes `hold`, `blocked`, `sentinel-alert` or `automated`, or a manual run | The same table |
 | Apply review suggestions (`auto-review.yml`) | `GITHUB_TOKEN` | A `/apply-suggestions` comment on a PR from an `OWNER`, `MEMBER` or `COLLABORATOR` | The same table |
-| Hive agents | The `hive-forge-app` GitHub App, outside this repository | Hive's own scheduler and the Hive dashboard | The same table |
+| Hive agents | The `hive-worker-bee` GitHub App (formerly `hive-forge-app`), outside this repository | Hive's own scheduler and the Hive dashboard | The same table |
 | Weekly reports (`pr-metrics.yml`, `strategy-report.yml`, `ai-audit.yml`, `quality-report.yml`) | `GITHUB_TOKEN`, read-only | Mondays at 06:17 UTC, and a manual run | They only read; no need to stop them |
 | Nightly compliance (`nightly-compliance.yml`) and `auto-issues.yml` | `GITHUB_TOKEN`; the `link-status` and `checker-pin` jobs use the `bot` environment's App | 03:23 UTC nightly, Sunday link check | The same table |
 | Dependabot (`.github/dependabot.yml`) | `app/dependabot` | Its schedule | Close its PRs; turn off version updates in the repository's settings |
@@ -66,7 +66,7 @@ The launcher itself runs no AI and sends nothing anywhere. For a bad release see
   job's `if`; a comment or review passes only when it mentions `@claude` and its author is an `OWNER`, `MEMBER` or
   `COLLABORATOR`.
 - **`skipped` on the `issues` event that labelled the issue** means a bot added the label (the Hive ACMM evaluation
-  files its issues already labelled `ai-fix-requested`, as `hive-forge-app`). The job answers only a person's label;
+  files its issues already labelled `ai-fix-requested`, as `hive-worker-bee`). The job answers only a person's label;
   `claude-code-action` would refuse a bot sender anyway ("Workflow initiated by non-human actor"). To hand the issue
   over, first check that no one holds it (no assignee, no `hive/claimed-by-<agent>` or `hive/in-progress` label, no
   open PR), then a maintainer removes the label and adds it again:
@@ -159,7 +159,7 @@ To pause agent work, for example during an incident or while a bad instruction g
 | `/apply-suggestions` | `gh workflow disable auto-review.yml` | `gh workflow enable auto-review.yml` |
 | Weekly popularity PR, which merges itself | `gh workflow disable popularity.yml` | `gh workflow enable popularity.yml` |
 | Workflow-opened PRs and issues | `gh workflow disable nightly-compliance.yml` stops the link-status and checker-pin PRs and the compliance report; `gh workflow disable game-submission-approve.yml` stops the catalog PR a submission's `approved` label opens | `gh workflow enable <file>` |
-| Hive | Pause it from the Hive dashboard; it runs outside this repository. To cut it off, revoke the `hive-forge-app` GitHub App's access in the repository's GitHub App settings | Resume it there, or reinstall the App |
+| Hive | Pause it from the Hive dashboard; it runs outside this repository. To cut it off, revoke the `hive-worker-bee` GitHub App's access in the repository's GitHub App settings | Resume it there, or reinstall the App |
 | The repository's bot App (the `bot` environment) | Delete its key under the App's settings, **Private keys** ([SECURITY-AI.md § Secrets](security/SECURITY-AI.md#secrets)) | Generate a new key and replace the `BOT_APP_PRIVATE_KEY` secret |
 | A local CLI agent | End the session; `.claude/settings.json` already denies force pushes, `--no-verify` commits and reads of `.env*`, and asks before `gh pr merge` | — |
 

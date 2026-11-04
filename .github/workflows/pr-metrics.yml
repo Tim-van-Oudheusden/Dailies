@@ -2,7 +2,7 @@ name: PR metrics
 
 # PR acceptance metric: of the pull requests closed in the reporting window,
 # how many were merged vs. closed without merging. Split by agent-authored
-# (claude/* head branch or the hive-forge-app GitHub App) vs. other PRs so agent
+# (claude/* head branch or the hive-worker-bee GitHub App) vs. other PRs so agent
 # work has its own feedback loop. The popularity report runs two hours after
 # popularity.yml (Mon 04:17 UTC): run success rate, stale weeks, and data PRs
 # merged unchanged vs edited. Results land in the run's job summary.

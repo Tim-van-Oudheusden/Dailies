@@ -171,17 +171,20 @@ def test_a_merge_with_no_recorded_merger_shows_a_dash_in_the_ledger() -> None:
     assert row.split(" | ")[6] == "—", row
 
 
-def test_hive_forge_app_is_hive_even_without_a_signature() -> None:
-    # gh reports a GitHub App author as app/<slug>; the REST API as <slug>[bot].
+def test_the_hive_app_is_hive_even_without_a_signature() -> None:
+    # gh reports a GitHub App author as app/<slug>; the REST API as <slug>[bot]. The App was renamed from
+    # hive-forge-app to hive-worker-bee; both names count.
     result = report(
         [
             pr(8, branch="claude/issue-8", author="app/hive-forge-app", body="No signature."),
             pr(9, author="hive-forge-app[bot]", body=""),
+            pr(10, branch="claude/issue-10", author="app/hive-worker-bee", body="No signature."),
+            pr(11, author="hive-worker-bee[bot]", body=None),
         ]
     )
 
     sources = [row.split(" | ")[2:5] for row in rows(result, "Ledger")]
-    assert sources == [["Hive", "—", "—"], ["Hive", "—", "—"]]
+    assert sources == [["Hive", "—", "—"]] * 4
 
 
 def test_counts_per_source_and_merger_leaving_out_merges_before_the_window() -> None:

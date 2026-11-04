@@ -10,8 +10,8 @@
 #   Hive             the body has a Hive signature line, "— hive: agent=<a> … model=<m> …" or a
 #                    contributor run's "— omp (Claude Code), model=<m>" (agent and model come
 #                    from it; contributor runs leave out agent=),
-#                    or the author is the hive-forge-app GitHub App (gh pr list reports it
-#                    as app/hive-forge-app, the REST API as hive-forge-app[bot])
+#                    or the author is the Hive GitHub App, hive-worker-bee (formerly
+#                    hive-forge-app; gh pr list reports it as app/<slug>, the REST API as <slug>[bot])
 #   Claude Code (CI) head branch claude/*
 #   Dependabot       head branch dependabot/*
 #   Other            anything else
@@ -46,7 +46,10 @@ jq -r --arg since "$since" '
     signature as $line
     | fields($line) as $sig
     | (.headRefName // "") as $branch
-    | if $line != null or ((.author.login // "") | IN("app/hive-forge-app", "hive-forge-app[bot]")) then
+    | (.author.login // "") as $author
+    | if $line != null
+        or ($author | IN("app/hive-worker-bee", "hive-worker-bee[bot]", "app/hive-forge-app", "hive-forge-app[bot]"))
+      then
         {source: "Hive", agent: ($sig.agent // none), model: ($sig.model // none)}
       elif ($branch | startswith("claude/")) then {source: "Claude Code (CI)", agent: none, model: none}
       elif ($branch | startswith("dependabot/")) then {source: "Dependabot", agent: none, model: none}
