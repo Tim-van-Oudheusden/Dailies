@@ -8,7 +8,8 @@ medium-risk pull requests once their required checks pass, so review them before
 high-risk pull requests for the maintainer to merge after the review below.
 
 The **highest tier of any changed file wins**, so one workflow edit makes the whole PR high risk. A path that matches no
-rule is **medium**: new kinds of files get a real review until they are classified.
+rule is **medium**, and medium merges without a human review, so a new kind of file that configures a gate, the build
+or the sandbox needs a high rule in the same PR that adds it.
 
 The workflow runs the **base branch's** script and risk assessment (a second checkout of the base commit) against the
 PR's diff, so a PR cannot lower its own tier by editing either. A change to the rules takes effect for the PRs after it
@@ -38,8 +39,17 @@ behave. A mistake here can bypass every other check or ship to every user.
 | --- | --- |
 | `.github/**` | CI gates, review rubric, release workflow, rulesets, the risk rules |
 | `scripts/**` | Gate tooling, the submission validator, the link checker, the popularity pipeline |
+| `tests/tooling/**` | The policy tests: workflows, token scopes, ruleset, CODEOWNERS, risk tiers, manifests, tool pins |
+| `pyproject.toml` | ruff rules and per-file ignores, pytest `addopts`, coverage roots and omissions |
+| `*/pyproject.toml`, `ruff.toml`, `*/ruff.toml`, `.ruff.toml`, `*/.ruff.toml` | ruff uses the nearest config, so one in a subdirectory replaces the root settings for the files under it |
+| `conftest.py`, `*/conftest.py` | What pytest collects: `collect_ignore`, collection hooks |
+| `pytest.ini`, `*/pytest.ini`, `.pytest.ini`, `*/.pytest.ini`, `pytest.toml`, `*/pytest.toml`, `.pytest.toml`, `*/.pytest.toml`, `tox.ini`, `*/tox.ini`, `setup.cfg`, `*/setup.cfg` | pytest reads the first config it finds from the common ancestor of its arguments (`tests/` in CI) upwards, so one of these in `tests/` replaces `pyproject.toml`'s `addopts` |
+| `.coveragerc` | coverage.py reads it, and the `[coverage:*]` sections of `setup.cfg` and `tox.ini`, before `pyproject.toml` |
+| `.pre-commit-config.yaml` | The local hooks and their pinned revisions |
+| `Dockerfile.sandbox` | The image agents run the quality gates in |
 | `build-aux/**` | Flatpak manifests: sandbox permissions (`finish-args`), runtime, sources |
 | `meson.build`, `meson_options.txt` | The build, the version that a release is cut from, the install layout |
+| `subprojects/**` | The wraps Meson falls back to, such as the `blueprint-compiler` tag the Windows build uses |
 | `data/*.metainfo.xml.in` | Release notes, licence, branding and content rating shown to users and Flathub |
 | `data/*.gschema.xml.in` | Stored settings: a removed or retyped key breaks existing installs |
 | `data/v1/schema/**` | The data contract with every installed copy of the app |
@@ -63,8 +73,11 @@ merging unreviewed is that only the maintainer merges it.
 ## Tier: medium
 
 Application code and catalog data: `dailies/**` and `data/v1/*.json`, plus anything not otherwise classified, such as
-`tests/`, `pyproject.toml`, `po/`, the Blueprint files, icons and desktop file under `data/`, and root files such as
-`.editorconfig`.
+the tests outside `tests/tooling/`, `po/`, the Blueprint files, icons and desktop file under `data/`, and root files such
+as `.editorconfig`.
+
+The ruleset requires no approving review, so the merge queue merges a medium-risk pull request as soon as its required
+checks pass. The review below happens only if someone does it before then, or adds `hold` to make time for it.
 
 Review: the standard rubric in `.github/workflows/review.yml`: TDD evidence, behaviour-level tests, no weakened tests,
 looks like libadwaita and follows the HIG, keyboard and screen reader usable, quality gates green. A catalog change
@@ -86,7 +99,7 @@ it as `dir/**`. `scripts/tier-classify.sh` evaluates the rules and fails without
 whole-line `#` comment, the `rules:` line or such an item, or if an item names an unknown tier; set `RISK_TIER_POLICY`
 to try a different file locally.
 
-`scripts/tier-classify.test.sh` covers the engine and the shipped rules, and `tests/scripts/test_tier_classify.py` runs
+`scripts/tier-classify.test.sh` covers the engine and the shipped rules, and `tests/tooling/test_tier_classify.py` runs
 it under `pytest`, checks that the file is YAML and that every rule appears under its tier above. Update the rules,
 their tests, and this document in the same PR. The config (`high .github/**`), the script and its shell tests
-(`high scripts/**`) are high risk; the pytest file is medium and this doc is low.
+(`high scripts/**`) and the pytest file (`high tests/tooling/**`) are high risk; this doc is low.

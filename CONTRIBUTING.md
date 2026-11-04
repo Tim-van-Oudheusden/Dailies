@@ -542,8 +542,10 @@ AI agents working in this repo are bounded by several layers:
 3. **Personal overrides** — `.claude/settings.local.json` (gitignored). Deny rules from the project file still apply.
 4. **Structural gates** — the ruleset on `main` and CI must pass before merge, regardless of who wrote the change.
    `.github/CODEOWNERS` makes the maintainer the owner of the high-risk paths
-   ([`docs/risk-tiers.md`](docs/risk-tiers.md)): a change to CI, scripts, the Flatpak manifests, the build, the data
-   schemas or agent instructions requests his review.
+   ([`docs/risk-tiers.md`](docs/risk-tiers.md)): a change to CI, scripts, the gate configuration (`pyproject.toml` and
+   the ruff, pytest and coverage configs that override it, `conftest.py`, `.pre-commit-config.yaml`,
+   `Dockerfile.sandbox`), the policy tests in `tests/tooling/`, the Flatpak manifests, the build, the data schemas or
+   agent instructions requests his review.
 
 The security side of these layers (trust boundaries, secrets, supply chain, review focus, reporting) is set out in
 [`docs/security/SECURITY-AI.md`](docs/security/SECURITY-AI.md). How the agents share the issue queue without stepping on

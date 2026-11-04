@@ -24,13 +24,33 @@ flatpak:
           - 'build-aux/**'
           - 'meson.build'
           - 'meson_options.txt'
+          - 'subprojects/**'
           - 'data/*.metainfo.xml.in'
           - 'data/*.desktop.in'
 
 ci:
   - changed-files:
-      # CI gates, the scripts they run, and the agent instructions and settings.
-      - any-glob-to-any-file: ['.github/**', 'scripts/**', '.claude/**', '.cursor/**', 'prompts/**']
+      # CI gates, the scripts they run, their configuration and policy tests, and the agent instructions and settings.
+      - any-glob-to-any-file:
+          - '.github/**'
+          - 'scripts/**'
+          - 'tests/tooling/**'
+          - '**/pyproject.toml'
+          - '**/ruff.toml'
+          - '**/.ruff.toml'
+          - '**/conftest.py'
+          - '**/pytest.ini'
+          - '**/.pytest.ini'
+          - '**/pytest.toml'
+          - '**/.pytest.toml'
+          - '**/tox.ini'
+          - '**/setup.cfg'
+          - '.coveragerc'
+          - '.pre-commit-config.yaml'
+          - 'Dockerfile.sandbox'
+          - '.claude/**'
+          - '.cursor/**'
+          - 'prompts/**'
 
 documentation:
   - changed-files:
