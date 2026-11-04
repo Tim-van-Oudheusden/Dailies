@@ -25,7 +25,7 @@ rubric without closing the issue; use it when a PR covers only part of one.
 
 **Exempt:** pull requests from bot accounts (`*[bot]`) need no issue link; the rubric check skips the link for them.
 Dependabot's task is the dependency update itself, and the branch `dependabot/<ecosystem>/<package>` names it. Hive's
-`hive-forge-app[bot]` PRs are exempt; by convention their bodies carry `Fixes`/`Refs #N`, but this repository does not
+`hive-worker-bee[bot]` PRs are exempt; by convention their bodies carry `Fixes`/`Refs #N`, but this repository does not
 enforce it. The pull requests opened by the
 repository's own workflows (`data/popularity`, `ci/checker-pin`, `data/link-status`, …) are named for the workflow that
 opened them ([`multi-agent.md`](../multi-agent.md#work-the-workflows-generate)); their task is that workflow's job.
@@ -59,7 +59,7 @@ gh pr list --state merged --search "<commit>"  # the PR, whose body links the is
 ```
 
 From an agent to everything it did: filter pull requests by author or branch, for example
-`gh pr list --state all --author app/hive-forge-app` for Hive and `gh pr list --state all --search "head:claude/"` for
+`gh pr list --state all --author app/hive-worker-bee` for Hive and `gh pr list --state all --search "head:claude/"` for
 Claude Code in CI. The `— hive: agent=<name> …` signature at the end of a Hive issue or PR body names the Hive agent,
 and the `agent/<name>` label on its issues does too.
 

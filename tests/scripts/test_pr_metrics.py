@@ -34,9 +34,12 @@ def test_splits_agent_and_other_pull_requests() -> None:
     prs = [
         pr(1, "claude/12-search", "tim", merged=True),
         pr(2, "claude/13-popularity", "tim", merged=False),
-        # The hive-forge bot counts as an agent whatever its branch, as gh (app/) and the REST API ([bot]) name it.
+        # The Hive bot counts as an agent whatever its branch, as gh (app/) and the REST API ([bot]) name it, under
+        # its current name and the one it had before the GitHub App was renamed.
         pr(3, "feat/14-tiles", "app/hive-forge-app", merged=True),
         pr(4, "fix/15-crash", "hive-forge-app[bot]", merged=True),
+        pr(8, "quality/test-gap", "app/hive-worker-bee", merged=True),
+        pr(9, "scanner/fix-pin", "hive-worker-bee[bot]", merged=False),
         pr(5, "feat/16-icons", "tim", merged=True),
         pr(6, "feat/claude/17-not-an-agent-branch", "someone", merged=False),
         pr(7, None, None, merged=False),
@@ -52,11 +55,11 @@ def test_splits_agent_and_other_pull_requests() -> None:
         "\n"
         "| Source | Closed | Merged | Rejected | Acceptance |\n"
         "| --- | ---: | ---: | ---: | ---: |\n"
-        "| Agent | 4 | 3 | 1 | 75% |\n"
+        "| Agent | 6 | 4 | 2 | 66.7% |\n"
         "| Other | 3 | 1 | 2 | 33.3% |\n"
-        "| **All** | 7 | 4 | 3 | 57.1% |\n"
+        "| **All** | 9 | 5 | 4 | 55.6% |\n"
         "\n"
-        "Agent: head branch `claude/*` or author `hive-forge-app` (GitHub App).\n"
+        "Agent: head branch `claude/*` or author `hive-worker-bee` (GitHub App, formerly `hive-forge-app`).\n"
     )
 
 

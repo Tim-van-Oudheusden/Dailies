@@ -9,16 +9,14 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-03. #337 on `test/337-manifest-sandbox-parity`.
+2026-11-04. #345 on `fix/345-hive-worker-bee-login`.
 
-- **Outcome:** `tests/tooling/test_manifest_parity.py` requires the Devel manifest to equal the release manifest once
-  the keys that differ on purpose are removed (top-level `id`, `tags`, `desktop-file-name-suffix`; the `dailies`
-  module's `run-tests`, `config-opts`, `sources`). Review on PR #338 turned the first allow-list (`finish-args`,
-  `cleanup`) into this deny-list. Checked against 16 one-manifest mutants (permissions, cleanup, `command`, `sdk`,
-  `runtime`, SDK extensions, build options, an extra module, app-module keys): all fail; a release tag bump, an extra
-  release `config-opts` entry and dropping Devel `run-tests` still pass. Documented in CONTRIBUTING's quality-gates
-  paragraph.
-- **Open follow-ups:** none.
+- **Outcome:** the Hive GitHub App was renamed `hive-forge-app` → `hive-worker-bee` (same id 335687290), and GitHub
+  reports the new login for old PRs too. `scripts/pr-metrics.sh` and `scripts/ai-audit-report.sh` now accept
+  `app/hive-worker-bee` and `hive-worker-bee[bot]` alongside the old pair; fixtures with the new login fail on the old
+  scripts. Prose naming the App (CONTRIBUTING, `docs/`, the `pr-metrics.yml` header) now names `hive-worker-bee`.
+- **Open follow-ups:** none. `docs/research/` and `docs/proposals/` keep the old name as historical record; the quoted
+  `claude-code-action` error in `claude.yml`/`docs/multi-agent.md` is left verbatim.
 - **Gotchas:**
-  - Host Python 3.11 cannot import `dailies/core` (use a 3.13 venv); the host `jq` is jaq, which fails the
-    `pr-metrics`/`auto-qa-tuner`/`quality-report` tests on `main` too.
+  - Host `jq` is jaq and host Python is 3.11: fetch jq 1.7.1 into `PATH` and use a 3.12 venv with
+    `scripts/requirements.txt`; run `python -m pytest` (the venv's `pytest` entry point did not see `ruamel`).
