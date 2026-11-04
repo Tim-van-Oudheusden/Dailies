@@ -155,23 +155,26 @@ def _game_dirs_on_disk() -> set[str]:
     return names
 
 
-def clear_all(settings: Gio.Settings, callback: Callable[[], None] | None = None) -> None:
-    """Remove all website data (cookies, storage, caches) of every session, then call `callback`.
+def clear_all(settings: Gio.Settings, callback: Callable[[bool], None]) -> None:
+    """Remove all website data (cookies, storage, caches) of every session, then call `callback` once.
 
-    That is the shared session and every per-game session on disk, also those this run has not opened.
+    That is the shared session and every per-game session on disk, also those this run has not opened. `callback`
+    gets True only when every session was cleared.
     """
     names = web.all_sessions(_game_dirs_on_disk())
     pending = len(names)
+    cleared = True
 
     def on_cleared(manager: WebKit.WebsiteDataManager, result: Gio.AsyncResult) -> None:
-        nonlocal pending
+        nonlocal pending, cleared
         try:
             manager.clear_finish(result)
         except GLib.Error as e:
             log.warning("Could not clear the website data: %s", e.message)
+            cleared = False
         pending -= 1
-        if pending == 0 and callback:
-            callback()
+        if pending == 0:
+            callback(cleared)
 
     for name in names:
         manager = _session(settings, name).get_website_data_manager()
@@ -179,15 +182,21 @@ def clear_all(settings: Gio.Settings, callback: Callable[[], None] | None = None
 
 
 def clear_all_blocking(settings: Gio.Settings) -> None:
-    """Clear all website data of every session before the app quits, waiting a few seconds at most."""
+    """Clear all website data of every session before the app quits, waiting a few seconds at most.
+
+    A failure is only logged: nobody is left to tell.
+    """
     loop = GLib.MainLoop()
-    clear_all(settings, loop.quit)
+    clear_all(settings, lambda _cleared: loop.quit())
     GLib.timeout_add_seconds(_CLEAR_ON_EXIT_TIMEOUT_SECONDS, loop.quit)
     loop.run()
 
 
-def clear_site_data(session: WebKit.NetworkSession, host: str, callback: Callable[[], None] | None = None) -> None:
-    """Remove the website data in `session` of the site at `host` and its parent domains, then call `callback`."""
+def clear_site_data(session: WebKit.NetworkSession, host: str, callback: Callable[[bool], None]) -> None:
+    """Remove the website data in `session` of the site at `host` and its parent domains, then call `callback`.
+
+    `callback` gets False when the data could not be read or removed; a site with no data counts as cleared.
+    """
     manager = session.get_website_data_manager()
 
     def on_fetched(manager: WebKit.WebsiteDataManager, result: Gio.AsyncResult) -> None:
@@ -195,10 +204,10 @@ def clear_site_data(session: WebKit.NetworkSession, host: str, callback: Callabl
             data = [item for item in manager.fetch_finish(result) if site_matches(item.get_name(), host)]
         except GLib.Error as e:
             log.warning("Could not read the website data of %s: %s", host, e.message)
-            data = []
+            callback(False)
+            return
         if not data:
-            if callback:
-                callback()
+            callback(True)
             return
         manager.remove(WebKit.WebsiteDataTypes.ALL, data, None, on_removed)
 
@@ -207,8 +216,9 @@ def clear_site_data(session: WebKit.NetworkSession, host: str, callback: Callabl
             manager.remove_finish(result)
         except GLib.Error as e:
             log.warning("Could not clear the website data of %s: %s", host, e.message)
-        if callback:
-            callback()
+            callback(False)
+            return
+        callback(True)
 
     manager.fetch(WebKit.WebsiteDataTypes.ALL, None, on_fetched)
 
@@ -427,7 +437,10 @@ class BrowserPage(Adw.NavigationPage):
         if not (host := display_host(self._uri())):
             return
 
-        def on_cleared() -> None:
+        def on_cleared(cleared: bool) -> None:
+            if not cleared:
+                self._add_toast(Adw.Toast(title=_("Could not clear website data for {host}").format(host=host)))
+                return
             self._add_toast(Adw.Toast(title=_("Website data for {host} cleared").format(host=host)))
             if self._web_view is not None:
                 self._web_view.reload()

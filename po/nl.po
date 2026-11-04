@@ -51,7 +51,12 @@ msgstr ""
 "of een van de vermelde spellen. Spelnamen zijn handelsmerken van hun "
 "eigenaars; Dailies opent alleen hun openbare websites."
 
-#: dailies/ui/browser_page.py:431
+#: dailies/ui/browser_page.py:442
+#, python-brace-format
+msgid "Could not clear website data for {host}"
+msgstr "Kon de websitegegevens van {host} niet wissen"
+
+#: dailies/ui/browser_page.py:444
 #, python-brace-format
 msgid "Website data for {host} cleared"
 msgstr "Websitegegevens van {host} gewist"
@@ -251,10 +256,13 @@ msgstr ""
 msgid "_Clear"
 msgstr "_Wissen"
 
-#. Every session: the shared one and each game's, also those of games not opened since the app started.
-#: dailies/ui/preferences.py:192
+#: dailies/ui/preferences.py:195
 msgid "Website data cleared"
 msgstr "Websitegegevens gewist"
+
+#: dailies/ui/preferences.py:195
+msgid "Could not clear website data"
+msgstr "Kon de websitegegevens niet wissen"
 
 #: dailies/ui/tile.py:13 data/ui/window.blp:270
 msgid "_Default"
