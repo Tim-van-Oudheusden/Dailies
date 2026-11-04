@@ -394,8 +394,8 @@ Maintaining the catalog follows four rules:
 - **Popularity data** (`popularity.json`): derived from third-party signals. Reuse it with the credit lines listed in
   its `attribution[]` array, which names each source and its terms: Tranco (licence not stated), the Wikimedia
   Analytics API (CC0 1.0), HN Search by Algolia, and Cloudflare Radar (CC BY-NC 4.0, so Radar-derived files are for
-  non-commercial use only; Dailies is non-commercial free software). Only sources used that week are listed. The
-  current hand-picked file (`method_version: 0`) uses no external source, so its list is empty.
+  non-commercial use only; Dailies is non-commercial free software). Only sources used that week are listed. A
+  hand-picked file (`method_version: 0`) uses no external source, so its list is empty.
 - **Icons** (`icons/*.png`): the logos and favicons of the games' sites, which remain the property and trademarks of
   their owners and are **not** covered by the catalog's CC0 dedication. Dailies shows them only to identify each game;
   see [Icons](#icons) for how one is taken down.
