@@ -94,6 +94,7 @@ def test_an_empty_query_matches_everything(query: str) -> None:
         ("world", "wor", Change.LESS_STRICT),
         ("world", " ", Change.LESS_STRICT),
         ("world", "globe", Change.DIFFERENT),
+        ("-", "--", Change.MORE_STRICT),  # neither has a word, so both match as literal text only
         ("Poké", "poke ", Change.SAME),
     ],
 )
@@ -218,6 +219,8 @@ def test_short_queries_never_match_by_typo_over_the_real_catalog() -> None:
         ("wxrd", "wxrdle"),  # "wxrdle" finds Wordle by typo, "wxrd" finds nothing
         ("wordel", "worde"),  # "wordel" found Wordle by typo; widening must test the games again
         ("s n", "is n"),  # word starts: "is n" starts "Island Numbers", "s n" occurs nowhere in it
+        ("-", "-w"),  # "-w" starts the word "Worldle", while "-" only matches as literal text
+        ("-w", "-"),
     ],
 )
 def test_typos_and_word_starts_make_a_longer_or_shorter_query_a_different_one(old: str, new: str) -> None:
@@ -230,6 +233,9 @@ def test_the_counterexamples_behind_the_different_changes() -> None:
     island = named("Island Numbers")
     assert matches(island, "is n", "Trivia")
     assert not matches(island, "s n", "Trivia")
+    worldle = named("Worldle")
+    assert matches(worldle, "-w", "Geography")
+    assert not matches(worldle, "-", "Geography")
 
 
 def typing(text: str) -> list[str]:
@@ -239,7 +245,7 @@ def typing(text: str) -> list[str]:
 def test_a_narrowing_or_widening_change_never_lies_over_the_real_catalog() -> None:
     # Type and erase catalog names, typos and word starts; whenever `change` promises the matches only shrink (or only
     # grow), check that no game outside the old matches (or inside the old matches) is affected.
-    queries = ["wordel", "geogusser daily", "t m c", "the mini", "cemantx", "box office", "pokedel"]
+    queries = ["wordel", "geogusser daily", "t m c", "the mini", "cemantx", "box office", "pokedel", "- w", "-wor"]
     for query in queries:
         steps = typing(query)
         for old, new in [*pairwise(steps), *((new, old) for old, new in pairwise(steps))]:
