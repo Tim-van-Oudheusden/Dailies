@@ -9,18 +9,14 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-04. #347 on `ci/347-gate-config-high` (option B, approved by the maintainer).
+2026-11-04. #359 on `test/359-merge-edge-source-assert`.
 
-- **Outcome:** `pyproject.toml`, `.pre-commit-config.yaml`, `Dockerfile.sandbox`, `subprojects/*` and
-  `tests/tooling/*` are high risk, so the merge queue leaves them to the maintainer. CODEOWNERS owns them, labeler
-  gives them `ci`/`flatpak`, and `docs/risk-tiers.md` says medium merges with no review. The tier parity test moved
-  to `tests/tooling/test_tier_classify.py` so it is high with the rest of the policy tests. After the quality review
-  (maintainer approved widening): the configs that override `pyproject.toml` are high too, at any depth for ruff,
-  pytest and `conftest.py`, root only for `.coveragerc`. None exist yet, so no tracked file changed tier.
-- **Open follow-ups:** none. Other tests under `tests/` stay medium on purpose: rating them high would send every
-  feature PR to the maintainer.
+- **Outcome:** `test_no_diagram_edge_misreports_who_merges` now asserts that the README and `docs/architecture.md`
+  diagrams each have a merge edge for both `popularity.yml` and `game-submission-approve.yml` before it checks the
+  labels. The edge walk is the `merge_edges` generator, which `merge_edge_violations` uses. Rewriting an edge as
+  `A -- "label" --> B` or retitling a PR node away from `data(...)` used to pass with nothing checked; both fail now.
+- **Open follow-ups:** none.
 - **Gotchas:**
-  - A new high rule needs four files in step: the rule, a CODEOWNERS pattern (`test_codeowners.py`), a labeler glob
-    (`test_workflows.py` parity) and a row in `docs/risk-tiers.md` (`test_tier_classify.py`).
-  - pytest looks for its config from the common ancestor of its arguments upwards, so with ci.yml's
-    `pytest tests/...` a `tests/tox.ini` beats the root `pyproject.toml`; root-anchored rules miss it.
+  - `tests/tooling/*` is high risk (#347), so this PR waits for the maintainer, not the merge queue.
+  - The host `python3` is 3.11; the repo needs 3.12 (`~/.local/bin/python3.12`, or `uv venv -p 3.12`), and the full
+    suite also needs `scripts/requirements.txt` installed (`tests/scripts` imports `tldextract`).

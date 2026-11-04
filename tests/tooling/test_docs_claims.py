@@ -11,6 +11,7 @@ the download list is translatable and stays a manual check.
 """
 
 import re
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -97,23 +98,24 @@ def edge_workflow(node_text: str) -> str | None:
     return None
 
 
-def merge_edge_violations(name: str, markdown: str, merging: set[str]) -> list[str]:
-    violations = []
+def merge_edges(markdown: str) -> Iterator[tuple[str, str]]:
+    """(workflow, label) for every diagram edge leaving a workflow's pull request whose label says who merges it."""
     for diagram in MERMAID.findall(markdown):
         nodes = {m["id"]: m["text"] for m in MERMAID_NODE.finditer(diagram)}
         for edge in MERMAID_EDGE.finditer(diagram):
             workflow = edge_workflow(nodes.get(edge["source"], ""))
-            if workflow is None or "merge" not in edge["label"].lower():
-                continue
-            says_human = bool(HUMAN_MERGE.search(edge["label"]))
-            if workflow in merging and says_human:
-                violations.append(
-                    f"{name}: the {workflow} pull request merges itself, but an edge says {edge['label']!r}"
-                )
-            if workflow not in merging and not says_human:
-                violations.append(
-                    f"{name}: the {workflow} pull request waits for a person, but an edge says {edge['label']!r}"
-                )
+            if workflow is not None and "merge" in edge["label"].lower():
+                yield workflow, edge["label"]
+
+
+def merge_edge_violations(name: str, markdown: str, merging: set[str]) -> list[str]:
+    violations = []
+    for workflow, label in merge_edges(markdown):
+        says_human = bool(HUMAN_MERGE.search(label))
+        if workflow in merging and says_human:
+            violations.append(f"{name}: the {workflow} pull request merges itself, but an edge says {label!r}")
+        if workflow not in merging and not says_human:
+            violations.append(f"{name}: the {workflow} pull request waits for a person, but an edge says {label!r}")
     return violations
 
 
@@ -202,6 +204,9 @@ def test_release_assets_are_named_in_every_diagram_and_runbook() -> None:
 
 
 def test_no_diagram_edge_misreports_who_merges() -> None:
+    for path in (README, ARCHITECTURE):
+        seen = {workflow for workflow, _ in merge_edges(text_of(path))}
+        assert seen == {"popularity.yml", CATALOG_WORKFLOW}, f"{path.name}: merge edges found for {sorted(seen)}"
     merging = merging_workflows()
     violations = [
         v for path in checked_docs() for v in merge_edge_violations(str(path.relative_to(ROOT)), text_of(path), merging)
