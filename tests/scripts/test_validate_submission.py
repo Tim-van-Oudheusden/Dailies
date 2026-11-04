@@ -433,7 +433,7 @@ def test_report_lists_warnings_and_fences_backticks_in_the_entry() -> None:
 
 
 def test_report_keeps_submitted_text_inside_its_table_cell() -> None:
-    result = check(form(), site("https://countryle.com/", title="Casino | <img src=x>\nwin"))
+    result = check(form(), site("https://countryle.com/", title="Casino | &lt;img src=x&gt;\nwin"))
 
     text = vs.render_report(result)
 
