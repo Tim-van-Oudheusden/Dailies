@@ -44,6 +44,16 @@ STRATEGY_REPORT = "scripts/strategy-report.sh"
 STRATEGY_REPORT_TESTS = "tests/scripts/test_strategy_report.py"
 AI_AUDIT_REPORT = "scripts/ai-audit-report.sh"
 AI_AUDIT_REPORT_TESTS = "tests/scripts/test_ai_audit_report.py"
+PR_METRICS = "scripts/pr-metrics.sh"
+PR_METRICS_TESTS = "tests/scripts/test_pr_metrics.py"
+QUALITY_REPORT = "scripts/quality-report.sh"
+QUALITY_REPORT_TESTS = "tests/scripts/test_quality_report.py"
+AUTO_QA_TUNER = "scripts/auto-qa-tuner.sh"
+AUTO_QA_TUNER_TESTS = "tests/scripts/test_auto_qa_tuner.py"
+COVERAGE_CHECK = "scripts/coverage-check.sh"
+COVERAGE_LIB = "scripts/lib/coverage.sh"
+# coverage-check.test.sh holds the cases for coverage-check.sh and lib/coverage.sh; this test runs it.
+COVERAGE_CHECK_SUITE = "tests/scripts/test_coverage_check.py::test_coverage_check_shell_suite_passes"
 
 MUTANTS = [
     Mutant(
@@ -227,6 +237,118 @@ MUTANTS = [
         ".mergedBy.login // none | cell",
         ".mergedBy.login | cell",
         f"{AI_AUDIT_REPORT_TESTS}::test_a_merge_with_no_recorded_merger_shows_a_dash_in_the_ledger",
+    ),
+    Mutant(
+        "a claude/ branch prefix includes its slash",
+        PR_METRICS,
+        'startswith("claude/")',
+        'startswith("claude")',
+        f"{PR_METRICS_TESTS}::test_a_branch_named_like_claude_without_the_slash_is_not_an_agent",
+    ),
+    Mutant(
+        "the acceptance rate is rounded, not truncated",
+        PR_METRICS,
+        "($merged * 1000 / $total | round) / 10",
+        "($merged * 1000 / $total | floor) / 10",
+        f"{PR_METRICS_TESTS}::test_the_rate_is_rounded_to_the_nearest_tenth",
+    ),
+    Mutant(
+        "the coverage run's output goes to stderr",
+        QUALITY_REPORT,
+        'pytest --cov "--cov-report=xml:$report" >&2',
+        'pytest --cov "--cov-report=xml:$report"',
+        f"{QUALITY_REPORT_TESTS}::test_reports_every_gate_and_the_coverage_of_each_module",
+    ),
+    Mutant(
+        "a proposal is rounded to hundredths before it is floored",
+        AUTO_QA_TUNER,
+        "* 100 | round) / 100 | floor",
+        "* 100) / 100 | floor",
+        f"{AUTO_QA_TUNER_TESTS}::test_float_error_does_not_drop_a_proposal_below_a_whole_percent",
+    ),
+    Mutant(
+        "the tuner rejects a margin that is not a number",
+        AUTO_QA_TUNER,
+        '(.margin | type == "number" and . >= 0)',
+        "(.margin | . >= 0)",
+        f"{AUTO_QA_TUNER_TESTS}::test_malformed_config_fails_and_is_left_untouched",
+    ),
+    Mutant(
+        "the tuner rejects floors that are not an object",
+        AUTO_QA_TUNER,
+        '(.floors | type == "object" and length > 0',
+        "(.floors | length > 0",
+        f"{AUTO_QA_TUNER_TESTS}::test_malformed_config_fails_and_is_left_untouched",
+    ),
+    Mutant(
+        "the coverage gate rejects a margin that is not a number",
+        COVERAGE_CHECK,
+        '(.margin | type == "number" and . >= 0)',
+        "(.margin | . >= 0)",
+        COVERAGE_CHECK_SUITE,
+    ),
+    Mutant(
+        "the coverage gate rejects floors that are not an object",
+        COVERAGE_CHECK,
+        '(.floors | type == "object" and length > 0',
+        "(.floors | length > 0",
+        COVERAGE_CHECK_SUITE,
+    ),
+    Mutant(
+        "the coverage gate rejects a floor below 0",
+        COVERAGE_CHECK,
+        'type == "number" and . >= 0 and . <= 100',
+        'type == "number" and . <= 100',
+        COVERAGE_CHECK_SUITE,
+    ),
+    Mutant(
+        "a group with no code yet does not end the coverage check",
+        COVERAGE_CHECK,
+        'apply once it has code"\n    continue',
+        'apply once it has code"\n    exit 0',
+        COVERAGE_CHECK_SUITE,
+    ),
+    Mutant(
+        "branch coverage below its floor fails the gate",
+        COVERAGE_CHECK,
+        'below its floor of ${floor_branches}%" >&2\n    failed=1',
+        'below its floor of ${floor_branches}%" >&2',
+        COVERAGE_CHECK_SUITE,
+    ),
+    Mutant(
+        "a relative <source> (relative_files) is its group's root",
+        COVERAGE_LIB,
+        "return source == group_dir or source.endswith",
+        "return source.endswith",
+        COVERAGE_CHECK_SUITE,
+    ),
+    Mutant(
+        "a <source> with a trailing slash is normalised",
+        COVERAGE_LIB,
+        "os.path.normpath(s.text.strip())",
+        "s.text.strip()",
+        COVERAGE_CHECK_SUITE,
+    ),
+    Mutant(
+        "a Windows <source> is matched by its trailing path",
+        COVERAGE_LIB,
+        '.replace("\\\\", "/")',
+        "",
+        COVERAGE_CHECK_SUITE,
+    ),
+    Mutant(
+        "a <class> without a filename is a malformed report",
+        COVERAGE_LIB,
+        "if not filename:",
+        "if False:",
+        COVERAGE_CHECK_SUITE,
+    ),
+    Mutant(
+        "lines without branches is 100% branch coverage",
+        COVERAGE_LIB,
+        'if (m + c == 0) print "100.00"',
+        'if (0) print "100.00"',
+        COVERAGE_CHECK_SUITE,
     ),
 ]
 

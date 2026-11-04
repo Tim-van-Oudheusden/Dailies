@@ -76,6 +76,25 @@ def test_all_merged_is_a_full_rate() -> None:
     assert "| Other | 0 | 0 | 0 | n/a |" in result.stdout
 
 
+def test_a_branch_named_like_claude_without_the_slash_is_not_an_agent() -> None:
+    result = metrics(
+        json.dumps([pr(1, "claudette/1-x", "someone", merged=True)]), "--since", "2026-09-17", "--days", "7"
+    )
+
+    assert "| Agent | 0 | 0 | 0 | n/a |" in result.stdout
+    assert "| Other | 1 | 1 | 0 | 100% |" in result.stdout
+
+
+def test_the_rate_is_rounded_to_the_nearest_tenth() -> None:
+    prs = [pr(1, "claude/1-x", "tim", merged=True), pr(2, "claude/2-y", "tim", merged=True)]
+    prs.append(pr(3, "claude/3-z", "tim", merged=False))
+
+    result = metrics(json.dumps(prs), "--since", "2026-09-17", "--days", "7")
+
+    # 2 of 3 is 66.666...%: rounded, not truncated to 66.6%.
+    assert "| Agent | 3 | 2 | 1 | 66.7% |" in result.stdout
+
+
 def test_input_that_is_not_a_list_fails() -> None:
     result = metrics('{"number": 1}', "--since", "2026-09-17", "--days", "28")
 

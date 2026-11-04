@@ -25,6 +25,7 @@ STUBS = {
 for arg in "$@"; do
   case "$arg" in
     --cov-report=xml:*)
+      echo "coverage run output goes to stderr"
       if [ -n "${FAKE_COVERAGE:-}" ]; then cp "$FAKE_COVERAGE" "${arg#--cov-report=xml:}"; fi
       exit "${FAKE_COVERAGE_RC:-0}" ;;
   esac
@@ -114,6 +115,7 @@ def test_reports_every_gate_and_the_coverage_of_each_module(tmp_path: Path) -> N
     )
     # Tool output goes to stderr, so stdout stays a clean report.
     assert "pytest output goes to stderr" in result.stderr
+    assert "coverage run output goes to stderr" in result.stderr
     # One coverage run feeds both groups.
     assert calls(tmp_path) == [
         "ruff check .",

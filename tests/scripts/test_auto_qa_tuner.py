@@ -120,12 +120,13 @@ def test_never_lowers_a_floor(tmp_path: Path) -> None:
 
 def test_float_error_does_not_drop_a_proposal_below_a_whole_percent(tmp_path: Path) -> None:
     config = write_config(tmp_path, {"core": {"lines": 0, "branches": 0}}, margin=0.1)
-    report = write_report(tmp_path, {"core": ("70.10%", "70.10%")})
+    # 64.1 - 0.1 is 63.99999999999999 in floating point (70.1 - 0.1 happens to be exactly 70).
+    report = write_report(tmp_path, {"core": ("64.10%", "64.10%")})
 
     result = tune("--report", str(report), "--config", str(config))
 
     assert result.returncode == 0, result.stderr
-    assert "| core | lines | 0% | 70.10% | 70% ⬆️ |" in result.stdout
+    assert "| core | lines | 0% | 64.10% | 64% ⬆️ |" in result.stdout
 
 
 def test_metrics_without_a_percentage_keep_their_floors(tmp_path: Path) -> None:
@@ -195,6 +196,8 @@ def test_missing_report_fails_and_leaves_the_config(tmp_path: Path) -> None:
         pytest.param("margin: 2", id="not JSON"),
         pytest.param('{"floors": {"core": {"lines": 70, "branches": 50}}}', id="no margin"),
         pytest.param('{"margin": -1, "floors": {"core": {"lines": 70, "branches": 50}}}', id="negative margin"),
+        pytest.param('{"margin": "2", "floors": {"core": {"lines": 70, "branches": 50}}}', id="margin not a number"),
+        pytest.param('{"margin": 2, "floors": [{"lines": 70, "branches": 50}]}', id="floors not an object"),
         pytest.param('{"margin": 2, "floors": {"core": {"lines": 120, "branches": 50}}}', id="floor above 100"),
         pytest.param('{"margin": 2, "floors": {"core": {"lines": 70, "branches": -1}}}', id="floor below 0"),
         pytest.param('{"margin": 2, "floors": {}}', id="no modules"),
