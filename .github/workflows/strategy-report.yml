@@ -44,6 +44,6 @@ jobs:
           since="$(date -u -d "${DAYS} days ago" +%Y-%m-%d)"
           gh issue list --repo "$REPO" --state all --limit 10000 \
             --json number,title,state,labels,createdAt,closedAt > issues.json
-          gh pr list --repo "$REPO" --state merged --limit 1000 \
+          gh pr list --repo "$REPO" --base main --state merged --limit 1000 \
             --search "merged:>=${since}" --json mergedAt > prs.json
           scripts/strategy-report.sh --since "$since" --issues issues.json --prs prs.json | tee -a "$GITHUB_STEP_SUMMARY"

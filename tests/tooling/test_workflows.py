@@ -648,6 +648,35 @@ def merge_violations(name: str, workflow: dict, reviewed: dict[tuple[str, str], 
     ]
 
 
+# The scripts that classify pull requests with scripts/lib/pr-source.jq.
+PR_SOURCE_READERS = sorted(
+    path.name for path in (ROOT / "scripts").glob("*.sh") if 'include "pr-source"' in path.read_text(encoding="utf-8")
+)
+PR_SOURCE_FIELDS = frozenset({"author", "headRefName", "body"})
+# One `gh pr list` call with its backslash-continued lines.
+GH_PR_LIST = re.compile(r"\bgh\s+pr\s+list\b(?:[^\n]*\\\n)*[^\n]*")
+
+
+def pr_source_query_violations(name: str, workflow: dict, readers: list[str] = PR_SOURCE_READERS) -> list[str]:
+    """A report on pr-source.jq gets the fields it reads, for pull requests merged into main (#348).
+
+    pr-source.jq reads a missing body as empty, so without `body` signed agent runs land in Other and nothing fails.
+    """
+    violations = []
+    for job_id, step in steps_of(workflow):
+        run = str(step.get("run", ""))
+        if not any(reader in run for reader in readers):
+            continue
+        for query in GH_PR_LIST.findall(run):
+            json_fields = re.search(r"--json[\s=]+(\S+)", query)
+            missing = sorted(PR_SOURCE_FIELDS - set(json_fields.group(1).split(",") if json_fields else ()))
+            if missing:
+                violations.append(f"{name}: job {job_id} runs gh pr list without {', '.join(missing)}")
+            if not re.search(r"--base[\s=]+main\b", query):
+                violations.append(f"{name}: job {job_id} runs gh pr list without --base main")
+    return violations
+
+
 # --- the repository's files -------------------------------------------------------------------------------------------
 
 FILES = workflow_files()
@@ -793,6 +822,17 @@ def test_every_reviewed_merge_row_names_a_job_that_merges() -> None:
         if any(GH_PR_MERGE.search(str(step.get("run", ""))) for step in job.get("steps") or [])
     }
     assert sorted(set(AUTO_MERGE_JOBS) - merging) == []
+
+
+@pytest.mark.parametrize("path", FILES, ids=IDS)
+def test_reports_on_pr_source_request_what_it_reads(path: Path) -> None:
+    assert pr_source_query_violations(path.name, load(path)) == []
+
+
+def test_every_pr_source_reader_runs_in_a_workflow() -> None:
+    runs = [str(step.get("run", "")) for path in FILES for _, step in steps_of(load(path))]
+    assert PR_SOURCE_READERS
+    assert [reader for reader in PR_SOURCE_READERS if not any(reader in run for run in runs)] == []
 
 
 # --- each check catches a broken fixture ------------------------------------------------------------------------------
@@ -1523,3 +1563,39 @@ jobs:
       - run: gh pr view 12 --json mergedAt && gh pr list --state merged
 """)
     assert merge_violations("x.yml", workflow, reviewed={("x.yml", "publish"): "fixture"}) == []
+
+
+PR_SOURCE_REPORT = """
+jobs:
+  acceptance:
+    steps:
+      - run: |
+          gh pr list --repo "$REPO" {base}--state closed --limit 1000 \\
+            --search "closed:>=${{since}}" \\
+            --json {fields} > prs.json
+          scripts/report.sh < prs.json
+"""
+
+
+def test_fixture_pr_source_report_without_a_field_fails() -> None:
+    workflow = load_yaml(PR_SOURCE_REPORT.format(base="--base main ", fields="number,mergedAt,headRefName,author"))
+    assert pr_source_query_violations("x.yml", workflow, readers=["report.sh"]) == [
+        "x.yml: job acceptance runs gh pr list without body"
+    ]
+
+
+def test_fixture_pr_source_report_outside_main_fails() -> None:
+    workflow = load_yaml(PR_SOURCE_REPORT.format(base="", fields="number,headRefName,author,body"))
+    assert pr_source_query_violations("x.yml", workflow, readers=["report.sh"]) == [
+        "x.yml: job acceptance runs gh pr list without --base main"
+    ]
+
+
+def test_fixture_pr_source_report_with_every_field_on_main_passes() -> None:
+    workflow = load_yaml(PR_SOURCE_REPORT.format(base="--base main ", fields="number,headRefName,author,body"))
+    assert pr_source_query_violations("x.yml", workflow, readers=["report.sh"]) == []
+
+
+def test_fixture_query_for_a_step_without_a_pr_source_reader_passes() -> None:
+    workflow = load_yaml(PR_SOURCE_REPORT.format(base="", fields="commits"))
+    assert pr_source_query_violations("x.yml", workflow, readers=["other-report.sh"]) == []
