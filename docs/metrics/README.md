@@ -76,16 +76,17 @@ scripts/auto-qa-tuner.sh --report quality-report.md --write  # apply to .github/
 ## PR acceptance rate
 
 Of the PRs closed in the reporting window (default 28 days), how many were merged vs. closed without merging. Split
-into agent-authored (head branch `claude/*`, or authored by the `hive-worker-bee` GitHub App, formerly `hive-forge-app`)
-and other. A falling agent acceptance rate is the signal to revisit agent instructions, prompts or skills.
+into agent-authored and other. Agent-authored means the **Hive** and **Claude Code (CI)** sources of the
+[AI audit trail](#ai-audit-trail); `scripts/lib/pr-source.jq` holds that one definition, so the two reports agree. A
+falling agent acceptance rate is the signal to revisit agent instructions, prompts or skills.
 
 Run it with a different window from the Actions tab (**PR metrics → Run workflow → days**), or locally with an
 authenticated `gh`:
 
 ```sh
 since="$(date -u -d '28 days ago' +%Y-%m-%d)"
-gh pr list -R Tim-van-Oudheusden/Dailies --state closed --limit 1000 --search "closed:>=${since}" \
-  --json number,mergedAt,headRefName,author | scripts/pr-metrics.sh --since "$since" --days 28
+gh pr list -R Tim-van-Oudheusden/Dailies --base main --state closed --limit 1000 --search "closed:>=${since}" \
+  --json number,mergedAt,headRefName,author,body | scripts/pr-metrics.sh --since "$since" --days 28
 ```
 
 ## AI audit trail
@@ -139,7 +140,7 @@ runs it with another window. To reproduce it locally with an authenticated `gh`:
 since="$(date -u -d '28 days ago' +%Y-%m-%d)"
 gh issue list -R Tim-van-Oudheusden/Dailies --state all --limit 10000 \
   --json number,title,state,labels,createdAt,closedAt > issues.json
-gh pr list -R Tim-van-Oudheusden/Dailies --state merged --limit 1000 --search "merged:>=${since}" \
+gh pr list -R Tim-van-Oudheusden/Dailies --base main --state merged --limit 1000 --search "merged:>=${since}" \
   --json mergedAt > prs.json
 scripts/strategy-report.sh --since "$since" --issues issues.json --prs prs.json
 ```

@@ -45,6 +45,7 @@ STRATEGY_REPORT_TESTS = "tests/scripts/test_strategy_report.py"
 AI_AUDIT_REPORT = "scripts/ai-audit-report.sh"
 AI_AUDIT_REPORT_TESTS = "tests/scripts/test_ai_audit_report.py"
 PR_METRICS = "scripts/pr-metrics.sh"
+PR_SOURCE = "scripts/lib/pr-source.jq"
 PR_METRICS_TESTS = "tests/scripts/test_pr_metrics.py"
 APPLY_REVIEW_SUGGESTIONS = "scripts/apply-review-suggestions.sh"
 APPLY_REVIEW_SUGGESTIONS_TESTS = "tests/scripts/test_apply_review_suggestions.py"
@@ -202,28 +203,28 @@ MUTANTS = [
     ),
     Mutant(
         "a pull request with a null body is attributed, not an error",
-        AI_AUDIT_REPORT,
+        PR_SOURCE,
         '(.body // "")',
         ".body",
         f"{AI_AUDIT_REPORT_TESTS}::test_a_pr_with_no_body_is_attributed_by_its_branch",
     ),
     Mutant(
         "an omp signature counts only at the start of a line",
-        AI_AUDIT_REPORT,
+        PR_SOURCE,
         'test("^— omp',
         'test("— omp',
         f"{AI_AUDIT_REPORT_TESTS}::test_a_signature_counts_only_at_the_start_of_a_line",
     ),
     Mutant(
         "a claude/ branch prefix includes its slash",
-        AI_AUDIT_REPORT,
+        PR_SOURCE,
         'startswith("claude/")',
         'startswith("claude")',
         f"{AI_AUDIT_REPORT_TESTS}::test_a_source_branch_prefix_includes_its_slash",
     ),
     Mutant(
         "a dependabot/ branch prefix includes its slash",
-        AI_AUDIT_REPORT,
+        PR_SOURCE,
         'startswith("dependabot/")',
         'startswith("dependabot")',
         f"{AI_AUDIT_REPORT_TESTS}::test_a_source_branch_prefix_includes_its_slash",
@@ -244,7 +245,7 @@ MUTANTS = [
     ),
     Mutant(
         "a claude/ branch prefix includes its slash",
-        PR_METRICS,
+        PR_SOURCE,
         'startswith("claude/")',
         'startswith("claude")',
         f"{PR_METRICS_TESTS}::test_a_branch_named_like_claude_without_the_slash_is_not_an_agent",
