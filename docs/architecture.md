@@ -201,7 +201,8 @@ through gettext; the widgets are current libadwaita API only.
 
 Toasts follow one policy: sentence case without a trailing period, the default 5 s timeout, and **Undo** for every
 reversible action (removing a favourite puts it back where it was). Irreversible actions say so without a button
-("Website data cleared"). A game or a script pop-up that opens in the default browser shows "Opened in your browser",
+("Website data cleared"), and say when they failed ("Could not clear website data"): a toast never claims success the
+app did not get. A game or a script pop-up that opens in the default browser shows "Opened in your browser",
 with **Open Here** to load it in the built-in browser when WebKit is available (`core/opening.py: notice`,
 `offers_open_here`). Leaving the library for the browser page dismisses all toasts (`dismiss_all`), so an undo for the
 library does not linger over a game.

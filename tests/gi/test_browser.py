@@ -13,7 +13,8 @@ import tempfile
 import time
 import unittest
 from collections.abc import Callable
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+from unittest import mock
 
 HOME = Path(tempfile.mkdtemp())
 os.environ.update(XDG_DATA_HOME=str(HOME / "data"), XDG_CACHE_HOME=str(HOME / "cache"))
@@ -135,6 +136,54 @@ def load(view: WebKit.WebView, start: Callable[[], None]) -> None:
     view.disconnect(handler)
 
 
+class FakeData:
+    def __init__(self, name: str) -> None:
+        self._name = name
+
+    def get_name(self) -> str:
+        return self._name
+
+
+class FakeDataManager:
+    """Stands in for a `WebKit.WebsiteDataManager` to make it fail, which WebKit cannot be made to do on demand.
+
+    Like WebKit, it answers each call on a later main-loop turn and reports a failure from the `*_finish` call. Fetching
+    returns data named `names`, or fails when `fetch_fails`; clearing and removing fail when `change_fails`.
+    """
+
+    failure = "WebKit failed"
+
+    def __init__(self, *, names: tuple[str, ...] = (), fetch_fails: bool = False, change_fails: bool = False) -> None:
+        self.names = names
+        self.fetch_fails = fetch_fails
+        self.change_fails = change_fails
+
+    def _answer(self, *args: object) -> None:
+        GLib.idle_add(args[-1], self, None)
+
+    clear = fetch = remove = _answer
+
+    def fetch_finish(self, _result: None) -> list[FakeData]:
+        if self.fetch_fails:
+            raise GLib.Error(self.failure)
+        return [FakeData(name) for name in self.names]
+
+    def clear_finish(self, _result: None) -> bool:
+        if self.change_fails:
+            raise GLib.Error(self.failure)
+        return True
+
+    remove_finish = clear_finish
+
+
+class FakeSession:
+    def __init__(self, manager: FakeDataManager) -> None:
+        self._manager = manager
+
+    def get_website_data_manager(self) -> FakeDataManager:
+        return self._manager
+
+
 class BrowserTest(unittest.TestCase):
     def setUp(self) -> None:
         self.settings = Gio.Settings.new(os.environ["DAILIES_SCHEMA_ID"])
@@ -205,14 +254,53 @@ class SessionTest(BrowserTest):
         shutil.copy(WEB_DATA / "games" / "wordle" / "cookies.sqlite", framed_dir / "cookies.sqlite")
 
         done: list[bool] = []
-        browser_page.clear_all(self.settings, lambda: done.append(True))
+        browser_page.clear_all(self.settings, done.append)
         run_until(done)
+
+        assert done == [True]
 
         assert cookie_names(shared) == set()
         assert cookie_names(wordle) == set()
         framed = browser_page.session_for(self.settings, "framed")
         assert data_dir(framed) == WEB_DATA / "games" / "framed"
         assert cookie_names(framed) == set()
+
+
+class ClearDataTest(BrowserTest):
+    """Clearing reports whether it worked, so the app never says data is gone when it is still on disk (#350)."""
+
+    def clear_site(self, manager: FakeDataManager) -> list[bool]:
+        done: list[bool] = []
+        browser_page.clear_site_data(FakeSession(manager), "www.nytimes.com", done.append)
+        run_until(done)
+        return done
+
+    def test_clearing_a_site_reports_success_once_its_data_is_removed(self) -> None:
+        assert self.clear_site(FakeDataManager(names=("example.org", "nytimes.com"))) == [True]
+
+    def test_a_site_with_no_data_counts_as_cleared(self) -> None:
+        assert self.clear_site(FakeDataManager(names=("example.org",), change_fails=True)) == [True]
+
+    def test_a_failed_read_of_the_site_data_reports_failure(self) -> None:
+        assert self.clear_site(FakeDataManager(fetch_fails=True)) == [False]
+
+    def test_a_failed_removal_of_the_site_data_reports_failure(self) -> None:
+        assert self.clear_site(FakeDataManager(names=("nytimes.com",), change_fails=True)) == [False]
+
+    def test_one_session_that_fails_to_clear_makes_clearing_everything_report_failure_once(self) -> None:
+        (WEB_DATA / "games" / "heardle").mkdir(parents=True, exist_ok=True)
+        sessions = {PurePosixPath("games/heardle"): FakeSession(FakeDataManager(change_fails=True))}
+        cleared = FakeSession(FakeDataManager())
+        done: list[bool] = []
+
+        with mock.patch.object(browser_page, "_session", lambda _settings, name: sessions.get(name, cleared)):
+            browser_page.clear_all(self.settings, done.append)
+            run_until(done)
+            # Every session has answered by now; none may call back a second time.
+            while GLib.MainContext.default().iteration(False):
+                pass
+
+        assert done == [False]
 
 
 class WebSettingsTest(BrowserTest):
