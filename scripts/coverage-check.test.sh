@@ -73,6 +73,15 @@ counters_are 'core counters summed across packages' "$tree" "$fixtures/pass.xml"
 counters_are 'scripts counters summed across packages' "$tree" "$fixtures/pass.xml" scripts '2 6 2 2'
 counters_are 'single-root report needs no checkout' "$empty" "$fixtures/core-only.xml" core '1 3 1 1'
 counters_are 'group missing from the report has no lines' "$empty" "$fixtures/core-only.xml" scripts '0 0 0 0'
+# Sources as coverage.py writes them with relative_files, on Windows, and with a trailing slash.
+counters_are 'relative source roots' "$tree" \
+  "$(report relative "$(sed 's|/home/runner/work/Dailies/Dailies/||' "$fixtures/pass.xml")")" scripts '2 6 2 2'
+counters_are 'Windows source roots' "$tree" \
+  "$(report windows "$(sed -e 's|/home/runner/work/Dailies/Dailies/dailies/core|D:\\a\\Dailies\\Dailies\\dailies\\core|' \
+    -e 's|/home/runner/work/Dailies/Dailies/scripts|D:\\a\\Dailies\\Dailies\\scripts|' "$fixtures/pass.xml")")" \
+  core '2 8 1 3'
+counters_are 'source root with a trailing slash' "$tree" \
+  "$(report trailing "$(sed 's|Dailies/scripts<|Dailies/scripts/<|' "$fixtures/pass.xml")")" scripts '2 6 2 2'
 
 # Pass.
 expect 0 'pass.xml meets the floors' "$tree" 'Coverage (core): lines 80.00% (floor 70%), branches 75.00% (floor 50%)' \
@@ -92,6 +101,9 @@ shell_only="$tmp/shell-only"
 mkdir -p "$shell_only/scripts/lib"
 touch "$shell_only/scripts/coverage-check.sh" "$shell_only/scripts/lib/coverage.sh"
 expect 0 'no report and only shell scripts' "$shell_only" 'Coverage (core): no code yet' "$tmp/missing.xml" "$config"
+expect 0 'lines but no branches is 100% branch coverage' "$empty" 'branches 100.00% (floor 50%)' \
+  "$(report no-branches "$(sed -e 's/ branch="true" condition-coverage="[^"]*"//' -e 's/ missing-branches="[^"]*"//' \
+    "$fixtures/core-only.xml")")" "$config"
 expect 2 'Python under a root but no measured lines (a root missing from coverage source)' "$tree" \
   'scripts has Python files but no measured lines; is it in [tool.coverage.run] source in pyproject.toml?' \
   "$fixtures/core-only.xml" "$config"
@@ -101,6 +113,14 @@ expect 1 'scripts lines below the floor' "$tree" '::error::scripts lines coverag
   "$fixtures/below-floor.xml" "$config"
 expect 1 'core branches below the floor' "$tree" '::error::core branches coverage 25.00% is below its floor of 50%' \
   "$fixtures/below-floor.xml" "$config"
+expect 1 'only branches below the floor' "$tree" '::error::core branches coverage 75.00% is below its floor of 76%' \
+  "$fixtures/pass.xml" \
+  "$(floors branches '{"margin": 2, "floors": {"core": {"lines": 70, "branches": 76}, "scripts": {"lines": 70, "branches": 50}}}')"
+# A group with no code yet does not end the check: the groups after it are still held to their floors.
+expect 1 'a group below its floor after one with no code yet' "$empty" \
+  '::error::scripts lines coverage 75.00% is below its floor of 80%' \
+  "$(report scripts-only "$(sed 's|Dailies/dailies/core<|Dailies/scripts<|' "$fixtures/core-only.xml")")" \
+  "$(floors scripts-strict '{"margin": 2, "floors": {"core": {"lines": 70, "branches": 50}, "scripts": {"lines": 80, "branches": 50}}}')"
 expect 1 'just above the coverage is below' "$tree" '::error::core lines coverage 80.00% is below its floor of 80.01%' \
   "$fixtures/pass.xml" "$(floors strict '{"margin": 2, "floors": {"core": {"lines": 80.01, "branches": 50}}}')"
 expect 1 'a 100% floor is not met by 75%' "$empty" '::error::core lines coverage 75.00% is below its floor of 100%' \
@@ -117,6 +137,8 @@ expect 2 'branch line without counts' "$tree" 'branch without condition-coverage
   "$(report bad-branch "$(sed 's/ condition-coverage="100% (2\/2)"//' "$fixtures/pass.xml")")" "$config"
 expect 2 'files but no source roots' "$tree" 'no <sources> roots' \
   "$(report no-sources "$(sed '/<source>/d' "$fixtures/pass.xml")")" "$config"
+expect 2 'file without a filename' "$tree" 'has a <class> without a filename' \
+  "$(report no-filename "$(sed 's/ filename="validate.py"//' "$fixtures/pass.xml")")" "$config"
 expect 2 'file not in this checkout' "$empty" 'is under none of the <source> roots' "$fixtures/pass.xml" "$config"
 ambiguous="$tmp/ambiguous"
 cp -R "$tree" "$ambiguous"
@@ -135,6 +157,12 @@ expect 2 'floor without branches (functions/lines contract)' "$tree" 'Malformed'
   "$(floors kover '{"margin": 2, "floors": {"core": {"functions": 70, "lines": 70}}}')"
 expect 2 'negative margin' "$tree" 'Malformed' "$fixtures/pass.xml" \
   "$(floors margin '{"margin": -1, "floors": {"core": {"lines": 70, "branches": 50}}}')"
+expect 2 'margin not a number' "$tree" 'Malformed' "$fixtures/pass.xml" \
+  "$(floors margin-text '{"margin": "2", "floors": {"core": {"lines": 70, "branches": 50}}}')"
+expect 2 'floor below 0' "$tree" 'Malformed' "$fixtures/pass.xml" \
+  "$(floors under '{"margin": 2, "floors": {"core": {"lines": 70, "branches": -1}}}')"
+expect 2 'floors not an object' "$tree" 'Malformed' "$fixtures/pass.xml" \
+  "$(floors list '{"margin": 2, "floors": [{"lines": 70, "branches": 50}]}')"
 expect 2 'no groups' "$tree" 'Malformed' "$fixtures/pass.xml" "$(floors none '{"margin": 2, "floors": {}}')"
 expect 2 'unknown group' "$tree" "Unknown coverage group 'app' in $tmp/app.json; known groups: core, scripts" \
   "$fixtures/pass.xml" "$(floors app '{"margin": 2, "floors": {"app": {"lines": 70, "branches": 50}}}')"
