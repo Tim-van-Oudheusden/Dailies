@@ -8,6 +8,10 @@
 # even though *.md is low; data/v1/schema/* is high even though data/v1/*.json
 # is medium). `*` matches across `/`. A path matching no rule is medium.
 #
+# The merge queue (docs/multi-agent.md#merge-queue) merges low- and medium-risk
+# pull requests with no human review, so a file that configures a gate or tests
+# this policy needs a high rule, not the medium default.
+#
 # The classifier reads a strict line subset of YAML: the `rules:` line, one
 # `- <tier> <glob>` item per line, blank lines and whole-line `#` comments.
 
@@ -15,9 +19,36 @@ rules:
   # high — gates, tooling, packaging, schemas, agent instructions
   - high .github/*
   - high scripts/*
+  - high tests/tooling/*
+  - high pyproject.toml
+  # Configs that override or extend pyproject.toml, nested copies included: ruff reads the nearest config, pytest
+  # collects conftest.py at any depth and looks for its config from the common ancestor of its arguments upwards.
+  - high */pyproject.toml
+  - high ruff.toml
+  - high */ruff.toml
+  - high .ruff.toml
+  - high */.ruff.toml
+  - high conftest.py
+  - high */conftest.py
+  - high pytest.ini
+  - high */pytest.ini
+  - high .pytest.ini
+  - high */.pytest.ini
+  - high pytest.toml
+  - high */pytest.toml
+  - high .pytest.toml
+  - high */.pytest.toml
+  - high tox.ini
+  - high */tox.ini
+  - high setup.cfg
+  - high */setup.cfg
+  - high .coveragerc
+  - high .pre-commit-config.yaml
+  - high Dockerfile.sandbox
   - high build-aux/*
   - high meson.build
   - high meson_options.txt
+  - high subprojects/*
   - high data/*.metainfo.xml.in
   - high data/*.gschema.xml.in
   - high data/v1/schema/*

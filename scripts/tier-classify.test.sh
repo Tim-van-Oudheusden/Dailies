@@ -166,12 +166,31 @@ tier_of 'CLAUDE.md is high' 'CLAUDE.md' high
 tier_of 'Claude settings are high' '.claude/settings.json' high
 tier_of 'Cursor rules are high' '.cursor/rules/agent-guidance.mdc' high
 tier_of 'prompts are high' 'prompts/code-review.md' high
+tier_of 'pyproject.toml (lint, test and coverage config) is high' 'pyproject.toml' high
+tier_of 'the blueprint-compiler wrap is high' 'subprojects/blueprint-compiler.wrap' high
+tier_of 'the agent sandbox image is high' 'Dockerfile.sandbox' high
+tier_of 'pre-commit hooks are high' '.pre-commit-config.yaml' high
+# Files that override or extend pyproject.toml's lint, test and coverage settings.
+for config in ruff.toml .ruff.toml conftest.py pytest.ini .pytest.ini pytest.toml .pytest.toml tox.ini setup.cfg \
+  .coveragerc; do
+  tier_of "$config overrides pyproject.toml, so it is high" "$config" high
+done
+# ruff reads the nearest config, pytest collects conftest.py at any depth, and pytest looks for its config from the
+# common ancestor of its arguments (tests/ in ci.yml) upwards, so nested copies are high too.
+for config in pyproject.toml ruff.toml .ruff.toml conftest.py pytest.ini .pytest.ini pytest.toml .pytest.toml \
+  tox.ini setup.cfg; do
+  tier_of "a nested $config is high" "tests/scripts/$config" high
+done
+tier_of 'a test file named after conftest is unmatched, so medium' 'tests/core/test_conftest.py' medium
+tier_of 'policy tests are high' 'tests/tooling/test_codeowners.py' high
+tier_of 'the risk-tier parity test is high' 'tests/tooling/test_tier_classify.py' high
+tier_of 'Markdown under the policy tests is high although *.md is low' 'tests/tooling/README.md' high
 tier_of 'app code is medium' 'dailies/core/catalog.py' medium
 tier_of 'catalog data is medium' 'data/v1/games.json' medium
-tier_of 'tests are unmatched, so medium' 'tests/core/test_catalog.py' medium
+tier_of 'tests outside tests/tooling are unmatched, so medium' 'tests/core/test_catalog.py' medium
+tier_of 'script tests are unmatched, so medium' 'tests/scripts/test_merge_queue.py' medium
 tier_of 'Blueprint file is unmatched, so medium' 'data/ui/window.blp' medium
 tier_of 'desktop file is unmatched, so medium' 'data/io.github.tim_van_oudheusden.Dailies.desktop.in' medium
-tier_of 'pyproject.toml is unmatched, so medium' 'pyproject.toml' medium
 tier_of 'docs are low' 'docs/architecture.md' low
 tier_of 'README.md is low' 'README.md' low
 tier_of 'nested Markdown outside high paths is low' 'tests/README.md' low

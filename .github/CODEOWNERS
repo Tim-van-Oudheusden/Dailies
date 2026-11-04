@@ -1,8 +1,9 @@
 # Code owners: the maintainer owns every path .github/risk-assessment.yml rates
-# high (docs/risk-tiers.md): CI and gates, gate tooling, Flatpak manifests, the
-# build, the metainfo and settings schema, the data schemas, and agent
-# instructions. A pull request that touches one requests his review. Medium-
-# and low-risk paths have no owner.
+# high (docs/risk-tiers.md): CI and gates, gate tooling and its configuration,
+# the policy tests, the agent sandbox image, Flatpak manifests, the build, the
+# metainfo and settings schema, the data schemas, and agent instructions. A
+# pull request that touches one requests his review. Medium- and low-risk paths
+# have no owner.
 #
 # Keep this file and the high-risk rules in step: tests/tooling/test_codeowners.py
 # fails if a tracked file is high risk but unowned, or owned but not high risk.
@@ -16,12 +17,33 @@
 # Gate tooling: CI scripts, the submission validator, the popularity pipeline.
 /scripts/                           @Tim-van-Oudheusden
 
+# Gate configuration and the tests that pin the policy: ruff, pytest and coverage
+# settings, the files that override them at any depth, the pre-commit hooks, the
+# agent sandbox image, and the tooling tests (workflows, ruleset, CODEOWNERS,
+# risk tiers). Unanchored names match at any depth.
+/tests/tooling/                     @Tim-van-Oudheusden
+pyproject.toml                      @Tim-van-Oudheusden
+ruff.toml                           @Tim-van-Oudheusden
+.ruff.toml                          @Tim-van-Oudheusden
+conftest.py                         @Tim-van-Oudheusden
+pytest.ini                          @Tim-van-Oudheusden
+.pytest.ini                         @Tim-van-Oudheusden
+pytest.toml                         @Tim-van-Oudheusden
+.pytest.toml                        @Tim-van-Oudheusden
+tox.ini                             @Tim-van-Oudheusden
+setup.cfg                           @Tim-van-Oudheusden
+/.coveragerc                        @Tim-van-Oudheusden
+/.pre-commit-config.yaml            @Tim-van-Oudheusden
+/Dockerfile.sandbox                 @Tim-van-Oudheusden
+
 # Flatpak manifests: sandbox permissions (finish-args), runtime, sources.
 /build-aux/                         @Tim-van-Oudheusden
 
-# The build, its options and the release version.
+# The build, its options, the release version, and the subproject wraps Meson
+# falls back to.
 /meson.build                        @Tim-van-Oudheusden
 /meson_options.txt                  @Tim-van-Oudheusden
+/subprojects/                       @Tim-van-Oudheusden
 
 # Release notes and branding, and stored settings.
 /data/*.metainfo.xml.in             @Tim-van-Oudheusden

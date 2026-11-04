@@ -9,14 +9,18 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-04. #353 on `test/353-page-title-escaped-tag`.
+2026-11-04. #347 on `ci/347-gate-config-high` (option B, approved by the maintainer).
 
-- **Outcome:** `test_report_keeps_submitted_text_inside_its_table_cell` wrote a literal `<img src=x>` in the page
-  title; CPython 3.12.12/3.13.6 made `html.parser` treat `<title>` as escapable raw text, so older patches dropped the
-  tag and failed the test. The page now writes `&lt;img src=x&gt;`, which every release decodes to the same title;
-  the assertion is unchanged. Passes on 3.12.11, 3.12.16, 3.13.5 and 3.13.6; removing the pipe escape still fails it.
-- **Open follow-ups:** none. `_TitleParser` is left alone on purpose (production runs the newest 3.12).
+- **Outcome:** `pyproject.toml`, `.pre-commit-config.yaml`, `Dockerfile.sandbox`, `subprojects/*` and
+  `tests/tooling/*` are high risk, so the merge queue leaves them to the maintainer. CODEOWNERS owns them, labeler
+  gives them `ci`/`flatpak`, and `docs/risk-tiers.md` says medium merges with no review. The tier parity test moved
+  to `tests/tooling/test_tier_classify.py` so it is high with the rest of the policy tests. After the quality review
+  (maintainer approved widening): the configs that override `pyproject.toml` are high too, at any depth for ruff,
+  pytest and `conftest.py`, root only for `.coveragerc`. None exist yet, so no tracked file changed tier.
+- **Open follow-ups:** none. Other tests under `tests/` stay medium on purpose: rating them high would send every
+  feature PR to the maintainer.
 - **Gotchas:**
-  - CI's `python-version: "3.12"` only ever tests the newest patch; `uv python install 3.12.11 3.13.5` plus
-    `uv run --no-project --python <v> --with-requirements scripts/requirements.txt --with pytest==9.1.1 pytest` checks
-    older supported patches in seconds.
+  - A new high rule needs four files in step: the rule, a CODEOWNERS pattern (`test_codeowners.py`), a labeler glob
+    (`test_workflows.py` parity) and a row in `docs/risk-tiers.md` (`test_tier_classify.py`).
+  - pytest looks for its config from the common ancestor of its arguments upwards, so with ci.yml's
+    `pytest tests/...` a `tests/tox.ini` beats the root `pyproject.toml`; root-anchored rules miss it.
