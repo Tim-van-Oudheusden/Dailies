@@ -93,8 +93,9 @@ We favour small, focused changes tied to a tracked issue.
 3. Commit with [Conventional Commits][conventional-commits] messages, one commit per issue:
    `type(scope): summary (#<number>)`, e.g. `feat(library): add search (#41)`, `fix(fetcher): honour Retry-After (#57)`.
 4. Open a pull request and fill in the template (link the issue with `Fixes #<number>`, paste evidence). Once its
-   required checks pass, the [merge queue](docs/multi-agent.md#merge-queue) merges it; high-risk pull requests and
-   those labelled `hold`, `blocked`, `sentinel-alert` or `automated` wait for the maintainer.
+   required checks pass, the [merge queue](docs/multi-agent.md#merge-queue) merges it, and Hive's merge sweep may
+   also merge a low- or medium-risk pull request; high-risk pull requests and those labelled `hold`, `blocked`,
+   `sentinel-alert` or `automated` wait for the maintainer.
 
 `main` is protected by the ruleset in [`.github/rulesets/main.json`](.github/rulesets/main.json): no direct pushes,
 force-pushes or deletion; changes land only through pull requests whose `PR review rubric`, `Build, lint, test`,

@@ -154,7 +154,7 @@ To pause agent work, for example during an incident or while a bad instruction g
 | --- | --- | --- |
 | Claude Code in CI | `gh workflow disable claude.yml` | `gh workflow enable claude.yml` |
 | Claude Code in CI, hard stop | Delete its credential: `gh secret delete CLAUDE_CODE_OAUTH_TOKEN`, or uninstall the Claude GitHub App in the repository's settings | Set the secret again (`gh secret set CLAUDE_CODE_OAUTH_TOKEN`), or reinstall the App |
-| Automatic merges | `gh workflow disable merge-queue.yml` | `gh workflow enable merge-queue.yml`, then `gh workflow run merge-queue.yml` |
+| Automatic merges by the merge queue | `gh workflow disable merge-queue.yml`; Hive's merge sweep is a separate path, so stop Hive as well (below) | `gh workflow enable merge-queue.yml`, then `gh workflow run merge-queue.yml` |
 | One PR | `gh pr edit <N> --add-label hold` | `gh pr edit <N> --remove-label hold` |
 | `/apply-suggestions` | `gh workflow disable auto-review.yml` | `gh workflow enable auto-review.yml` |
 | Weekly popularity PR, which merges itself | `gh workflow disable popularity.yml` | `gh workflow enable popularity.yml` |
