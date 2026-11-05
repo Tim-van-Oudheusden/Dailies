@@ -139,35 +139,34 @@ def test_reports_the_totals_and_a_new_survivor_and_fails(checkout: Checkout) -> 
     result = checkout.run()
 
     assert result.status == 1
-    assert result.stdout == "\n".join(
-        [
-            "# Mutants report",
-            "",
-            "Commit: `0123abc`",
-            "",
-            "## Totals",
-            "",
-            "| Status | Mutants |",
-            "| ------ | ------- |",
-            "| killed | 2 |",
-            "| survived | 1 |",
-            "| timeout | 1 |",
-            "| all | 4 |",
-            "",
-            "Known survivors, in the baseline: 0",
-            "",
-            "## New survivors: 1",
-            "",
-            "```text",
-            KEY,
-            "```",
-            "",
-            "## Baseline entries now killed or gone: 0",
-            "",
-            "None.",
-            "",
-        ]
-    )
+    expected = [
+        "# Mutants report",
+        "",
+        "Commit: `0123abc`",
+        "",
+        "## Totals",
+        "",
+        "| Status | Mutants |",
+        "| ------ | ------- |",
+        "| killed | 2 |",
+        "| survived | 1 |",
+        "| timeout | 1 |",
+        "| all | 4 |",
+        "",
+        "Known survivors, in the baseline: 0",
+        "",
+        "## New survivors: 1",
+        "",
+        "```text",
+        KEY,
+        "```",
+        "",
+        "## Baseline entries now killed or gone: 0",
+        "",
+        "None.",
+        "",
+    ]
+    assert result.stdout == "\n".join(expected)
     assert checkout.called() == ["mutmut run", "mutmut results --all true", f"mutmut show {MUTANT}"]
 
 
