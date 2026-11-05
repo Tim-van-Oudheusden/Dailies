@@ -45,6 +45,7 @@ expect pass 'title with type and scope' "$title" "$body"
 expect pass 'title without scope' 'docs: explain the build' "$body"
 expect pass 'title with breaking-change marker' 'feat(data)!: drop catalog v1' "$body"
 expect pass 'title with dotted/slashed scope' 'build(scripts/requirements.txt): pin jsonschema' "$body"
+expect pass 'title with digit, underscore and dash in scope' 'fix(gtk4_list-view): keep focus' "$body"
 expect pass 'title with issue number suffix' 'ci: add PR review rubric (#29)' "$body"
 # Dailies' own types: catalog and popularity data PRs, and release PRs (mvp-first.md §7, §8).
 expect pass "repo type 'data'" 'data(popularity): week 2026-W43' "$body"
@@ -55,6 +56,7 @@ expect fail 'title with capitalised scope' 'fix(UI): add search' "$body"
 expect fail 'title without space after colon' 'fix(ui):add search' "$body"
 expect fail 'title with empty summary' 'fix(ui): ' "$body"
 expect fail 'title without type' 'Add game search' "$body"
+expect fail 'title with a type after other text' 'wip feat: add search' "$body"
 expect fail 'empty title' '' "$body"
 
 # Body: every keyword form links the issue.
@@ -64,6 +66,8 @@ done
 expect pass 'body keyword in upper case' "$title" 'FIXES #12'
 expect pass "body 'Closes: #10' (keyword ending in a colon)" "$title" 'Closes: #10'
 expect pass "body 'Fixes owner/repo#N' (GitHub's long form)" "$title" 'Fixes Tim-van-Oudheusden/Dailies#12'
+expect pass "body 'Fixes owner/repo#N' with dot, dash and underscore in repo" "$title" 'Fixes a/my-repo_x.y#12'
+expect pass 'body with several spaces after the keyword' "$title" 'Fixes  #12'
 expect pass 'body link after other text on the line' "$title" 'Part of the launcher work. Closes #4'
 expect pass 'body link on a later line' "$title" $'## Summary\n\nWhat: x\n\nResolves #7'
 expect pass 'body link inside parentheses' "$title" '(Fixes #12)'
@@ -76,6 +80,8 @@ expect fail "body 'hotfix #3' (keyword is only a word suffix)" "$title" 'Follow-
 expect fail "body 'prefix #1'" "$title" 'Uses the new prefix #1 format'
 expect fail "body 'prefs #2'" "$title" 'See prefs #2'
 expect fail "body 'x_fixes #12' (underscore is a word character)" "$title" 'x_fixes #12'
+expect fail "body '2fixes #12' (a digit is a word character)" "$title" '2fixes #12'
+expect fail "body 'Fixes#12' (no space after the keyword)" "$title" 'Fixes#12'
 expect fail 'body with a bare #N and no keyword' "$title" 'See #12'
 expect fail 'body with keyword and number on separate lines' "$title" $'Fixes\n#12'
 expect fail 'body with keyword but no number' "$title" 'Fixes #'

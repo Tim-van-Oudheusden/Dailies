@@ -54,6 +54,30 @@ def test_without_arguments_it_builds_the_image_then_runs_the_gates_on_the_checko
     assert calls[1].endswith(f"{IMAGE} scripts/sandbox-gates.sh")
 
 
+def test_the_container_keeps_your_uid_starts_in_the_checkout_and_is_removed(tmp_path: Path) -> None:
+    result, calls = run(tmp_path)
+
+    assert result.returncode == 0, result.stderr
+    assert "--userns=keep-id" in calls[1]
+    assert "--workdir /workspace" in calls[1]
+    assert "--rm" in calls[1]
+
+
+def test_the_build_context_is_scripts_not_the_whole_checkout(tmp_path: Path) -> None:
+    result, calls = run(tmp_path)
+
+    assert result.returncode == 0, result.stderr
+    assert calls[0].endswith(f" {ROOT}/scripts")
+
+
+def test_without_a_terminal_the_container_asks_for_none(tmp_path: Path) -> None:
+    result, calls = run(tmp_path)
+
+    assert result.returncode == 0, result.stderr
+    assert "--tty" not in calls[1]
+    assert "--interactive" not in calls[1]
+
+
 def test_arguments_are_the_command_run_in_the_sandbox(tmp_path: Path) -> None:
     result, calls = run(tmp_path, "pytest", "tests/core", "-k", "search")
 
