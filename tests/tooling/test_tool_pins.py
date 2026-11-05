@@ -1,10 +1,12 @@
 """Every copy of a dev-tool pin names the same version, so a bump in one place cannot leave the others behind.
 
-ruff, pytest and pytest-cov are pinned in five workflows' `pip install` lines, in .pre-commit-config.yaml and in the
-`ARG`s of Dockerfile.sandbox; shellcheck and actionlint in the `Static checks` job and in Dockerfile.sandbox. Dependabot
+ruff, pytest and pytest-cov are pinned in the workflows' `pip install` lines, in .pre-commit-config.yaml and in the
+`ARG`s of Dockerfile.sandbox; shellcheck and actionlint in the `Static checks` job and in Dockerfile.sandbox. mutmut is
+pinned in mutants.yml and again in the install snippets of docs/testing.md and docs/metrics/README.md. Dependabot
 reads none of them, and `pre-commit autoupdate` bumps only its own file. A missed copy fails nothing on its own: CI
 keeps linting with the old ruff while pre-commit formats with the new one, and the sandbox stops running the gates at
-the versions CI installs, as docs/testing.md says it does.
+the versions CI installs, as docs/testing.md says it does. A doc that installs another mutmut writes a mutants baseline
+CI does not reproduce, because the baseline is keyed by the text of mutmut's mutation and an upgrade can change it.
 """
 
 import re
@@ -15,9 +17,11 @@ WORKFLOWS = ROOT / ".github" / "workflows"
 PRE_COMMIT = ROOT / ".pre-commit-config.yaml"
 DOCKERFILE = ROOT / "Dockerfile.sandbox"
 CI = WORKFLOWS / "ci.yml"
+# Docs that tell a reader to install a pinned tool; they go through the same pattern as the workflows.
+DOCS = (ROOT / "docs" / "testing.md", ROOT / "docs" / "metrics" / "README.md")
 
 # `pytest-cov` before `pytest`, so the alternation does not stop at the shorter name.
-_PIP_PIN = re.compile(r"(?<![\w-])(?P<tool>ruff|pytest-cov|pytest)==(?P<version>[^\s\"']+)")
+_PIP_PIN = re.compile(r"(?<![\w-])(?P<tool>ruff|pytest-cov|pytest|mutmut)==(?P<version>[^\s\"']+)")
 _RUFF_HOOK = re.compile(r"repo:\s*https://github\.com/astral-sh/ruff-pre-commit\s*\n\s*rev:\s*v(?P<version>\S+)")
 _DOCKER_ARG = re.compile(r"^ARG (?P<name>\w+)=(?P<value>\S+)$", re.MULTILINE)
 _ENV_PIN = re.compile(r"^\s+(?P<name>(?:SHELLCHECK|ACTIONLINT)_(?:VERSION|SHA256)):\s*(?P<value>\S+)\s*$", re.MULTILINE)
@@ -65,7 +69,8 @@ def mismatches(pins: dict[str, dict[str, set[str]]]) -> list[str]:
 
 
 def repository_pins() -> dict[str, dict[str, set[str]]]:
-    workflows = {path.name: path.read_text(encoding="utf-8") for path in sorted(WORKFLOWS.glob("*.yml"))}
+    files = [*sorted(WORKFLOWS.glob("*.yml")), *DOCS]
+    workflows = {path.name: path.read_text(encoding="utf-8") for path in files}
     return collect_pins(
         workflows,
         PRE_COMMIT.read_text(encoding="utf-8"),
@@ -90,6 +95,7 @@ def test_every_pin_site_is_read() -> None:
     }
     assert set(pins["pytest"]) >= {"ci.yml", "coverage-gate.yml", "game-submission-approve.yml", "Dockerfile.sandbox"}
     assert set(pins["pytest-cov"]) >= {"ci.yml", "coverage-gate.yml", "Dockerfile.sandbox"}
+    assert set(pins["mutmut"]) == {"mutants.yml", "testing.md", "README.md"}
     for name in ("SHELLCHECK_VERSION", "SHELLCHECK_SHA256", "ACTIONLINT_VERSION", "ACTIONLINT_SHA256"):
         assert set(pins[name]) == {"ci.yml", "Dockerfile.sandbox"}, name
 
@@ -120,3 +126,14 @@ def test_two_versions_in_one_workflow_are_reported() -> None:
 def test_pytest_cov_is_not_read_as_pytest() -> None:
     pins = collect_pins({"a.yml": 'pip install "pytest-cov==7.1.0" pytest==9.1.1'}, "", "", "")
     assert pins == {"pytest-cov": {"a.yml": {"7.1.0"}}, "pytest": {"a.yml": {"9.1.1"}}}
+
+
+def test_a_mutmut_bump_that_misses_a_doc_is_reported() -> None:
+    workflows = {
+        "mutants.yml": "pip install mutmut==3.9.0 pytest==9.1.1\n",
+        "testing.md": "python -m pip install mutmut==3.8.1\n",
+        "README.md": "python -m pip install mutmut==3.9.0\n",
+    }
+    assert mismatches(collect_pins(workflows, "", "", "")) == [
+        "mutmut: README.md 3.9.0, mutants.yml 3.9.0, testing.md 3.8.1"
+    ]
