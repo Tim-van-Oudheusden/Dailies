@@ -524,9 +524,10 @@ the maintainer and has not been done yet; until then, send translations as ordin
   `@sha256:` and update the `sdk-51 as of <date>` comment. Its `ARG` tool versions copy `ci.yml`'s; bump them when
   `ci.yml` bumps its own.
 - ruff, pytest and pytest-cov are pinned in the workflows' `pip install` lines, the ruff hook in
-  `.pre-commit-config.yaml` and the `ARG`s of `Dockerfile.sandbox`; shellcheck and actionlint in the `Static checks`
-  job and `Dockerfile.sandbox`. Dependabot updates none of them, and `pre-commit autoupdate` bumps only its own file,
-  so bump every copy in one pull request: `tests/tooling/test_tool_pins.py` fails while any two differ.
+  `.pre-commit-config.yaml` and the `ARG`s of `Dockerfile.sandbox`; mutmut in `mutants.yml` and the install snippets of
+  `docs/testing.md` and `docs/metrics/README.md`; shellcheck and actionlint in the `Static checks` job and
+  `Dockerfile.sandbox`. Dependabot updates none of them, and `pre-commit autoupdate` bumps only its own file, so bump
+  every copy in one pull request: `tests/tooling/test_tool_pins.py` fails while any two differ.
 - The GNOME runtime branch is the `runtime-version` of both Flatpak manifests. `RUNTIME_BRANCH` in
   `scripts/flatpark_payload.py`, the `flatpak build-init … org.gnome.Platform <branch>` line of `ci.yml`'s `flatpak`
   job and the default `RUNTIME_REF` of `scripts/nightly-compliance.sh` repeat it, so a runtime bump changes them in
