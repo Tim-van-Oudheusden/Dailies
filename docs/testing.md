@@ -168,8 +168,11 @@ A coverage floor shows that a line ran, not that a test would notice it changing
 coverage, and a hand-written mutant sweep still found 42 behaviours no test asserted (#368).
 `scripts/mutants_report.py` runs [mutmut](https://github.com/boxed/mutmut) over `dailies/core`, with `tests/core` and
 `tests/data` as the runner, and reports the survivors that are not in a reviewed baseline. It covers `dailies/core`
-only, not `scripts/`. It is not part of any required check, and mutmut is not in `scripts/requirements.txt`. Install it
-to run the report:
+only, not `scripts/`. `.github/workflows/mutants.yml` (job **Mutants report**: weekly on Monday at 06:47 UTC, and on
+demand) runs it with `--write`, publishes the report to the job summary and uploads the `mutants-report` and
+`mutants-baseline` artifacts; the job stays green and leaves a warning when there are new survivors or the run failed.
+It is not part of any required check, and mutmut is not in `scripts/requirements.txt`. Install it to run the report
+locally:
 
 ```sh
 python -m pip install mutmut==3.8.1
@@ -193,10 +196,12 @@ exiting 0. A failed run reports the failure and counts no survivors, so it never
 
 ### The mutants baseline
 
-`.github/mutants-baseline.json` lists the survivors a maintainer has reviewed and left on purpose. It starts empty, so
-the first run reports every survivor as new. `--write` saves the survivors of a finished run to the baseline file
-(`--baseline <path>` names another one), and a failed run leaves it alone. Nothing is committed automatically: to adopt
-a proposal, review the diff and commit it in a PR, as with [the coverage floors](#coverage-floor-self-tuning).
+`.github/mutants-baseline.json` lists the survivors the report does not flag as new. It started with the 150 survivors
+of the first mutmut run (1470 mutants, #368), taken as they were so that later runs report only new ones; each is still
+behaviour no test asserts, and a test that kills one shows up as a killed baseline entry. `--write` saves the survivors
+of a finished run to the baseline file (`--baseline <path>` names another one), and a failed run leaves it alone.
+Nothing is committed automatically: to adopt a proposal, review the diff and commit it in a PR, as with
+[the coverage floors](#coverage-floor-self-tuning).
 
 mutmut names a mutant after its function and an ordinal, such as `dailies.core.search.x__tier__mutmut_12`, and an edit
 to the function renumbers its mutants. So a baseline entry is the function and the lines `mutmut show` says the mutant

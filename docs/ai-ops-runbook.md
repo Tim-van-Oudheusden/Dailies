@@ -23,6 +23,7 @@ The launcher itself runs no AI and sends nothing anywhere. For a bad release see
 | Apply review suggestions (`auto-review.yml`) | `GITHUB_TOKEN` | A `/apply-suggestions` comment on a PR from an `OWNER`, `MEMBER` or `COLLABORATOR` | The same table |
 | Hive agents | The `hive-worker-bee` GitHub App (formerly `hive-forge-app`), outside this repository | Hive's own scheduler and the Hive dashboard | The same table |
 | Weekly reports (`pr-metrics.yml`, `strategy-report.yml`, `ai-audit.yml`, `quality-report.yml`) | `GITHUB_TOKEN`, read-only | Mondays at 06:17 UTC, and a manual run | They only read; no need to stop them |
+| Mutants report (`mutants.yml`) | `GITHUB_TOKEN`, read-only | Mondays at 06:47 UTC, and a manual run | It only reads; no need to stop it |
 | Nightly compliance (`nightly-compliance.yml`) and `auto-issues.yml` | `GITHUB_TOKEN`; the `link-status` and `checker-pin` jobs use the `bot` environment's App | 03:23 UTC nightly, Sunday link check | The same table |
 | Dependabot (`.github/dependabot.yml`) | `app/dependabot` | Its schedule | Close its PRs; turn off version updates in the repository's settings |
 
@@ -51,6 +52,9 @@ The launcher itself runs no AI and sends nothing anywhere. For a bad release see
   job summaries. Look for an agent acceptance rate that keeps falling, a `stage/*` label where issues pile up, merges
   whose source you cannot account for, and a coverage floor proposal (the `auto-qa-tuning` artifact) waiting to be
   committed.
+- **Every Monday**, once the `Mutants report` run has finished: read its job summary. New survivors are behaviour of
+  `dailies/core` no test asserts: kill them with a test, or review the `mutants-baseline` artifact and commit the
+  survivors you leave on purpose ([Python mutants](testing.md#python-mutants)).
 - **When a PR you expect to merge has not merged within a day**, work through
   [A PR does not merge](#a-pr-does-not-merge).
 - **When the nightly compliance issue opens**, fix it like any other issue; the next fully green run on `main` closes

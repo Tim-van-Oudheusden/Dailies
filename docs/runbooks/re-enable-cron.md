@@ -17,8 +17,8 @@ GitHub disables scheduled workflows in a public repository after 60 days without
 requests, issues and the like). Dailies has no server to notice that the shelves stopped moving, and the app does not
 fail: `valid_until` is `generated_at` plus 10 days, so a late or skipped run is absorbed, and after that the app keeps
 showing the last shelves with an "as of" date. Nothing breaks visibly; the shelves just stop rotating. The same rule
-applies to the other scheduled workflows (`external-data-checker.yml`, `nightly-compliance.yml`, `pr-metrics.yml`,
-`quality-report.yml`).
+applies to the other scheduled workflows (`external-data-checker.yml`, `mutants.yml`, `nightly-compliance.yml`,
+`pr-metrics.yml`, `quality-report.yml`).
 
 ## Response
 
