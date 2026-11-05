@@ -187,9 +187,9 @@ from scratch each time. The report goes to stdout and mutmut's progress to stder
 survivors, and the baseline entries that are now killed or gone. A survivor is a mutant with the status `survived` or
 `no tests`; every other status is only counted. The script exits 0 when the run finished with no new survivor, 1 when
 there are new survivors or the run failed, and 2 for a missing or malformed baseline, which it checks before starting
-mutmut. A run has failed when mutmut cannot start, a mutmut command exits non-zero, mutmut lists no mutants, or any
-mutant is left `not checked`, which is what an interrupted `mutmut run` leaves while exiting 0. A failed run reports
-the failure and counts no survivors, so it never reads as zero.
+mutmut. A run has failed when `mutants/` cannot be deleted, mutmut cannot start, a mutmut command exits non-zero,
+mutmut lists no mutants, or any mutant is left `not checked`, which is what an interrupted `mutmut run` leaves while
+exiting 0. A failed run reports the failure and counts no survivors, so it never reads as zero.
 
 ### The mutants baseline
 

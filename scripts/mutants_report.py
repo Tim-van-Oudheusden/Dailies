@@ -12,8 +12,9 @@ mutmut's own names end in an ordinal that shifts when the function is edited, so
 gives the limits of that key. With --write the survivors of a finished run replace the baseline, for a maintainer to
 review and commit. A run that failed never touches it.
 
-The run has failed, and the report says so instead of counting survivors, when mutmut cannot start, a mutmut command
-exits non-zero, mutmut lists no mutants, or any mutant is left `not checked` (an interrupted `mutmut run` exits 0).
+The run has failed, and the report says so instead of counting survivors, when mutants/ cannot be deleted, mutmut
+cannot start, a mutmut command exits non-zero, mutmut lists no mutants, or any mutant is left `not checked` (an
+interrupted `mutmut run` exits 0).
 
 $GITHUB_SHA names the commit.
 
@@ -98,7 +99,14 @@ def parse_results(output: str) -> dict[str, str]:
 
 def run_mutants(root: Path) -> dict[str, str]:
     """Run mutmut from an empty mutants/ and return the status of every mutant."""
-    shutil.rmtree(root / "mutants", ignore_errors=True)
+    try:
+        shutil.rmtree(root / "mutants")
+    except FileNotFoundError:
+        pass
+    except OSError as error:
+        # mutmut keeps a verdict it finds there, so one that cannot be deleted could read as this run's.
+        msg = f"could not delete mutants/: {error}"
+        raise MutantsError(msg) from error
     mutmut(root, "run", stdout=STDERR)
     found = parse_results(mutmut(root, "results", "--all", "true"))
     if not found:

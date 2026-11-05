@@ -389,6 +389,18 @@ def test_verdicts_left_by_an_earlier_run_are_removed_first(checkout: Checkout, m
     assert not stale.exists()
 
 
+def test_mutants_that_cannot_be_deleted_fail_the_run_before_mutmut_starts(checkout: Checkout) -> None:
+    # A plain file: rmtree raises a real OSError that is not FileNotFoundError, also for a test run as root.
+    (checkout.root / "mutants").touch()
+    checkout.add(MUTANT, "survived", shown())
+
+    result = checkout.run()
+
+    assert result.status == 1
+    assert "❌ The mutmut run failed: could not delete mutants/" in result.stdout
+    assert checkout.called() == []
+
+
 @pytest.mark.parametrize("text", ["not json", "[]", "{}", '{"survivors": "x"}', '{"survivors": [1]}'])
 def test_a_malformed_baseline_exits_2_before_mutmut_starts(checkout: Checkout, text: str) -> None:
     checkout.baseline.write_text(text, encoding="utf-8")
