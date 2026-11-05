@@ -23,6 +23,7 @@ case "$1" in
   run)
     echo "mutmut run output"
     mkdir -p mutants
+    [ -z "${FAKE_RUN_SIGNAL:-}" ] || kill -s "$FAKE_RUN_SIGNAL" $$
     exit "${FAKE_RUN_RC:-0}"
     ;;
   results)
@@ -236,6 +237,17 @@ def test_a_mutant_of_a_line_starting_with_dashes_keeps_its_changes(checkout: Che
     assert "dailies.core.search.x__tier: - -- x | + ++ x" in checkout.run().stdout
 
 
+def test_two_known_survivors_with_the_same_key_are_both_counted(checkout: Checkout) -> None:
+    checkout.review(KEY, KEY)
+    checkout.add(MUTANT, "survived", shown())
+    checkout.add("dailies.core.search.x__tier__mutmut_30", "survived", shown())
+
+    result = checkout.run()
+
+    assert result.status == 0
+    assert "Known survivors, in the baseline: 2\n" in result.stdout
+
+
 def test_a_baseline_entry_now_killed_is_listed_and_passes(checkout: Checkout) -> None:
     checkout.review(KEY)
     checkout.add(MUTANT, "killed")
@@ -245,6 +257,15 @@ def test_a_baseline_entry_now_killed_is_listed_and_passes(checkout: Checkout) ->
     assert result.status == 0
     assert f"## Baseline entries now killed or gone: 1\n\n```text\n{KEY}\n```\n" in result.stdout
     assert "Known survivors, in the baseline: 0\n" in result.stdout
+
+
+def test_entries_now_gone_are_listed_in_order_as_often_as_the_baseline_holds_them(checkout: Checkout) -> None:
+    checkout.review(OTHER_KEY, KEY, KEY)
+    checkout.add(MUTANT, "killed")
+
+    result = checkout.run()
+
+    assert f"## Baseline entries now killed or gone: 3\n\n```text\n{KEY}\n{KEY}\n{OTHER_KEY}\n```\n" in result.stdout
 
 
 def test_a_mutant_no_test_reaches_counts_as_a_survivor(checkout: Checkout) -> None:
@@ -309,6 +330,19 @@ def test_a_failed_mutmut_run_is_reported_as_failed_not_as_no_survivors(
     assert checkout.called() == ["mutmut run"]
 
 
+def test_a_mutmut_run_killed_by_a_signal_is_reported_as_failed(
+    checkout: Checkout, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # A runner out of memory kills the process, and subprocess reports that as a negative status, not an exit code.
+    monkeypatch.setenv("FAKE_RUN_SIGNAL", "KILL")
+    checkout.add(MUTANT, "killed")
+
+    result = checkout.run()
+
+    assert result.status == 1
+    assert "❌ The mutmut run failed: `mutmut run` exited -9.\n" in result.stdout
+
+
 def test_a_failed_results_command_is_reported_as_failed(checkout: Checkout, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("FAKE_RESULTS_RC", "3")
     checkout.add(MUTANT, "killed")
@@ -342,6 +376,19 @@ def test_mutmut_that_cannot_start_is_reported_as_failed(
     checkout: Checkout, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     monkeypatch.setenv("PATH", str(tmp_path / "empty"))
+
+    result = checkout.run()
+
+    assert result.status == 1
+    assert "❌ The mutmut run failed: could not start mutmut" in result.stdout
+
+
+def test_mutmut_that_cannot_be_executed_is_reported_as_failed(
+    checkout: Checkout, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    fake_dir = tmp_path / "bin"
+    (fake_dir / "mutmut").chmod(0o644)
+    monkeypatch.setenv("PATH", str(fake_dir))
 
     result = checkout.run()
 
@@ -421,6 +468,13 @@ def test_a_missing_baseline_exits_2_before_mutmut_starts(checkout: Checkout) -> 
     assert result.status == 2
     assert "cannot read" in result.stderr
     assert checkout.called() == []
+
+
+def test_mutmut_runs_in_the_checkout_it_was_given(checkout: Checkout) -> None:
+    checkout.add(MUTANT, "killed")
+
+    assert checkout.run().status == 0
+    assert (checkout.root / "mutants").is_dir()
 
 
 def test_the_baseline_path_can_be_given(checkout: Checkout, tmp_path: Path) -> None:
