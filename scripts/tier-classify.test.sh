@@ -104,6 +104,10 @@ rejects 'rule line without the rules: key' "$(policy bare $'low docs/*\n')" "$ba
 rejects 'item before the rules: line' "$(policy early $'  - low docs/*\nrules:\n')" ':1:'
 rejects 'a second rules: line' "$(policy twice $'rules:\n  - low docs/*\nrules:\n')" ':3:'
 rejects 'a bad item names its line' "$(policy lineno $'rules:\n  - low docs/*\n  - hgih scripts/*\n')" ':3:'
+no_rules='no rules'
+rejects 'empty policy' "$(policy empty '')" "$no_rules"
+rejects 'policy of only comments' "$(policy comments $'# c\n\n# d\n')" "$no_rules"
+rejects 'rules: line without items' "$(policy no-items $'rules:\n# c\n')" "$no_rules"
 
 # -z: NUL-terminated paths, as `git diff -z --name-only` prints them without C-quoting.
 accented=$'.github/workflows/d\303\251ploy.yml'

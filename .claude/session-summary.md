@@ -9,14 +9,14 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-04. #359 on `test/359-merge-edge-source-assert`.
+2026-11-05. #365 on `fix/365-tier-policy-no-rules`.
 
-- **Outcome:** `test_no_diagram_edge_misreports_who_merges` now asserts that the README and `docs/architecture.md`
-  diagrams each have a merge edge for both `popularity.yml` and `game-submission-approve.yml` before it checks the
-  labels. The edge walk is the `merge_edges` generator, which `merge_edge_violations` uses. Rewriting an edge as
-  `A -- "label" --> B` or retitling a PR node away from `data(...)` used to pass with nothing checked; both fail now.
-- **Open follow-ups:** none.
+- **Outcome:** `scripts/tier-classify.sh` exits 2 with "no rules" when the risk assessment holds no rule (empty,
+  comments only, or `rules:` with no items); it used to rate every path medium and exit 0. Three `rejects` rows in
+  `scripts/tier-classify.test.sh` cover it, and `docs/risk-tiers.md` names the case.
+- **Open follow-ups:** the `website` and `MinimalUI` copies of `tier-classify.sh` lack the same check; each repo
+  needs its own issue (noted in #365, not filed here).
 - **Gotchas:**
-  - `tests/tooling/*` is high risk (#347), so this PR waits for the maintainer, not the merge queue.
-  - The host `python3` is 3.11; the repo needs 3.12 (`~/.local/bin/python3.12`, or `uv venv -p 3.12`), and the full
-    suite also needs `scripts/requirements.txt` installed (`tests/scripts` imports `tldextract`).
+  - `scripts/*` is high risk, so this PR waits for the maintainer, not the merge queue.
+  - Host shellcheck is 0.9.0 and reports a pre-existing SC2015 at `tier-classify.sh:55`; CI pins 0.11.0. pytest
+    without a venv: `uv run -p 3.12 --with pytest --with pyyaml --with-requirements scripts/requirements.txt pytest`.
