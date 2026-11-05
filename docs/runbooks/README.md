@@ -26,9 +26,10 @@ Dailies ships two things on separate paths, and neither can simply be pulled bac
 - **Release bundles do not update themselves.** A user who installed `Dailies-x86_64.flatpak` keeps that version until
   they install the next bundle by hand, so a bad release is fixed forward with a new one, and the fix has to reach
   users through the release notes and the issue tracker.
-- **Data reaches every user without a release.** Each installed app revalidates `games.json` and `popularity.json`
-  from GitHub every few hours. The app checks a download before replacing its cached copy and keeps the last good one,
-  but a valid file with wrong content (a dead or hijacked game URL, a broken shelf) reaches every user within hours.
+- **Data reaches every user without a release.** Each installed app revalidates `games.json` every 6 hours and
+  `popularity.json` every 24 hours from GitHub. The app checks a download before replacing its cached copy and keeps the
+  last good one, but a valid file with wrong content (a dead or hijacked game URL, a broken shelf) reaches every user
+  within a day.
 
 Every runbook here should say which of the two paths it concerns.
 
