@@ -50,6 +50,13 @@ def test_anything_else_is_not_an_icon(body: bytes) -> None:
     assert not icons.is_icon(body)
 
 
+def test_an_icon_may_be_exactly_256_kib() -> None:
+    limit = 256 * 1024
+
+    assert icons.is_icon(PNG + bytes(limit - len(PNG)))
+    assert not icons.is_icon(PNG + bytes(limit - len(PNG) + 1))
+
+
 @pytest.mark.parametrize(("width", "height"), [(64, 64), (1, 1), (icons.MAX_SIDE, icons.MAX_SIDE), (16, 64)])
 def test_a_decoded_icon_of_a_tile_size_fits(width: int, height: int) -> None:
     assert icons.fits(width, height)
@@ -134,6 +141,14 @@ def test_prune_also_deletes_stray_files(cache: IconCache) -> None:
     cache.prune({ICON})
 
     assert sorted(path.name for path in cache.path.iterdir()) == ["worldle.fetched", "worldle.png"]
+
+
+def test_prune_leaves_a_directory_alone(cache: IconCache) -> None:
+    cache.store(ICON, PNG, None, NOW)
+    (cache.path / "stray").mkdir()
+
+    assert cache.prune({ICON}) == []
+    assert (cache.path / "stray").is_dir()
 
 
 def test_prune_without_a_cache_directory_deletes_nothing(cache: IconCache) -> None:
@@ -243,7 +258,9 @@ def test_200_with_something_that_is_not_an_icon_keeps_the_cached_one(cache: Icon
     assert snapshot(cache.path) == before
 
 
-@pytest.mark.parametrize("status", [None, HTTPStatus.TOO_MANY_REQUESTS, HTTPStatus.BAD_GATEWAY])
+@pytest.mark.parametrize(
+    "status", [None, HTTPStatus.TOO_MANY_REQUESTS, HTTPStatus.INTERNAL_SERVER_ERROR, HTTPStatus.BAD_GATEWAY]
+)
 def test_a_server_error_or_network_failure_falls_through_to_the_next_url(cache: IconCache, status: int | None) -> None:
     refresh = fetch(cache)
     refresh.first_request(metered=False)
