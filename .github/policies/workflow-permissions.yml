@@ -79,6 +79,8 @@ workflows:
       # the next queue run.
       reject: { actions: write, contents: read, issues: write, pull-requests: write }
 
+  mutants.yml: {}
+
   # List Dependabot alerts; open or update the broken-links `data` issue; download
   # last week's link-check state artifact.
   nightly-compliance.yml:

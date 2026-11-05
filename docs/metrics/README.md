@@ -28,6 +28,7 @@ To add a metric:
 | [Quality gates](#quality-gates) | Pass/fail of each `Build, lint, test` gate | `scripts/quality-report.sh` via `quality-report.yml` | Push to `main`, weekly (Mon 06:17 UTC), manual | Job summary + `quality-report` artifact |
 | [Unit-test coverage](#unit-test-coverage) | Line and branch coverage of `core` and `scripts` | `scripts/quality-report.sh` via `quality-report.yml` | Same as above | Job summary + `quality-report` artifact |
 | [Coverage floors](#coverage-floors) | Minimum coverage each module must keep | `.github/auto-qa-tuning.json`, enforced by `coverage-gate.yml` | Every PR and push to `main` | `Unit-test coverage floors` check; proposed floors as `auto-qa-tuning` artifact |
+| [Mutant survivors](#mutant-survivors) | Mutants of `dailies/core` that `tests/core` and `tests/data` let through, beyond the reviewed baseline | `scripts/mutants_report.py` via `mutants.yml` | Weekly (Mon 06:47 UTC), manual | Job summary + `mutants-report` artifact; proposed baseline as `mutants-baseline` artifact |
 | [PR acceptance rate](#pr-acceptance-rate) | Merged vs. closed-unmerged PRs, agent vs. other | `scripts/pr-metrics.sh` via `pr-metrics.yml` | Weekly (Mon 06:17 UTC), manual | Job summary |
 | [Strategy report](#strategy-report) | Issue and PR flow, open backlog per stage and milestone, ACMM gaps per level | `scripts/strategy-report.sh` via `strategy-report.yml` | Weekly (Mon 06:17 UTC), manual | Job summary |
 | [Nightly compliance](#nightly-compliance) | Checks that can go stale without a code change | `scripts/nightly-compliance.sh` via `nightly-compliance.yml` | Nightly (03:23 UTC), manual | Job summary + `nightly-compliance` artifact; failing checks open the `ci: nightly compliance` issue (`auto-issues.yml`) |
@@ -71,6 +72,21 @@ tuned file as the `auto-qa-tuning` artifact. Floors change only when that propos
 ```sh
 scripts/auto-qa-tuner.sh --report quality-report.md          # propose
 scripts/auto-qa-tuner.sh --report quality-report.md --write  # apply to .github/auto-qa-tuning.json
+```
+
+## Mutant survivors
+
+mutmut changes `dailies/core` one small edit at a time and runs `tests/core` and `tests/data` against each mutant; a
+mutant no test fails on is a survivor. The report counts the mutants per status and lists the survivors that are not in
+`.github/mutants-baseline.json`, and the baseline entries that are now killed or gone. New survivors or a failed run
+leave a warning on the run; the job stays green and is not a required check. With `--write` the run's survivors replace
+the baseline, uploaded as the `mutants-baseline` artifact, and change only when that proposal is committed. See
+[`docs/testing.md`](../testing.md#python-mutants) for the settings and the baseline key.
+
+```sh
+python -m pip install mutmut==3.8.1
+scripts/mutants_report.py > mutants-report.md          # report
+scripts/mutants_report.py --write > mutants-report.md  # also rewrite .github/mutants-baseline.json
 ```
 
 ## PR acceptance rate
