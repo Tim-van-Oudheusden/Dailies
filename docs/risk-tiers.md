@@ -96,8 +96,9 @@ The rules are policy as code in the risk assessment config, `.github/risk-assess
 such as `dailies/**` and `*.md` (`AGENTS.md` is high even though `*.md` is low, `data/v1/schema/**` is high even though
 `data/v1/*.json` is medium). `*` matches across `/`, so the file writes a directory rule as `dir/*`; this document shows
 it as `dir/**`. `scripts/tier-classify.sh` evaluates the rules and fails without a tier if a line is not a blank line, a
-whole-line `#` comment, the `rules:` line or such an item, or if an item names an unknown tier; set `RISK_TIER_POLICY`
-to try a different file locally.
+whole-line `#` comment, the `rules:` line or such an item, if an item names an unknown tier, or if the file holds no
+rule at all (an empty or comments-only file would otherwise rate every path medium); set `RISK_TIER_POLICY` to try a
+different file locally.
 
 `scripts/tier-classify.test.sh` covers the engine and the shipped rules, and `tests/tooling/test_tier_classify.py` runs
 it under `pytest`, checks that the file is YAML and that every rule appears under its tier above. Update the rules,

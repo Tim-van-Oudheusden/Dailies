@@ -16,8 +16,8 @@
 # path sets its tier, and unrecognised paths are medium. The file is YAML, read
 # here as a strict line subset: `rules:`, then one `- <tier> <glob>` item per
 # line, plus blank and whole-line `#` comment lines. A missing or malformed
-# file exits 2 without printing a tier. Tiers are explained in
-# docs/risk-tiers.md.
+# file, or one without a single rule, exits 2 without printing a tier. Tiers
+# are explained in docs/risk-tiers.md.
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -59,6 +59,10 @@ while IFS=$' \t\r' read -r item tier glob extra || [ -n "${item:-}" ]; do
   rule_ranks+=("${tier_rank[$tier]}")
   rule_globs+=("$glob")
 done < "$policy"
+
+# Zero rules would rate every path medium, so a gate file would not rate high.
+[ "${#rule_globs[@]}" -gt 0 ] \
+  || fail "${policy}: no rules; expected one 'rules:' line, then '- <tier> <glob>' items"
 
 # A git C-quoted path: `"`, then plain bytes and the escapes git writes
 # (\" \\ \a \b \t \n \v \f \r and three-digit octal), then `"`.
