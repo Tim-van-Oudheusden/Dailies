@@ -39,9 +39,13 @@ setup.cfg                           @Tim-van-Oudheusden
 # Flatpak manifests: sandbox permissions (finish-args), runtime, sources.
 /build-aux/                         @Tim-van-Oudheusden
 
-# The build, its options, the release version, and the subproject wraps Meson
+# The build, its options, the release version, the nested Meson files that
+# register the tests the Flatpak gate runs, and the subproject wraps Meson
 # falls back to.
 /meson.build                        @Tim-van-Oudheusden
+/tests/meson.build                  @Tim-van-Oudheusden
+/data/meson.build                   @Tim-van-Oudheusden
+/po/meson.build                     @Tim-van-Oudheusden
 /meson_options.txt                  @Tim-van-Oudheusden
 /subprojects/                       @Tim-van-Oudheusden
 

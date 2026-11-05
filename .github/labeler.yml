@@ -23,6 +23,9 @@ flatpak:
       - any-glob-to-any-file:
           - 'build-aux/**'
           - 'meson.build'
+          - 'tests/meson.build'
+          - 'data/meson.build'
+          - 'po/meson.build'
           - 'meson_options.txt'
           - 'subprojects/**'
           - 'data/*.metainfo.xml.in'

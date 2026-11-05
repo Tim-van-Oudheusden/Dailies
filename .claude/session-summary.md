@@ -9,14 +9,15 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-05. #365 on `fix/365-tier-policy-no-rules`.
+2026-11-05. #373 on `ci/373-nested-meson-high`.
 
-- **Outcome:** `scripts/tier-classify.sh` exits 2 with "no rules" when the risk assessment holds no rule (empty,
-  comments only, or `rules:` with no items); it used to rate every path medium and exit 0. Three `rejects` rows in
-  `scripts/tier-classify.test.sh` cover it, and `docs/risk-tiers.md` names the case.
-- **Open follow-ups:** the `website` and `MinimalUI` copies of `tier-classify.sh` lack the same check; each repo
-  needs its own issue (noted in #365, not filed here).
+- **Outcome:** `tests/meson.build`, `data/meson.build` and `po/meson.build` are high in `.github/risk-assessment.yml`,
+  with matching anchored CODEOWNERS patterns, `flatpak` labeler globs, a `docs/risk-tiers.md` row and
+  `scripts/tier-classify.test.sh` cases. They hold the `test()` calls the Flatpak gate runs, so deleting one used to
+  merge unreviewed as medium. Exact paths, not `*/meson.build`: `dailies/meson.build` and `data/icons/meson.build`
+  stay medium, with a case each.
+- **Open follow-ups:** none. Rebased onto `main` after #366 and #367 merged.
 - **Gotchas:**
-  - `scripts/*` is high risk, so this PR waits for the maintainer, not the merge queue.
-  - Host shellcheck is 0.9.0 and reports a pre-existing SC2015 at `tier-classify.sh:55`; CI pins 0.11.0. pytest
-    without a venv: `uv run -p 3.12 --with pytest --with pyyaml --with-requirements scripts/requirements.txt pytest`.
+  - The policy's `*` crosses `/`, but a rule with no `*` matches only that exact path: `high meson.build` never
+    covered the nested Meson files.
+  - The host `python3` is 3.11; the repo needs 3.12+ (`uv venv -p 3.13`), with `scripts/requirements.txt` installed.

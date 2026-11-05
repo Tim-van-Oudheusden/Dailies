@@ -47,6 +47,11 @@ rules:
   - high Dockerfile.sandbox
   - high build-aux/*
   - high meson.build
+  # The nested Meson files that register tests the Flatpak gate and `meson test` run. Exact paths, not */meson.build:
+  # dailies/meson.build only lists the modules to install, which tests/tooling/test_meson_install.py already pins.
+  - high tests/meson.build
+  - high data/meson.build
+  - high po/meson.build
   - high meson_options.txt
   - high subprojects/*
   - high data/*.metainfo.xml.in
