@@ -9,15 +9,16 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-05. #373 on `ci/373-nested-meson-high`.
+2026-11-05. #372 on `chore/372-release-0.3.1` (step 1 of CONTRIBUTING "Cutting a release").
 
-- **Outcome:** `tests/meson.build`, `data/meson.build` and `po/meson.build` are high in `.github/risk-assessment.yml`,
-  with matching anchored CODEOWNERS patterns, `flatpak` labeler globs, a `docs/risk-tiers.md` row and
-  `scripts/tier-classify.test.sh` cases. They hold the `test()` calls the Flatpak gate runs, so deleting one used to
-  merge unreviewed as medium. Exact paths, not `*/meson.build`: `dailies/meson.build` and `data/icons/meson.build`
-  stay medium, with a case each.
-- **Open follow-ups:** none. Rebased onto `main` after #366 and #367 merged.
+- **Outcome:** `meson.build` is at 0.3.1 and the metainfo has a 0.3.1 release (the website-data clearing toast from
+  #350 and the symbol-plus-letter search fix from #361). The screenshot URLs moved from `v0.2.2` to `v0.3.0`, whose
+  PNGs are the #231 re-takes (`v0.2.2` still held the v0.1.0 pictures); this is #289's third box.
+- **Open follow-ups:** after this merges, `build(flatpak): pin release manifest to 0.3.1 (#372)` sets the `dailies`
+  `commit` to its merge commit and drops `"tag": "v0.3.0"`, with nothing merged in between; then the maintainer runs
+  the manual checklist and pushes `v0.3.1`. The `gnome-51` image digest bump is workflow-only (human).
 - **Gotchas:**
-  - The policy's `*` crosses `/`, but a rule with no `*` matches only that exact path: `high meson.build` never
-    covered the nested Meson files.
-  - The host `python3` is 3.11; the repo needs 3.12+ (`uv venv -p 3.13`), with `scripts/requirements.txt` installed.
+  - `tests/data/test_screenshots.py` requires the URLs on the release *before* the newest, so adding the release
+    entry without moving the URLs fails it.
+  - If the tag slips past 2026-11-05, change the release date first; `release_check.py verify` only rejects a future
+    date.
