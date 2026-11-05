@@ -1,10 +1,12 @@
 """Every copy of a dev-tool pin names the same version, so a bump in one place cannot leave the others behind.
 
-ruff, pytest and pytest-cov are pinned in five workflows' `pip install` lines, in .pre-commit-config.yaml and in the
-`ARG`s of Dockerfile.sandbox; shellcheck and actionlint in the `Static checks` job and in Dockerfile.sandbox. Dependabot
+ruff, pytest and pytest-cov are pinned in the workflows' `pip install` lines, in .pre-commit-config.yaml and in the
+`ARG`s of Dockerfile.sandbox; mutmut in mutants.yml and the install snippets of docs/testing.md and
+docs/metrics/README.md; shellcheck and actionlint in the `Static checks` job and in Dockerfile.sandbox. Dependabot
 reads none of them, and `pre-commit autoupdate` bumps only its own file. A missed copy fails nothing on its own: CI
-keeps linting with the old ruff while pre-commit formats with the new one, and the sandbox stops running the gates at
-the versions CI installs, as docs/testing.md says it does.
+keeps linting with the old ruff while pre-commit formats with the new one, the sandbox stops running the gates at the
+versions CI installs, as docs/testing.md says it does, and a mutants baseline written with the documented mutmut is
+keyed by a different mutmut from the one the weekly report runs.
 """
 
 import re
@@ -15,9 +17,11 @@ WORKFLOWS = ROOT / ".github" / "workflows"
 PRE_COMMIT = ROOT / ".pre-commit-config.yaml"
 DOCKERFILE = ROOT / "Dockerfile.sandbox"
 CI = WORKFLOWS / "ci.yml"
+# Docs whose install snippets pin a dev tool, read like a workflow's `pip install` line.
+PIP_DOCS = (ROOT / "docs" / "testing.md", ROOT / "docs" / "metrics" / "README.md")
 
 # `pytest-cov` before `pytest`, so the alternation does not stop at the shorter name.
-_PIP_PIN = re.compile(r"(?<![\w-])(?P<tool>ruff|pytest-cov|pytest)==(?P<version>[^\s\"']+)")
+_PIP_PIN = re.compile(r"(?<![\w-])(?P<tool>ruff|pytest-cov|pytest|mutmut)==(?P<version>[^\s\"']+)")
 _RUFF_HOOK = re.compile(r"repo:\s*https://github\.com/astral-sh/ruff-pre-commit\s*\n\s*rev:\s*v(?P<version>\S+)")
 _DOCKER_ARG = re.compile(r"^ARG (?P<name>\w+)=(?P<value>\S+)$", re.MULTILINE)
 _ENV_PIN = re.compile(r"^\s+(?P<name>(?:SHELLCHECK|ACTIONLINT)_(?:VERSION|SHA256)):\s*(?P<value>\S+)\s*$", re.MULTILINE)
@@ -35,7 +39,7 @@ DOCKER_ARGS = {
 
 
 def collect_pins(
-    workflows: dict[str, str], pre_commit: str, dockerfile: str, ci: str
+    pip_files: dict[str, str], pre_commit: str, dockerfile: str, ci: str
 ) -> dict[str, dict[str, set[str]]]:
     """Pin name -> {file: versions it names}, from every place a dev tool is pinned."""
     pins: dict[str, dict[str, set[str]]] = {}
@@ -43,7 +47,7 @@ def collect_pins(
     def add(name: str, where: str, version: str) -> None:
         pins.setdefault(name, {}).setdefault(where, set()).add(version)
 
-    for name, text in workflows.items():
+    for name, text in pip_files.items():
         for match in _PIP_PIN.finditer(text):
             add(match.group("tool"), name, match.group("version"))
     for match in _RUFF_HOOK.finditer(pre_commit):
@@ -65,9 +69,10 @@ def mismatches(pins: dict[str, dict[str, set[str]]]) -> list[str]:
 
 
 def repository_pins() -> dict[str, dict[str, set[str]]]:
-    workflows = {path.name: path.read_text(encoding="utf-8") for path in sorted(WORKFLOWS.glob("*.yml"))}
+    pip_files = {path.name: path.read_text(encoding="utf-8") for path in sorted(WORKFLOWS.glob("*.yml"))}
+    pip_files |= {path.relative_to(ROOT).as_posix(): path.read_text(encoding="utf-8") for path in PIP_DOCS}
     return collect_pins(
-        workflows,
+        pip_files,
         PRE_COMMIT.read_text(encoding="utf-8"),
         DOCKERFILE.read_text(encoding="utf-8"),
         CI.read_text(encoding="utf-8"),
@@ -90,6 +95,7 @@ def test_every_pin_site_is_read() -> None:
     }
     assert set(pins["pytest"]) >= {"ci.yml", "coverage-gate.yml", "game-submission-approve.yml", "Dockerfile.sandbox"}
     assert set(pins["pytest-cov"]) >= {"ci.yml", "coverage-gate.yml", "Dockerfile.sandbox"}
+    assert set(pins["mutmut"]) == {"mutants.yml", "docs/testing.md", "docs/metrics/README.md"}
     for name in ("SHELLCHECK_VERSION", "SHELLCHECK_SHA256", "ACTIONLINT_VERSION", "ACTIONLINT_SHA256"):
         assert set(pins[name]) == {"ci.yml", "Dockerfile.sandbox"}, name
 
