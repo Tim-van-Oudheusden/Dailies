@@ -171,6 +171,12 @@ tier_of 'PR template (Markdown under .github) is high' '.github/pull_request_tem
 tier_of 'gate script is high' 'scripts/tier-classify.sh' high
 tier_of 'popularity pipeline is high' 'scripts/popularity/compute.py' high
 tier_of 'meson.build is high' 'meson.build' high
+# These three register the tests the Flatpak gate and `meson test` run; dailies/meson.build only installs modules.
+tier_of 'tests/meson.build (the test registrations) is high' 'tests/meson.build' high
+tier_of 'data/meson.build (the data validation tests) is high' 'data/meson.build' high
+tier_of 'po/meson.build (the template check) is high' 'po/meson.build' high
+tier_of 'dailies/meson.build is app code, so medium' 'dailies/meson.build' medium
+tier_of 'data/icons/meson.build is unmatched, so medium' 'data/icons/meson.build' medium
 tier_of 'meson_options.txt is high' 'meson_options.txt' high
 tier_of 'metainfo is high' 'data/io.github.tim_van_oudheusden.Dailies.metainfo.xml.in' high
 tier_of 'GSettings schema is high' 'data/io.github.tim_van_oudheusden.Dailies.gschema.xml.in' high

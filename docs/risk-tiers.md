@@ -49,6 +49,7 @@ behave. A mistake here can bypass every other check or ship to every user.
 | `Dockerfile.sandbox` | The image agents run the quality gates in |
 | `build-aux/**` | Flatpak manifests: sandbox permissions (`finish-args`), runtime, sources |
 | `meson.build`, `meson_options.txt` | The build, the version that a release is cut from, the install layout |
+| `tests/meson.build`, `data/meson.build`, `po/meson.build` | The `test()` registrations the `Flatpak (x86_64)` check and `meson test` run: the `gi` tests, the e2e smoke test, the desktop, metainfo and schema validators, the bundled icon check and the translation template check. A deleted registration leaves every required check green, because that test simply stops running. `dailies/meson.build` stays medium: it only lists the modules to install, which `tests/tooling/test_meson_install.py` pins |
 | `subprojects/**` | The wraps Meson falls back to, such as the `blueprint-compiler` tag the Windows build uses |
 | `data/*.metainfo.xml.in` | Release notes, licence, branding and content rating shown to users and Flathub |
 | `data/*.gschema.xml.in` | Stored settings: a removed or retyped key breaks existing installs |
@@ -73,8 +74,8 @@ merging unreviewed is that only the maintainer merges it.
 ## Tier: medium
 
 Application code and catalog data: `dailies/**` and `data/v1/*.json`, plus anything not otherwise classified, such as
-the tests outside `tests/tooling/`, `po/`, the Blueprint files, icons and desktop file under `data/`, and root files such
-as `.editorconfig`.
+the tests outside `tests/tooling/`, the translations under `po/`, the Blueprint files, icons and desktop file under
+`data/`, and root files such as `.editorconfig`.
 
 The ruleset requires no approving review, so the merge queue merges a medium-risk pull request as soon as its required
 checks pass. The review below happens only if someone does it before then, or adds `hold` to make time for it.
