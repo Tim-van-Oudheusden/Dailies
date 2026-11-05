@@ -59,6 +59,12 @@ COVERAGE_CHECK = "scripts/coverage-check.sh"
 COVERAGE_LIB = "scripts/lib/coverage.sh"
 # coverage-check.test.sh holds the cases for coverage-check.sh and lib/coverage.sh; this test runs it.
 COVERAGE_CHECK_SUITE = "tests/scripts/test_coverage_check.py::test_coverage_check_shell_suite_passes"
+TIER_CLASSIFY = "scripts/tier-classify.sh"
+TIER_CLASSIFY_SUITE = "tests/tooling/test_tier_classify.py::test_tier_classify_shell_suite_passes"
+PR_REVIEW_CHECK = "scripts/pr-review-check.sh"
+PR_REVIEW_CHECK_SUITE = "tests/scripts/test_pr_review_check.py::test_pr_review_check_shell_suite_passes"
+SANDBOX = "scripts/sandbox.sh"
+SANDBOX_TESTS = "tests/scripts/test_sandbox.py"
 
 MUTANTS = [
     Mutant(
@@ -676,6 +682,174 @@ MUTANTS = [
         " --print-errorlogs",
         "",
         f"{SANDBOX_GATES_TESTS}::test_every_gate_runs_the_command_ci_runs_from_the_repository_root",
+    ),
+    Mutant(
+        "a rejected policy prints nothing on stdout",
+        TIER_CLASSIFY,
+        'echo "tier-classify: $*" >&2',
+        'echo "tier-classify: $*"',
+        TIER_CLASSIFY_SUITE,
+    ),
+    Mutant(
+        "a tab separates the fields of a policy item",
+        TIER_CLASSIFY,
+        "IFS=$' \\t\\r' read",
+        "IFS=$' \\r' read",
+        TIER_CLASSIFY_SUITE,
+    ),
+    Mutant(
+        "a backslash in a rule reaches the glob",
+        TIER_CLASSIFY,
+        "read -r item tier glob extra",
+        "read item tier glob extra",
+        TIER_CLASSIFY_SUITE,
+    ),
+    Mutant(
+        "a rules: line with a value is malformed",
+        TIER_CLASSIFY,
+        '[ "$item" = rules: ] && [ -z "${tier:-}" ] &&',
+        '[ "$item" = rules: ] &&',
+        TIER_CLASSIFY_SUITE,
+    ),
+    Mutant(
+        "a rule needs its dash",
+        TIER_CLASSIFY,
+        '[ -n "$in_rules" ] && [ "$item" = - ] &&',
+        '[ -n "$in_rules" ] &&',
+        TIER_CLASSIFY_SUITE,
+    ),
+    Mutant(
+        "git's \\a escape is decoded before the path is matched",
+        TIER_CLASSIFY,
+        '[abtnvfr"\\\\]',
+        '[btnvfr"\\\\]',
+        TIER_CLASSIFY_SUITE,
+    ),
+    Mutant(
+        "git's \\b escape is decoded before the path is matched",
+        TIER_CLASSIFY,
+        '[abtnvfr"\\\\]',
+        '[atnvfr"\\\\]',
+        TIER_CLASSIFY_SUITE,
+    ),
+    Mutant(
+        "git's \\v escape is decoded before the path is matched",
+        TIER_CLASSIFY,
+        '[abtnvfr"\\\\]',
+        '[abtnfr"\\\\]',
+        TIER_CLASSIFY_SUITE,
+    ),
+    Mutant(
+        "git's \\f escape is decoded before the path is matched",
+        TIER_CLASSIFY,
+        '[abtnvfr"\\\\]',
+        '[abtnvr"\\\\]',
+        TIER_CLASSIFY_SUITE,
+    ),
+    Mutant(
+        "git's \\r escape is decoded before the path is matched",
+        TIER_CLASSIFY,
+        '[abtnvfr"\\\\]',
+        '[abtnvf"\\\\]',
+        TIER_CLASSIFY_SUITE,
+    ),
+    Mutant(
+        "spaces around a path stay part of the path",
+        TIER_CLASSIFY,
+        'IFS= read -r -d "$delim" path',
+        'read -r -d "$delim" path',
+        TIER_CLASSIFY_SUITE,
+    ),
+    Mutant(
+        "a title must start with its type",
+        PR_REVIEW_CHECK,
+        "=~ ^($types)",
+        "=~ ($types)",
+        PR_REVIEW_CHECK_SUITE,
+    ),
+    Mutant(
+        "a title scope may hold digits",
+        PR_REVIEW_CHECK,
+        "[a-z0-9._/-]+",
+        "[a-z._/-]+",
+        PR_REVIEW_CHECK_SUITE,
+    ),
+    Mutant(
+        "a title scope may hold an underscore",
+        PR_REVIEW_CHECK,
+        "[a-z0-9._/-]+",
+        "[a-z0-9./-]+",
+        PR_REVIEW_CHECK_SUITE,
+    ),
+    Mutant(
+        "a title scope may hold a dash",
+        PR_REVIEW_CHECK,
+        "[a-z0-9._/-]+",
+        "[a-z0-9._/]+",
+        PR_REVIEW_CHECK_SUITE,
+    ),
+    Mutant(
+        "a digit before the keyword means it is no whole word",
+        PR_REVIEW_CHECK,
+        "(^|[^[:alnum:]_])",
+        "(^|[^[:alpha:]_])",
+        PR_REVIEW_CHECK_SUITE,
+    ),
+    Mutant(
+        "the keyword may be followed by several spaces",
+        PR_REVIEW_CHECK,
+        ":?[[:space:]]+",
+        ":?[[:space:]]",
+        PR_REVIEW_CHECK_SUITE,
+    ),
+    Mutant(
+        "the keyword needs a space before the number",
+        PR_REVIEW_CHECK,
+        ":?[[:space:]]+",
+        ":?[[:space:]]*",
+        PR_REVIEW_CHECK_SUITE,
+    ),
+    Mutant(
+        "the repository of a long-form link may hold dots, dashes and underscores",
+        PR_REVIEW_CHECK,
+        "/[[:alnum:]_.-]+)?#",
+        "/[[:alnum:]]+)?#",
+        PR_REVIEW_CHECK_SUITE,
+    ),
+    Mutant(
+        "the container keeps your uid",
+        SANDBOX,
+        " --userns=keep-id -v",
+        " -v",
+        f"{SANDBOX_TESTS}::test_the_container_keeps_your_uid_starts_in_the_checkout_and_is_removed",
+    ),
+    Mutant(
+        "the container starts in the checkout",
+        SANDBOX,
+        "--workdir /workspace ",
+        "",
+        f"{SANDBOX_TESTS}::test_the_container_keeps_your_uid_starts_in_the_checkout_and_is_removed",
+    ),
+    Mutant(
+        "the container is removed when it exits",
+        SANDBOX,
+        "podman run --rm ",
+        "podman run ",
+        f"{SANDBOX_TESTS}::test_the_container_keeps_your_uid_starts_in_the_checkout_and_is_removed",
+    ),
+    Mutant(
+        "the image is built from scripts/, not the whole checkout",
+        SANDBOX,
+        '"$ROOT/scripts" >/dev/null',
+        '"$ROOT" >/dev/null',
+        f"{SANDBOX_TESTS}::test_the_build_context_is_scripts_not_the_whole_checkout",
+    ),
+    Mutant(
+        "no terminal is requested without one",
+        SANDBOX,
+        "[ -t 0 ] && [ -t 1 ]",
+        "true",
+        f"{SANDBOX_TESTS}::test_without_a_terminal_the_container_asks_for_none",
     ),
 ]
 

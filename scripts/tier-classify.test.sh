@@ -62,15 +62,16 @@ expect_z() {
   fi
 }
 
-# rejects <description> <risk assessment file> <expected stderr fragment> [argument...]: exit 2, no tier printed.
+# rejects <description> <risk assessment file> <expected stderr fragment> [argument...]: exit 2, nothing on stdout.
 rejects() {
-  local output status
-  output="$(printf 'docs/a.md\n' | RISK_TIER_POLICY="$2" bash "$classify" "${@:4}" 2>&1)"
+  local output status stdout
+  stdout="$(printf 'docs/a.md\n' | RISK_TIER_POLICY="$2" bash "$classify" "${@:4}" 2>"$tmp/stderr")"
   status=$?
+  output="$(<"$tmp/stderr")"
   if [ "$status" -ne 2 ]; then
     not_ok "$1 (expected exit 2, got $status): $output"
-  elif grep -q '^tier=' <<<"$output"; then
-    not_ok "$1 (printed a tier): $output"
+  elif [ -n "$stdout" ]; then
+    not_ok "$1 (printed to stdout): $stdout"
   elif ! grep -qF -- "$3" <<<"$output"; then
     not_ok "$1 (output lacks '$3'): $output"
   else
@@ -93,6 +94,10 @@ expect 'blank input lines are skipped' "$rules" $'\na/one.txt\n\n' $'low     a/o
 expect 'last path without a trailing newline' "$rules" $'a/one.txt\nx.cfg' $'low     a/one.txt\nhigh    x.cfg\ntier=high'
 expect 'policy with CRLF line endings' "$(policy crlf $'# c\r\nrules:\r\n  - low docs/*\r\n')" 'docs/a.md' \
   $'low     docs/a.md\ntier=low'
+expect 'a tab separates the fields of an item' "$(policy tabs $'rules:\n\t-\tlow\tdocs/*\n')" 'docs/a.md' \
+  $'low     docs/a.md\ntier=low'
+expect 'a backslash in a rule escapes the next glob character' "$(policy escape $'rules:\n  - high docs/\\*.md\n')" \
+  $'docs/a.md\ndocs/*.md\n' $'medium  docs/a.md\nhigh    docs/*.md\ntier=high'
 expect 'policy without a trailing newline' "$(policy no-eol $'rules:\n  - high docs/*')" 'docs/a.md' $'high    docs/a.md\ntier=high'
 rejects 'missing risk assessment file' "$tmp/missing.yml" 'cannot read risk assessment file'
 rejects 'unknown tier' "$(policy unknown $'rules:\n  - critical docs/*\n')" "unknown tier 'critical'"
@@ -100,6 +105,8 @@ bad_item="expected one 'rules:' line, then '- <tier> <glob>' items"
 rejects 'item without a glob' "$(policy no-glob $'rules:\n  - high\n')" "$bad_item"
 rejects 'item with an extra field' "$(policy extra $'rules:\n  - low docs/* now\n')" "$bad_item"
 rejects 'item with a trailing comment' "$(policy trailing $'rules:\n  - low docs/* # c\n')" "$bad_item"
+rejects 'item without its dash' "$(policy no-dash $'rules:\n  x low docs/*\n')" "$bad_item"
+rejects 'rules: line with a value' "$(policy rules-value $'rules: all\n  - low docs/*\n')" "$bad_item"
 rejects 'rule line without the rules: key' "$(policy bare $'low docs/*\n')" "$bad_item"
 rejects 'item before the rules: line' "$(policy early $'  - low docs/*\nrules:\n')" ':1:'
 rejects 'a second rules: line' "$(policy twice $'rules:\n  - low docs/*\nrules:\n')" ':3:'
@@ -125,6 +132,9 @@ expect 'a C-quoted non-ASCII path is decoded and rated by its rule' '' '".github
 expect 'C-quoted quote, backslash and tab are decoded' '' \
   $'"data/v1/schema/\\"q\\".json"\n"scripts/back\\\\slash.sh"\n"scripts/tab\\tx.sh"\n' \
   $'high    data/v1/schema/"q".json\nhigh    scripts/back\\slash.sh\nhigh    $\'scripts/tab\\tx.sh\'\ntier=high'
+expect 'C-quoted control characters are decoded' '' '"scripts/\a\b\v\f\r.sh"' \
+  $'high    $\'scripts/\\a\\b\\v\\f\\r.sh\'\ntier=high'
+expect 'spaces around a path are kept' '' ' docs/a.md ' $'medium   docs/a.md \ntier=medium'
 expect 'a C-quoted newline prints quoted, not as a second tier= line' '' '".github/x\ntier=low"' \
   $'high    $\'.github/x\\ntier=low\'\ntier=high'
 expect 'an escaped backslash before digits is not an octal escape' '' '"scripts/a\\101.sh"' \
