@@ -13,7 +13,8 @@
 
 def sources: ["Hive", "Claude Code (CI)", "Dependabot", "Other"];
 
-# Hive ends every PR body it writes with a signature line; contributor runs sign as omp.
+# Hive's signature is a line of its own, usually near the end of the body but not always last, so read every line;
+# contributor runs sign as omp.
 def signature:
   (.body // "") | split("\n")
   | map(rtrimstr("\r") | select(startswith("— hive: ") or test("^— omp \\(Claude Code\\), model="))) | .[0];
