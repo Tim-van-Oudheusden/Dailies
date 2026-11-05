@@ -121,6 +121,11 @@ def test_retry_after_is_capped_at_the_longest_deferral(value: str) -> None:
     assert cache.parse_retry_after(value, NOW, longest=DAY) == NOW + DAY
 
 
+@pytest.mark.parametrize("value", ["0", "000"])
+def test_retry_after_of_zero_seconds_is_now(value: str) -> None:
+    assert cache.parse_retry_after(value, NOW, longest=DAY) == NOW
+
+
 def test_retry_after_in_seconds_ignores_leading_zeros() -> None:
     assert cache.parse_retry_after("0" * 5000 + "120", NOW, longest=DAY) == NOW + timedelta(seconds=120)
 
@@ -404,6 +409,7 @@ def test_no_stale_banner_before_the_first_success() -> None:
         ({"games": Outcome.UPDATED, "popularity": Outcome.FAILED}, Outcome.FAILED),
         ({"games": Outcome.SKIPPED, "popularity": Outcome.SKIPPED}, Outcome.SKIPPED),
         ({"games": Outcome.SKIPPED, "popularity": Outcome.UPDATED}, Outcome.UPDATED),
+        ({}, Outcome.NOT_MODIFIED),
     ],
 )
 def test_summarize_refresh_outcomes(outcomes: dict[str, Outcome], expected: Outcome) -> None:

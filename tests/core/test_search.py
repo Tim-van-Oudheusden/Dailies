@@ -157,6 +157,44 @@ def test_a_typo_in_one_word_of_a_multi_word_query_is_tolerated() -> None:
     assert rank(named("Minute Cryptic"), "minute crytpic", "Words") is Tier.FUZZY
 
 
+def test_each_word_of_a_query_may_carry_its_own_typo_and_skip_name_words() -> None:
+    game = named("Minute Cryptic Puzzle")
+    # Left out together, the two words are too far from the name; only word by word do they match.
+    assert rank(game, "minuet puzzel", "Words") is Tier.FUZZY
+    assert rank(game, "puzzel minuet", "Words") is None
+    assert rank(game, "minuet rocket", "Words") is None
+
+
+def test_a_query_is_also_compared_with_its_spaces_and_the_names_left_out() -> None:
+    assert rank(named("Wordle"), "wor dle", "Words") is Tier.FUZZY
+    assert rank(named("Minute Cryptic"), "minutecrytpic", "Words") is Tier.FUZZY
+
+
+def test_a_query_too_short_for_a_typo_is_not_compared_with_its_spaces_left_out() -> None:
+    assert rank(named("Word"), "wo rd", "Words") is None
+
+
+@pytest.mark.parametrize(
+    ("name", "query"),
+    [
+        ("Wordle", "owrdle"),  # the first two letters
+        ("Wordle", "wordel"),  # the last two
+    ],
+)
+def test_a_swap_of_neighbouring_letters_is_one_typo(name: str, query: str) -> None:
+    assert rank(named(name), query, "Words") is Tier.FUZZY
+
+
+@pytest.mark.parametrize("query", ["rxidge", "xbidge"])
+def test_a_letter_that_only_half_of_a_swap_explains_is_two_typos(query: str) -> None:
+    assert rank(named("Bridge"), query, "Words") is None
+
+
+@pytest.mark.parametrize(("name", "query"), [("Wordle", "wordlle"), ("Wordles", "wordls")])
+def test_a_letter_too_many_or_too_few_is_one_typo(name: str, query: str) -> None:
+    assert rank(named(name), query, "Words") is Tier.FUZZY
+
+
 def test_results_rank_prefix_then_word_prefix_then_substring_then_other_fields_then_typos() -> None:
     games = [
         named("Wodrle"),
@@ -225,6 +263,11 @@ def test_short_queries_never_match_by_typo_over_the_real_catalog() -> None:
 )
 def test_typos_and_word_starts_make_a_longer_or_shorter_query_a_different_one(old: str, new: str) -> None:
     assert change(old, new) is Change.DIFFERENT
+
+
+def test_a_word_extended_at_its_front_only_narrows_the_matches() -> None:
+    assert change("ord", "word") is Change.MORE_STRICT
+    assert change("word", "ord") is Change.LESS_STRICT
 
 
 def test_the_counterexamples_behind_the_different_changes() -> None:

@@ -28,6 +28,8 @@ from dailies.core.web import (
         ("https://xn--80ak6aa92e.com/", "xn--80ak6aa92e.com"),
         ("http://127.0.0.1:8000/test.html", "127.0.0.1"),
         ("about:blank", ""),
+        # urlsplit refuses an unclosed IPv6 bracket; the header shows nothing rather than crash.
+        ("http://[::1/", ""),
         ("", ""),
         (None, ""),
     ],
@@ -88,6 +90,9 @@ def test_website_data_of_the_site_and_its_parent_domain_matches(name: str, host:
         ("example.com", "www.nytimes.com"),
         ("nytimes.com", ""),
         ("", "www.nytimes.com"),
+        ("", ""),
+        # With no name, a host's trailing dot must not read as a match for the empty parent domain.
+        (".", "www.nytimes.com."),
     ],
 )
 def test_website_data_of_other_sites_does_not_match(name: str, host: str) -> None:

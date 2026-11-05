@@ -104,6 +104,7 @@ def test_favorites_hold_every_favourite_including_unavailable_ones() -> None:
 def test_the_shelves_hold_the_games_ranked_on_them() -> None:
     ranked = game("a", Category.WORDS)
     assert sections.contains(sections.POPULAR, listing(ranked, popular=3))
+    assert sections.contains(sections.POPULAR, listing(ranked, popular=1))
     assert not sections.contains(sections.TRENDING, listing(ranked, popular=3))
     assert sections.contains(sections.TRENDING, listing(ranked, trending=1))
     assert not sections.contains(sections.POPULAR, listing(ranked, favorite=True))
@@ -137,14 +138,21 @@ def sort(section: str, mode: sections.SortMode, rows: list[Row]) -> list[str]:
 
 def test_the_default_order_is_the_shelf_rank_the_favourite_order_or_the_name() -> None:
     rows: list[Row] = [
-        (named("a", "Zebra"), 1, 2, 3),
-        (named("b", "apple"), 2, 3, 1),
+        (named("a", "Zebra"), 1, 2, 1),
+        (named("b", "apple"), 2, 3, 3),
         (named("c", "Éclair"), 0, 1, 2),
     ]
     assert sort(sections.POPULAR, sections.SortMode.DEFAULT, rows) == ["c", "a", "b"]
-    assert sort(sections.TRENDING, sections.SortMode.DEFAULT, rows) == ["b", "c", "a"]
+    assert sort(sections.TRENDING, sections.SortMode.DEFAULT, rows) == ["a", "c", "b"]
     assert sort(sections.FAVORITES, sections.SortMode.DEFAULT, rows) == ["c", "a", "b"]
     assert sort("words", sections.SortMode.DEFAULT, rows) == ["b", "c", "a"]
+
+
+def test_a_game_without_a_rank_sorts_after_the_ranked_ones_on_a_shelf() -> None:
+    rows: list[Row] = [(named("a", "apple"), None, 0, 0), (named("b", "Zebra"), None, 2, 2)]
+
+    assert sort(sections.POPULAR, sections.SortMode.DEFAULT, rows) == ["b", "a"]
+    assert sort(sections.TRENDING, sections.SortMode.DEFAULT, rows) == ["b", "a"]
 
 
 def test_sorting_by_name_or_difficulty_overrides_every_section_default() -> None:
