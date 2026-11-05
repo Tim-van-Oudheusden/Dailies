@@ -192,8 +192,9 @@ def _within(a: str, b: str, limit: int) -> bool:
             if i > 1 and j > 1 and char == b[j - 2] and a[i - 2] == other:
                 cost = min(cost, before[j - 2] + 1)
             current[j] = cost
-        # A swap reaches two rows back, so stop only when neither this row nor that one can still lead within the limit.
-        if min(current) > limit and min(previous) >= limit:
+        # A swap reaches two rows back, but this test is still enough: a row's minimum grows by at most one, so the row
+        # before this one is at the limit or past it, and a swap from there costs more than the limit.
+        if min(current) > limit:
             return False
         before, previous = previous, current
     return previous[-1] <= limit
