@@ -159,7 +159,62 @@ instead of mutating nothing. A control runs every killing test on an unmutated c
 costs about half a second.
 
 When a hand mutation pass finds a surviving mutant of a shell script, add the test that kills it and a row for it in
-the same pull request. Python scripts are not in the table: the coverage floors above measure them.
+the same pull request. Python scripts are not in the table: the coverage floors above measure which of their lines ran,
+and nothing mutates them. Only `dailies/core` has a Python mutation report, [below](#python-mutants).
+
+## Python mutants
+
+A coverage floor shows that a line ran, not that a test would notice it changing: `dailies/core` is at 100 % branch
+coverage, and a hand-written mutant sweep still found 42 behaviours no test asserted (#368).
+`scripts/mutants_report.py` runs [mutmut](https://github.com/boxed/mutmut) over `dailies/core`, with `tests/core` and
+`tests/data` as the runner, and reports the survivors that are not in a reviewed baseline. It covers `dailies/core`
+only, not `scripts/`. It is not part of any required check, and mutmut is not in `scripts/requirements.txt`. Install it
+to run the report:
+
+```sh
+python -m pip install mutmut==3.8.1
+scripts/mutants_report.py > mutants-report.md
+```
+
+mutmut's settings are in `[tool.mutmut]` in `pyproject.toml`. It runs the tests inside `mutants/`, so `also_copy` lists
+what those tests read from outside `tests/`; a new test that reads another path has to add it there. The keystroke
+timing test in `tests/core/test_search.py` is deselected, because it measures the code without mutmut's wrapper around
+every function. Workers fork from a separate server (`process_isolation`), not from the process that ran the suite,
+whose `lru_cache` entries would hide the mutants behind them.
+
+Every run deletes `mutants/` first, so a verdict left by an earlier run never stands in for this one, and it starts
+from scratch each time. The report goes to stdout and mutmut's progress to stderr: the mutants per status, the new
+survivors, and the baseline entries that are now killed or gone. A survivor is a mutant with the status `survived` or
+`no tests`; every other status is only counted. The script exits 0 when the run finished with no new survivor, 1 when
+there are new survivors or the run failed, and 2 for a missing or malformed baseline, which it checks before starting
+mutmut. A run has failed when `mutants/` cannot be deleted, mutmut cannot start, a mutmut command exits non-zero,
+mutmut lists no mutants, or any mutant is left `not checked`, which is what an interrupted `mutmut run` leaves while
+exiting 0. A failed run reports the failure and counts no survivors, so it never reads as zero.
+
+### The mutants baseline
+
+`.github/mutants-baseline.json` lists the survivors a maintainer has reviewed and left on purpose. It starts empty, so
+the first run reports every survivor as new. `--write` saves the survivors of a finished run to the baseline file
+(`--baseline <path>` names another one), and a failed run leaves it alone. Nothing is committed automatically: to adopt
+a proposal, review the diff and commit it in a PR, as with [the coverage floors](#coverage-floor-self-tuning).
+
+mutmut names a mutant after its function and an ordinal, such as `dailies.core.search.x__tier__mutmut_12`, and an edit
+to the function renumbers its mutants. So a baseline entry is the function and the lines `mutmut show` says the mutant
+changes, stripped of indentation:
+
+```text
+dailies.core.search.x__tier: - if needle in haystack.name: | + if needle not in haystack.name:
+```
+
+That key survives an edit elsewhere in the function, a moved line and a re-indented one. It has limits:
+
+- Editing the mutated line itself, or renaming the function or its module, reports the survivor as new and its old entry
+  as gone. Both show in the report, and `--write` replaces them.
+- Two mutants that make the same change to two identical lines of a function have the same key. Entries are counted, so
+  the baseline holds it twice, but it cannot tell which of the two a test killed.
+- A new survivor that makes the same change to an identical line takes the place of a killed entry with that key and is
+  not reported.
+- The key is the text of mutmut's mutation, so a mutmut upgrade that changes its operators can report new survivors.
 
 ## Quality report
 

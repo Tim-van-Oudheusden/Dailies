@@ -93,3 +93,20 @@ include_namespace_packages = true
 
 [tool.coverage.xml]
 output = "coverage.xml"
+
+# Mutation testing of the pure-Python core; scripts/mutants_report.py runs it (docs/testing.md#python-mutants). mutmut
+# runs the tests inside mutants/, which holds the mutated source, tests/, this file and the `also_copy` paths, so
+# `also_copy` lists everything tests/core and tests/data read from outside tests/.
+[tool.mutmut]
+source_paths = ["dailies/core"]
+pytest_add_cli_args_test_selection = ["tests/core", "tests/data"]
+also_copy = ["README.md", "data", "scripts/data"]
+# mutmut wraps every mutated function, which the timing test's 5 ms budget per keystroke was not written for: it would
+# fail on the unmutated code and stop the whole run.
+pytest_add_cli_args = [
+  "--deselect",
+  "tests/core/test_search.py::test_ranking_three_hundred_games_takes_under_five_milliseconds_per_keystroke",
+]
+# The default, "fork", forks each mutant's worker from the process that ran the whole suite, so the lru_cache entries
+# that run left in dailies/core/search.py would answer for the code behind them and let its mutants survive.
+process_isolation = "forkserver"
