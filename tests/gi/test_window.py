@@ -169,9 +169,8 @@ class BrowserPageTest(unittest.TestCase):
 
     def test_ctrl_f_belongs_to_the_web_page_while_the_browser_is_shown(self) -> None:
         # The real handler, which Application connects once it creates the window, on this harness's application.
-        self.view.connect(
-            "notify::visible-page", lambda view, pspec: Application._on_visible_page(self.app, view, pspec)
-        )
+        handler = Application._on_visible_page  # noqa: SLF001 - the harness's application is not an Application
+        self.view.connect("notify::visible-page", lambda view, pspec: handler(self.app, view, pspec))
         self.app.set_accels_for_action("win.search", _SEARCH_ACCELS)
 
         self.window.open_game(self.games[0])
@@ -187,7 +186,7 @@ class BrowserPageTest(unittest.TestCase):
         split_view.props.collapsed = True
         split_view.props.show_content = False
 
-        self.window.activate_action("search", None)
+        self.window.lookup_action("search").activate(None)
 
         assert split_view.props.show_content
         assert self.window.search_bar.props.search_mode_enabled
