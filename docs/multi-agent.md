@@ -137,9 +137,11 @@ format check, the unit, script, tooling and data tests, and the schema validatio
 and the Flatpak build are not re-run there. If it passes and neither the pull request nor `main` moved, the queue merges
 the pull request (a merge commit), closes the issues its body links with `Fixes #N`, and starts `main`'s push workflows
 (CI, the coverage gate, Pages, the quality report and the Windows build). A merge made with `GITHUB_TOKEN` closes no
-issue and starts no push run, so the queue does both itself. If verification fails, the pull request gets `hold` and a
-comment linking the run; fix it and remove `hold` to queue it again. Each run starts the next, so the queue merges one
-pull request at a time.
+issue and starts no push run, so the queue does both itself. If it cannot start one of those workflows or the next run,
+it tries twice more, 10 s apart, then logs an `::error` with the command to start it by hand, starts the others and
+the next run, and fails, so the run shows that `main` missed a gate. If verification fails, the pull request gets
+`hold` and a comment linking the run; fix it and remove `hold` to queue it again. Each run starts the next, so the
+queue merges one pull request at a time.
 
 | Label | Set by | Effect |
 | --- | --- | --- |

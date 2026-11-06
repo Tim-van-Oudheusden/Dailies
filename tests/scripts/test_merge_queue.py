@@ -31,12 +31,14 @@ WORKFLOW_CHANGE = {"dailies/core/search.py": "x = 1\n", ".github/workflows/ci.ym
 
 # Stands in for the gh CLI. `gh pr list` and `gh pr view <n>` answer from $FAKE_DIR/prs.json, filtered through `--jq`
 # like gh does. Every other call is appended to $FAKE_DIR/calls.log, one line per call. A call fails when it starts
-# with the text in $FAKE_DIR/fail. While $FAKE_DIR/unknown-<n> holds a count above 0, asking for the merge state of
-# pull request <n> answers UNKNOWN, as GitHub does before it has computed it, and takes one off the count.
+# with the text in $FAKE_DIR/fail, or only the first such call does if $FAKE_DIR/fail-once exists. While
+# $FAKE_DIR/unknown-<n> holds a count above 0, asking for the merge state of pull request <n> answers UNKNOWN, as GitHub
+# does before it has computed it, and takes one off the count.
 FAKE_GH = r"""#!/usr/bin/env bash
 set -euo pipefail
 fails() {
-  [ -f "$FAKE_DIR/fail" ] && [[ "$*" == "$(cat "$FAKE_DIR/fail")"* ]]
+  [ -f "$FAKE_DIR/fail" ] && [[ "$*" == "$(cat "$FAKE_DIR/fail")"* ]] || return 1
+  [ ! -f "$FAKE_DIR/fail-once" ] || rm "$FAKE_DIR/fail"
 }
 if [ "$1" = pr ] && { [ "$2" = list ] || [ "$2" = view ]; }; then
   if fails "$@"; then
@@ -147,12 +149,13 @@ class Queue:
     def fail_calls_starting_with(self, prefix: str) -> None:
         (self.work / "fail").write_text(prefix, encoding="utf-8")
 
+    def fail_first_call_starting_with(self, prefix: str) -> None:
+        self.fail_calls_starting_with(prefix)
+        (self.work / "fail-once").write_text("", encoding="utf-8")
+
     def answer_unknown_merge_state(self, number: int, times: int) -> None:
-        """GitHub answers UNKNOWN for the merge state of <number> the next <times> asks; `sleep` returns at once."""
+        """GitHub answers UNKNOWN for the merge state of <number> the next <times> asks."""
         (self.work / f"unknown-{number}").write_text(f"{times}\n", encoding="utf-8")
-        sleep = self.work / "sleep"
-        sleep.write_text("#!/bin/sh\n", encoding="utf-8")
-        sleep.chmod(0o755)
 
     def move_main(self) -> None:
         commit_files(self.seed, {"docs/other.md": "other\n"}, "other")
@@ -162,6 +165,10 @@ class Queue:
         gh = self.work / "gh"
         gh.write_text(FAKE_GH, encoding="utf-8")
         gh.chmod(0o755)
+        # The script waits between asks and retries; the tests do not.
+        sleep = self.work / "sleep"
+        sleep.write_text("#!/bin/sh\n", encoding="utf-8")
+        sleep.chmod(0o755)
         output = self.work / "github-output"
         output.write_text("", encoding="utf-8")
         (self.work / "calls.log").unlink(missing_ok=True)
@@ -442,6 +449,56 @@ def test_land_warns_and_carries_on_when_reading_the_linked_issues_fails(tmp_path
     assert "::warning title=Merge queue::" in result.stdout
     assert "#7" in result.stdout
     assert runs == sorted(f"workflow run {name} --ref main" for name in [*main_push_workflows(), "merge-queue.yml"])
+
+
+def test_land_retries_a_main_push_workflow_that_failed_to_start(tmp_path: Path) -> None:
+    # GitHub's workflow dispatch answers HTTP 500 now and then. The merge has landed by then, and with GITHUB_TOKEN
+    # these runs are the only way main's gates run on it (#392).
+    queue = queue_of(tmp_path, [{"number": 7}])
+    queue.fail_first_call_starting_with("workflow run ci.yml")
+
+    result = queue.run("land", "7", queue.heads[7], queue.main)
+
+    assert result.status == 0, result.stderr
+    assert "::error" not in result.stdout
+    assert result.calls.count("workflow run ci.yml --ref main") == 2
+    assert result.calls[-1] == "workflow run merge-queue.yml --ref main"
+
+
+@pytest.mark.parametrize("name", main_push_workflows())
+def test_land_starts_the_rest_and_the_next_run_names_the_workflow_it_could_not_start_and_fails(
+    tmp_path: Path, name: str
+) -> None:
+    # A gate that never ran on main leaves no other trace, so the run fails, unlike an issue it could not close.
+    queue = queue_of(tmp_path, [{"number": 7}])
+    queue.fail_calls_starting_with(f"workflow run {name}")
+
+    result = queue.run("land", "7", queue.heads[7], queue.main)
+    others = sorted(
+        call for call in result.calls if call.startswith("workflow run ") and call != f"workflow run {name} --ref main"
+    )
+
+    assert result.status == 1
+    assert (
+        f"::error title=Merge queue::could not start {name}; start it by hand: gh workflow run {name} --ref main"
+        in result.stdout
+    )
+    assert result.calls.count(f"workflow run {name} --ref main") == 3
+    assert others == sorted(
+        f"workflow run {other} --ref main" for other in [*main_push_workflows(), "merge-queue.yml"] if other != name
+    )
+    assert result.calls[-1] == "workflow run merge-queue.yml --ref main"
+
+
+def test_land_fails_and_names_the_next_run_when_it_cannot_start_it_after_a_merge(tmp_path: Path) -> None:
+    queue = queue_of(tmp_path, [{"number": 7}])
+    queue.fail_calls_starting_with("workflow run merge-queue.yml")
+
+    result = queue.run("land", "7", queue.heads[7], queue.main)
+
+    assert result.status == 1
+    assert "::error title=Merge queue::could not start merge-queue.yml" in result.stdout
+    assert result.calls.count("workflow run merge-queue.yml --ref main") == 3
 
 
 def test_land_does_not_merge_when_main_moved_after_verification_and_queues_a_rerun(tmp_path: Path) -> None:
