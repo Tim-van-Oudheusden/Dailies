@@ -117,6 +117,20 @@ MUTANTS = [
         f"{NIGHTLY_COMPLIANCE_TESTS}::test_a_links_check_error_with_a_report_puts_the_report_under_failures",
     ),
     Mutant(
+        "the queue says why it skips an UNSTABLE pull request",
+        MERGE_QUEUE,
+        'if [ "$state" = UNSTABLE ]; then',
+        "if false; then",
+        f"{MERGE_QUEUE_TESTS}::test_next_reports_a_pull_request_held_back_by_a_check_that_is_not_required",
+    ),
+    Mutant(
+        "the queue leaves an UNSTABLE pull request out",
+        MERGE_QUEUE,
+        '[ "$state" = CLEAN ] || continue',
+        '[ "$state" = CLEAN ] || [ "$state" = UNSTABLE ] || continue',
+        f"{MERGE_QUEUE_TESTS}::test_next_reports_a_pull_request_held_back_by_a_check_that_is_not_required",
+    ),
+    Mutant(
         "the queue asks again while GitHub answers UNKNOWN for the merge state",
         MERGE_QUEUE,
         '[ "$state" != UNKNOWN ] && break',
