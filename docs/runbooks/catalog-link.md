@@ -50,14 +50,15 @@ one before that, and what to do once the change is merged.
 
    ```sh
    python -m venv .venv && .venv/bin/pip install --require-hashes -r scripts/requirements.txt
-   jq '.games |= map(select(.id == "<id>"))' data/v1/games.json > /tmp/one.json
+   jq '.games |= map(select(.id == "<id>") | .status = "active")' data/v1/games.json > /tmp/one.json
    .venv/bin/python -I scripts/check_links.py --catalog /tmp/one.json --out /tmp/links.md
    cat /tmp/links.md
    ```
 
-   It exits 0 when the entry passed and 1 when it failed. The report gives the outcome and a suggested `status`. To
-   check the whole catalog on GitHub instead, start the compliance workflow with its link check forced:
-   `gh workflow run nightly-compliance.yml -f force_links=true`.
+   It exits 0 when the entry passed and 1 when it failed. The `jq` line sets the copy's `status` to `active` because
+   the script fetches and reports only active entries: on a `broken` or `retired` game it would check nothing and still
+   exit 0. The report gives the outcome and a suggested `status`. To check the whole catalog on GitHub instead, start
+   the compliance workflow with its link check forced: `gh workflow run nightly-compliance.yml -f force_links=true`.
 4. Decide from the outcome:
 
    | Outcome | Meaning | Change |
@@ -93,7 +94,8 @@ favourites must still resolve (see [`docs/data-format.md`](../data-format.md)).
 `check-jsonschema --schemafile data/v1/schema/catalog.schema.json data/v1/games.json`, then open the pull request.
 
 **Restore a game** that was marked broken and works again. The weekly check restores it after two passing weeks; to
-do it now, run the same script with `"status": "active", "event": "restored"`.
+do it now, check the link with the one-entry link check above, then run the same script with
+`"status": "active", "event": "restored"`.
 
 ### Confirm it is published
 
