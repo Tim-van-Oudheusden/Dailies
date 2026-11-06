@@ -131,6 +131,20 @@ MUTANTS = [
         f"{MERGE_QUEUE_TESTS}::test_next_gives_up_on_a_merge_state_still_unknown_after_three_asks",
     ),
     Mutant(
+        "the queue waits before it asks for the merge state again",
+        MERGE_QUEUE,
+        '[ "$attempt" -lt 3 ] && sleep 5',
+        '[ "$attempt" -lt 3 ] && true',
+        f"{MERGE_QUEUE_TESTS}::test_next_asks_again_while_github_is_still_computing_the_merge_state",
+    ),
+    Mutant(
+        "the queue does not wait after the last ask for the merge state",
+        MERGE_QUEUE,
+        '[ "$attempt" -lt 3 ] && sleep 5',
+        '[ "$attempt" -lt 4 ] && sleep 5',
+        f"{MERGE_QUEUE_TESTS}::test_next_gives_up_on_a_merge_state_still_unknown_after_three_asks",
+    ),
+    Mutant(
         "the queue rates a pull request from the merge base, as tier-classifier.yml does",
         MERGE_QUEUE,
         '"HEAD...$1"',
@@ -150,6 +164,20 @@ MUTANTS = [
         "for attempt in 1 2 3; do\n    gh workflow run",
         "for attempt in 1; do\n    gh workflow run",
         f"{MERGE_QUEUE_TESTS}::test_land_tries_again_when_a_workflow_does_not_start_the_first_time",
+    ),
+    Mutant(
+        "a dispatch that failed waits before it is tried again",
+        MERGE_QUEUE,
+        '[ "$attempt" -lt 3 ] && sleep 10',
+        '[ "$attempt" -lt 3 ] && true',
+        f"{MERGE_QUEUE_TESTS}::test_land_tries_again_when_a_workflow_does_not_start_the_first_time",
+    ),
+    Mutant(
+        "there is no wait after the last try of a dispatch",
+        MERGE_QUEUE,
+        '[ "$attempt" -lt 3 ] && sleep 10',
+        '[ "$attempt" -lt 4 ] && sleep 10',
+        f"{MERGE_QUEUE_TESTS}::test_land_starts_the_rest_names_the_workflow_that_would_not_start_and_fails",
     ),
     Mutant(
         "a workflow that will not start does not stop the others or the next run",
