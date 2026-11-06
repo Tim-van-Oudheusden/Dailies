@@ -2,7 +2,7 @@
 
 Eleven parallel deep-dives produced by the `dailies-research-design` workflow (Research phase) on 2026-10-15. Each report was written by a dedicated agent with web and repository access; each ends with a Sources section and a Recommendations-for-Dailies section. Facts were verified against primary sources where possible; items the agent could not verify are flagged inside the report and listed under Open questions below.
 
-These reports are inputs to the architecture document. See [`docs/plans/design-judge-plan.md`](../plans/design-judge-plan.md) for what happens next.
+These reports are inputs to the architecture document, [`docs/architecture.md`](../architecture.md).
 
 ## Index
 
