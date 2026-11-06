@@ -161,17 +161,22 @@ class Queue:
         commit_files(self.seed, {"docs/other.md": "other\n"}, "other")
         git(self.seed, "push", "--quiet", str(self.origin), "HEAD:main")
 
+    def sleeps(self) -> list[str]:
+        """The seconds the last run asked `sleep` for, in order."""
+        return (self.work / "sleeps.log").read_text(encoding="utf-8").splitlines()
+
     def run(self, *args: str) -> "Result":
         gh = self.work / "gh"
         gh.write_text(FAKE_GH, encoding="utf-8")
         gh.chmod(0o755)
-        # The script waits between attempts; the tests do not.
+        # The script waits between attempts; the tests only record how long.
         sleep = self.work / "sleep"
-        sleep.write_text("#!/bin/sh\n", encoding="utf-8")
+        sleep.write_text('#!/bin/sh\necho "$1" >> "$FAKE_DIR/sleeps.log"\n', encoding="utf-8")
         sleep.chmod(0o755)
         output = self.work / "github-output"
         output.write_text("", encoding="utf-8")
         (self.work / "calls.log").unlink(missing_ok=True)
+        (self.work / "sleeps.log").write_text("", encoding="utf-8")
         result = subprocess.run(  # noqa: S603 - fixed script, test-controlled environment
             [BASH, str(SCRIPT), *args],
             cwd=self.clone,
@@ -323,6 +328,7 @@ def test_next_asks_again_while_github_is_still_computing_the_merge_state(tmp_pat
 
     assert result.status == 0, result.stderr
     assert result.outputs["number"] == "7"
+    assert queue.sleeps() == ["5", "5"]
 
 
 def test_next_gives_up_on_a_merge_state_still_unknown_after_three_asks(tmp_path: Path) -> None:
@@ -333,6 +339,7 @@ def test_next_gives_up_on_a_merge_state_still_unknown_after_three_asks(tmp_path:
 
     assert result.status == 0, result.stderr
     assert result.outputs == {}
+    assert queue.sleeps() == ["5", "5"]
 
 
 def test_next_picks_nothing_when_no_pull_request_is_ready(tmp_path: Path) -> None:
@@ -461,6 +468,7 @@ def test_land_tries_again_when_a_workflow_does_not_start_the_first_time(tmp_path
     assert result.status == 0, result.stderr
     assert "::error" not in result.stdout
     assert result.calls.count("workflow run ci.yml --ref main") == 2
+    assert queue.sleeps() == ["10"]
     assert result.calls[-1] == "workflow run merge-queue.yml --ref main"
 
 
@@ -479,6 +487,7 @@ def test_land_starts_the_rest_names_the_workflow_that_would_not_start_and_fails(
         in result.stdout
     )
     assert result.calls.count(f"workflow run {name} --ref main") == 3
+    assert queue.sleeps() == ["10", "10"]
     assert sorted(runs) == sorted(f"workflow run {other} --ref main" for other in [*others, "merge-queue.yml"])
     assert result.calls[-1] == "workflow run merge-queue.yml --ref main"
 
