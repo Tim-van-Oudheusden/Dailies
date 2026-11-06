@@ -3,11 +3,13 @@ import json
 import re
 import socket
 import sys
+from collections.abc import Iterator
 from datetime import date
 from pathlib import Path
 from types import ModuleType
 
 import pytest
+from ruamel.yaml import YAML
 
 # The validator's dependencies come from scripts/requirements.txt; without them there is nothing to test.
 pytest.importorskip("jsonschema")
@@ -31,14 +33,15 @@ def load_script() -> ModuleType:
 
 
 vs = load_script()
+urlcheck = sys.modules["urlcheck"]
 
 
 class FakeResponse:
-    def __init__(self, status: int = 200, headers: dict[str, str] | None = None, body: str = "") -> None:
+    def __init__(self, status: int = 200, headers: dict[str, str] | None = None, body: str | bytes = "") -> None:
         self.status_code = status
         self.headers = {key.lower(): value for key, value in (headers or {}).items()}
         self.encoding = "utf-8"
-        self._body = body.encode()
+        self._body = body.encode() if isinstance(body, str) else body
 
     def iter_content(self, chunk_size: int) -> object:
         for start in range(0, len(self._body), chunk_size):
@@ -208,6 +211,50 @@ def test_redirect_within_the_same_site_is_ok() -> None:
     assert result.errors == []
 
 
+@pytest.mark.parametrize("status", [301, 302, 303, 307, 308])
+def test_every_redirect_status_is_followed_and_checked(status: int) -> None:
+    url = "https://countryle.com/"
+    landing = "https://www.lucky-spin-777.net/promo"
+    session = FakeSession(
+        {
+            ("HEAD", url): FakeResponse(status, {"Location": landing}),
+            ("HEAD", landing): FakeResponse(200),
+        }
+    )
+
+    result = check(form(), session)
+
+    assert "redirects to another site (lucky-spin-777.net)" in result.errors
+
+
+def test_a_location_header_on_a_normal_answer_is_not_a_redirect() -> None:
+    url = "https://countryle.com/"
+    session = FakeSession(
+        {
+            ("HEAD", url): FakeResponse(200, {"Location": "https://www.lucky-spin-777.net/promo"}),
+            ("GET", url): FakeResponse(200, body="<title>Countryle</title>"),
+        }
+    )
+
+    assert check(form(), session).errors == []
+
+
+def test_two_sites_on_a_shared_hosting_domain_are_different_sites() -> None:
+    # Taking github.io as the registrable domain would let any Pages site take over another without a warning.
+    url = "https://countryle.github.io/"
+    landing = "https://lucky-spin.github.io/"
+    session = FakeSession(
+        {
+            ("HEAD", url): FakeResponse(302, {"Location": landing}),
+            ("HEAD", landing): FakeResponse(200),
+        }
+    )
+
+    result = check(form(url=url), session)
+
+    assert "redirects to another site (lucky-spin.github.io)" in result.errors
+
+
 @pytest.mark.parametrize(
     "title", ["SLOT GACOR Hari Ini", "Situs Judi Online Terpercaya", "Best Online Casinos 2026", "Togel &amp; Poker"]
 )
@@ -263,6 +310,7 @@ def test_requests_send_a_descriptive_user_agent_and_a_timeout() -> None:
 
     assert seen
     assert all(kwargs["timeout"] == 10 for kwargs in seen)
+    assert all(kwargs["stream"] is True for kwargs in seen)
     assert all("Dailies" in kwargs["headers"]["User-Agent"] for kwargs in seen)
 
 
@@ -346,6 +394,12 @@ def test_unknown_category_label_fails() -> None:
     assert any('unknown category "Other"' in error for error in result.errors)
 
 
+def test_a_description_of_exactly_the_minimum_length_is_ok() -> None:
+    description = "x" * vs.MIN_DESCRIPTION
+
+    assert check(form(description=description)).errors == []
+
+
 def test_too_short_description_fails() -> None:
     result = check(form(description="  Guess the flag.  "))
 
@@ -359,6 +413,22 @@ def test_empty_optional_fields_get_defaults() -> None:
     assert result.errors == []
     assert "tags" not in result.entry
     assert result.entry["language"] == "en"
+
+
+def test_a_field_the_issue_parser_left_as_a_list_counts_as_empty() -> None:
+    result = check(form(language=["en"]))
+
+    assert result.errors == []
+    assert result.entry["language"] == "en"
+
+
+def test_every_form_category_maps_to_a_catalog_category() -> None:
+    template = ROOT / ".github" / "ISSUE_TEMPLATE" / "new-game.yml"
+    fields = YAML(typ="safe", pure=True).load(template.read_text(encoding="utf-8"))["body"]
+    dropdown = next(field for field in fields if field.get("id") == "category")
+
+    assert dropdown["attributes"]["options"] == list(vs.CATEGORIES)
+    assert sorted(vs.CATEGORIES.values()) == sorted(SCHEMA["$defs"]["game"]["properties"]["category"]["enum"])
 
 
 def test_entry_that_breaks_the_schema_fails() -> None:
@@ -399,8 +469,10 @@ def test_cli_writes_result_and_report_for_a_valid_submission(tmp_path: Path) -> 
     assert result["warnings"] == []
     assert result["entry"]["id"] == "countryle"
     text = report.read_text(encoding="utf-8")
-    assert text.startswith("<!-- dailies-submission-check -->\n")
+    assert text.startswith("<!-- dailies-submission-check -->\n## Submission check: ✅ passed\n")
+    assert "\n| Check | Result | Details |\n| --- | --- | --- |\n| " in text
     assert "| Reachable | ✅ pass |" in text
+    assert "**Warnings**" not in text
     assert "```json\n" + json.dumps(result["entry"], indent=2, ensure_ascii=False) + "\n```" in text
 
 
@@ -417,9 +489,35 @@ def test_cli_exits_1_and_explains_an_invalid_submission(tmp_path: Path) -> None:
     assert "redirects to another site (lucky-spin-777.net)" in result["errors"]
     assert "the name is already in the catalog as worldle" in result["errors"]
     text = report.read_text(encoding="utf-8")
+    assert "## Submission check: ❌ needs changes\n" in text
     assert "| Same site | ❌ fail | `redirects to another site (lucky-spin-777.net)` |" in text
     assert "| Page title | ⏭️ skipped |" in text
     assert "| Form fields | ❌ fail | `the description must be at least 20 characters (it has 19)` |" in text
+
+
+def test_cli_marks_the_checks_an_unreachable_site_could_not_run_as_skipped(tmp_path: Path) -> None:
+    code, _, report = run_cli(tmp_path, form(), FakeSession())
+
+    assert code == 1
+    text = report.read_text(encoding="utf-8")
+    assert "| Reachable | ❌ fail |" in text
+    assert "| Same site | ⏭️ skipped | `skipped: an earlier check failed` |" in text
+    assert "| Page title | ⏭️ skipped | `skipped: an earlier check failed` |" in text
+
+
+def test_cli_keeps_non_ascii_text_readable_in_the_result_and_the_report(tmp_path: Path) -> None:
+    name = "Géographie"
+
+    _, out, report = run_cli(tmp_path, form(name=name), site("https://countryle.com/"))
+
+    assert f'"name": "{name}"' in out.read_text(encoding="utf-8")
+    assert f'"name": "{name}"' in report.read_text(encoding="utf-8")
+
+
+def test_cli_writes_the_result_with_a_two_space_indent(tmp_path: Path) -> None:
+    _, out, _ = run_cli(tmp_path, form(), site("https://countryle.com/"))
+
+    assert out.read_text(encoding="utf-8").startswith('{\n  "')
 
 
 def test_report_lists_warnings_and_fences_backticks_in_the_entry() -> None:
@@ -494,6 +592,107 @@ def test_title_after_the_first_512_kib_is_not_read() -> None:
     )
 
     assert check(form(), session).errors == []
+
+
+def test_a_public_session_ignores_a_proxy_in_the_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    # A proxy would be the connected peer, so the peer check would vet the proxy and not the site.
+    monkeypatch.setenv("HTTPS_PROXY", "http://proxy.example:3128")
+    monkeypatch.delenv("NO_PROXY", raising=False)
+
+    with vs.public_session() as session:
+        settings = session.merge_environment_settings("https://countryle.com/", {}, None, None, None)
+
+    assert settings["proxies"] == {}
+
+
+class EndlessResponse(FakeResponse):
+    """A page that never ends. Reading far past MAX_BODY fails, so a read with no cap cannot run on."""
+
+    def __init__(self) -> None:
+        super().__init__(200)
+        self.bytes_read = 0
+
+    def iter_content(self, chunk_size: int) -> Iterator[bytes]:
+        while True:
+            assert self.bytes_read < 2 * urlcheck.MAX_BODY, "kept reading past MAX_BODY"
+            self.bytes_read += chunk_size
+            yield b" " * chunk_size
+
+
+def test_a_page_that_never_ends_is_read_up_to_512_kib_and_no_further() -> None:
+    response = EndlessResponse()
+
+    assert urlcheck.page_title(response) == ""
+    assert response.bytes_read == 512 * 1024
+
+
+def page(body: str) -> FakeResponse:
+    return FakeResponse(200, body=body)
+
+
+def test_the_first_title_wins_over_a_later_one() -> None:
+    assert urlcheck.page_title(page("<title>Countryle</title><svg><title>Casino</title></svg>")) == "Countryle"
+
+
+def test_a_stray_closing_title_tag_does_not_stop_the_real_title() -> None:
+    assert urlcheck.page_title(page("</title><title>Countryle</title>")) == "Countryle"
+
+
+def test_a_page_title_is_decoded_with_the_charset_the_response_names() -> None:
+    response = FakeResponse(200, body="<title>Géographie</title>".encode("iso-8859-1"))
+    response.encoding = "iso-8859-1"
+
+    assert urlcheck.page_title(response) == "Géographie"
+
+
+@pytest.mark.parametrize("encoding", ["utf-8", "x-no-such-charset"])
+def test_bytes_a_page_got_wrong_in_its_title_do_not_stop_the_check(encoding: str) -> None:
+    response = FakeResponse(200, body=b"<title>Caf\xe9</title>")
+    response.encoding = encoding
+
+    assert urlcheck.page_title(response) == "Caf\N{REPLACEMENT CHARACTER}"
+
+
+def test_a_page_with_no_charset_is_read_as_utf_8() -> None:
+    response = page("<title>Géographie</title>")
+    response.encoding = None
+
+    assert urlcheck.page_title(response) == "Géographie"
+
+
+def test_a_page_that_trickles_past_the_deadline_counts_as_a_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
+    # check_links.py reports a timeout on a bot-walled game as a warning, so the flag decides what the run does.
+    clock = iter(range(0, 1000, 4))
+    monkeypatch.setattr(urlcheck, "monotonic", lambda: next(clock))
+
+    with pytest.raises(urlcheck.CheckError, match="did not load within 10 s") as caught:
+        urlcheck.page_title(page(" " * (256 * 1024)))
+
+    assert caught.value.timed_out
+
+
+@pytest.mark.parametrize("status", [403, 429, 503])
+def test_a_challenge_status_from_cloudflare_is_a_bot_wall(status: int) -> None:
+    assert urlcheck.is_bot_wall(FakeResponse(status, {"Server": "cloudflare"}))
+
+
+def test_a_dead_page_behind_cloudflare_is_not_a_bot_wall() -> None:
+    # Most of the web sits behind Cloudflare; a 404 from it is a broken link, not a challenge.
+    assert not urlcheck.is_bot_wall(FakeResponse(404, {"Server": "cloudflare", "cf-mitigated": "challenge"}))
+
+
+@pytest.mark.parametrize(
+    ("text", "span"),
+    [
+        ("plain", "`plain`"),
+        ("   ", ""),
+        ("`start", "`` `start ``"),
+        ("end`", "`` end` ``"),
+        ("mid`dle", "``mid`dle``"),
+    ],
+)
+def test_code_span_pads_only_a_span_that_touches_a_backtick(text: str, span: str) -> None:
+    assert vs.code_span(text) == span
 
 
 def test_host_that_rebinds_to_a_private_address_after_the_check_is_never_sent_a_request() -> None:
