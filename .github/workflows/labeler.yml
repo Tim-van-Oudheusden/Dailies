@@ -22,3 +22,6 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13 # v7.0.0
+        # Path labels are a convenience. A failed GitHub API call must not turn this
+        # check red: the merge queue only takes pull requests in merge state CLEAN.
+        continue-on-error: true

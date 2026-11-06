@@ -134,3 +134,10 @@ def test_the_jobs_with_write_access_run_mains_scripts_not_the_pull_requests_code
         assert [step["with"]["ref"] for step in checkouts] == ["main"], job_id
     assert QUEUE["jobs"]["land"]["needs"] == ["pick", "verify"]
     assert QUEUE["jobs"]["reject"]["if"] == "always() && needs.verify.result == 'failure'"
+
+
+def test_a_failed_labeler_step_cannot_keep_a_pull_request_out_of_the_queue() -> None:
+    # The queue takes only merge state CLEAN, which any red check blocks. A failed API call on a convenience label
+    # would hold a ready pull request until someone re-runs the check (#405).
+    steps = load("labeler.yml")["jobs"]["label"]["steps"]
+    assert [step.get("continue-on-error") for step in steps] == [True]
