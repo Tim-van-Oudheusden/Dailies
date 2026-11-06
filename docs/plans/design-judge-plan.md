@@ -1,6 +1,6 @@
 # Plan: finish the Design and Judge phases
 
-Status: Research phase complete (11/11 reports in [`docs/research/`](../research/README.md)). The Design phase was interrupted by an account usage limit on 2026-10-15 after one proposal (`mvp-first`) had been written to disk but before it was returned; the other two proposals and the Judge phase never ran. This document records what remains so the work can be resumed in a later session.
+Status: Research phase complete (11/11 reports in [`docs/research/`](../research/README.md)). The Design phase was interrupted by an account usage limit on 2026-10-15 after one proposal (`mvp-first`) had been written to disk but before it was returned; the other two proposals and the Judge phase never ran. The work was not resumed: [`docs/architecture.md`](../architecture.md) was trimmed from `mvp-first` instead, and this document stays as the record of the plan.
 
 ## Inputs already in the repository
 
