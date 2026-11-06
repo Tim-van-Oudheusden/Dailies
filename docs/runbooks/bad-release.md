@@ -22,9 +22,9 @@ or delete the tag as [Releasing](../../CONTRIBUTING.md#releasing) describes.
   the README and the issue tracker.
 - **A published version is never reused.** A tag and its version name one build; replacing the assets under the same
   tag would leave two different bundles called the same version. A bad `vX.Y.Z` is fixed forward with `vX.Y.(Z+1)`.
-- **The data path still reaches the broken version.** Installed apps keep fetching `games.json` and `popularity.json`
-  every few hours. If the breakage is triggered by data (a field an older version mishandles), fixing or reverting the
-  data reaches every user within hours, without a release.
+- **The data path still reaches the broken version.** Installed apps keep fetching `games.json` every 6 hours and
+  `popularity.json` every 24 hours. If the breakage is triggered by data (a field an older version mishandles), fixing
+  or reverting the data reaches every user within a day, without a release.
 
 ## Response
 

@@ -15,8 +15,8 @@ itself once the required checks pass (#79); a failed check leaves it open for a 
 
 ## Why this app is different
 
-- **Wrong shelves reach every user within hours of the auto-merge**, without a release and without a person reading
-  them first. The app validates the file's structure, not whether the ranking makes sense; compute.py's fail-closed
+- **Wrong shelves reach users within a day of the auto-merge**, without a release and without a person reading them
+  first. The app validates the file's structure, not whether the ranking makes sense; compute.py's fail-closed
   rules, the guard and CI are the only checks before users see it.
 - **Missing a week is cheap.** `valid_until` is `generated_at` plus 10 days, so last week's shelves stay current until
   the Thursday after a missed Monday, and after that the app keeps showing them with an "as of" date. Closing a bad
@@ -111,7 +111,8 @@ itself once the required checks pass (#79); a failed check leaves it open for a 
   (`gh workflow run popularity.yml -f narrate=true`) or skip the report for that week. Until #66 lands, `narrate` is
   accepted and ignored.
 
-Users need to do nothing: their apps fetch the merged file within a few hours.
+Users need to do nothing: their apps fetch the merged file within 24 hours of being opened (`MAX_AGE` in
+`dailies/core/cache.py`).
 
 ### Follow up
 
