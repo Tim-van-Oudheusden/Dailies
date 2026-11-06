@@ -327,6 +327,8 @@ class Window(Adw.ApplicationWindow):
         self.add_action(game_done)
 
     def _on_search(self, _action: Gio.SimpleAction, _parameter: None) -> None:
+        # The search bar is on the content page, which matters when the split view is collapsed.
+        self.split_view.props.show_content = True
         self.search_bar.props.search_mode_enabled = True
         self.search_entry.grab_focus()
 

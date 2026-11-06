@@ -60,6 +60,7 @@ from gi.repository import Adw, Gtk
 Adw.init()
 Gio.resources_register(Gio.Resource.load(os.environ["DAILIES_GRESOURCE"]))
 
+from dailies.application import _SEARCH_ACCELS, Application
 from dailies.core.cache import CacheDir
 from dailies.core.web import display_host
 from dailies.data.done_today import DoneToday
@@ -165,6 +166,30 @@ class BrowserPageTest(unittest.TestCase):
         assert self.criticals == [], self.criticals
         sessions = _HOME / "data" / "dailies" / "web" / "games"
         assert sorted(p.name for p in sessions.iterdir()) == ["first", "second"]
+
+    def test_ctrl_f_belongs_to_the_web_page_while_the_browser_is_shown(self) -> None:
+        # The real handler, which Application connects once it creates the window, on this harness's application.
+        handler = Application._on_visible_page  # noqa: SLF001 - the harness's application is not an Application
+        self.view.connect("notify::visible-page", lambda view, pspec: handler(self.app, view, pspec))
+        self.app.set_accels_for_action("win.search", _SEARCH_ACCELS)
+
+        self.window.open_game(self.games[0])
+        assert run_until(lambda: self.view.props.visible_page.props.tag == "browser")
+        assert self.app.get_accels_for_action("win.search") == []
+
+        self.view.pop()
+        assert run_until(lambda: self.view.props.visible_page.props.tag == "library")
+        assert self.app.get_accels_for_action("win.search") == ["<Control>f"]
+
+    def test_search_shows_the_content_of_a_collapsed_window(self) -> None:
+        split_view = self.window.split_view
+        split_view.props.collapsed = True
+        split_view.props.show_content = False
+
+        self.window.lookup_action("search").activate(None)
+
+        assert split_view.props.show_content
+        assert self.window.search_bar.props.search_mode_enabled
 
 
 if __name__ == "__main__":
