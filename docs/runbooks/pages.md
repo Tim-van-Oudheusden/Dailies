@@ -2,7 +2,8 @@
 
 Concerns the **data path**: the copy of `data/v1/` (`games.json`, `popularity.json`, `icons/`) that the
 [Pages](../../.github/workflows/pages.yml) workflow publishes to `https://tim-van-oudheusden.github.io/Dailies/v1/`
-on every push to `main` that touches `data/v1/**` or `docs/popularity/**`. Every installed app fetches from there first.
+on every push to `main` that touches `data/v1/**` or `docs/popularity/**`, and after every merge by the merge queue.
+Every installed app fetches from there first.
 This runbook covers a merged data change that never reaches Pages, and Pages no longer serving the files at all.
 
 ## Symptom
@@ -53,8 +54,12 @@ This runbook covers a merged data change that never reaches Pages, and Pages no 
    gh run view <run-id> --log-failed
    ```
 
-   - No run for the merge: the push changed nothing under `data/v1/` or `docs/popularity/`, so it was not meant to
-     publish anything. Or the Actions tab shows the workflow as disabled (`gh workflow view pages.yml`).
+   - No run for a merge by the [merge queue](../multi-agent.md#merge-queue) (`gh pr view <number> --json mergedBy` says
+     `app/github-actions`): such a merge starts no push run, so the queue starts Pages itself after every merge, data
+     or not, and the run shows as `workflow_dispatch`. If it could not, the queue's run failed with an `::error` naming
+     `pages.yml`.
+   - No run for any other merge: the push changed nothing under `data/v1/` or `docs/popularity/`, so it was not meant
+     to publish anything. Or the Actions tab shows the workflow as disabled (`gh workflow view pages.yml`).
    - **Assemble _site** failed with `cp: cannot stat '…': No such file or directory`: a symbolic link under `data/v1/`
      or `docs/popularity/` points nowhere. Fix or remove it in a pull request. The step copies with `cp -rL`, which
      follows every link, so a link to a file that exists, even outside the tree, does not fail: the file it points to
