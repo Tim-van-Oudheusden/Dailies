@@ -156,6 +156,29 @@ def test_a_hijacked_game_is_retired_at_once(status: str) -> None:
     assert changes == [[ls.Change("moviedle", "retired", "retired", f"link check 2026-W42: {reason}")]]
 
 
+def test_a_hijacked_game_does_not_stop_the_games_after_it() -> None:
+    _, changes = run_weeks(
+        [
+            (W41, [seen("moviedle", "http-404")]),
+            (W42, [seen("cloudle", ls.HIJACKED), seen("moviedle", "http-404")]),
+        ]
+    )
+
+    assert [(change.id, change.status) for change in changes[1]] == [("cloudle", "retired"), ("moviedle", "broken")]
+
+
+def test_a_first_failure_does_not_stop_the_games_after_it() -> None:
+    state, changes = run_weeks(
+        [
+            (W41, [seen("moviedle", "http-404")]),
+            (W42, [seen("cloudle", "http-404"), seen("moviedle", "http-404")]),
+        ]
+    )
+
+    assert [change.id for change in changes[1]] == ["moviedle"]
+    assert sorted(state["games"]) == ["cloudle", "moviedle"]
+
+
 def test_a_passing_active_game_is_not_tracked() -> None:
     state, _ = run_weeks([(W42, [seen("worldle", "ok")])])
 
@@ -169,6 +192,20 @@ def test_notes_fit_the_schema() -> None:
 
     assert len(changes[1][0].note) == 300
     assert changes[1][0].note.endswith("…")
+
+
+def test_a_note_of_exactly_the_longest_length_is_kept_whole() -> None:
+    prefix = f"link check {W42}: "
+    reason = "x" * (ls.MAX_NOTE - len(prefix))
+
+    _, changes = run_weeks([(W42, [seen("moviedle", ls.HIJACKED, reason=reason)])])
+
+    assert changes[0][0].note == prefix + reason
+
+
+def test_a_malformed_week_is_refused() -> None:
+    with pytest.raises(ValueError, match="ISO week"):
+        ls.previous_week("2026-42")
 
 
 def test_state_survives_a_json_round_trip(tmp_path: Path) -> None:
@@ -241,6 +278,44 @@ def test_a_change_that_is_already_made_is_skipped() -> None:
         "generated_at": "x",
         "games": [{"id": "a", "added": "2026-10-15", "status": "broken", "history": []}],
     }
+
+
+def test_a_change_already_made_does_not_stop_the_ones_after_it() -> None:
+    games = [
+        {"id": "a", "added": "2026-10-15", "status": "broken"},
+        {"id": "b", "added": "2026-10-15", "status": "active"},
+    ]
+    changes = [ls.Change("a", "broken", "broken", "n"), ls.Change("b", "broken", "broken", "n")]
+
+    assert ls.apply_changes({"generated_at": "x", "games": games}, changes, NOW) == ["b"]
+
+
+def test_statuses_are_the_ones_the_catalog_schema_allows() -> None:
+    schema = json.loads((ROOT / "data" / "v1" / "schema" / "catalog.schema.json").read_text(encoding="utf-8"))
+
+    assert set(schema["$defs"]["game"]["properties"]["status"]["enum"]) == ls.STATUSES
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        ls.Change("a", "broken", "Not An Event", "n"),
+        ls.Change("a", "broken", "broken", "x" * (ls.MAX_NOTE + 1)),
+    ],
+)
+def test_a_change_with_a_bad_event_or_an_oversized_note_changes_nothing(change: object) -> None:
+    catalog = {"generated_at": "x", "games": [{"id": "a", "added": "2026-10-15", "status": "active"}]}
+
+    with pytest.raises(ValueError, match="bad history event"):
+        ls.apply_changes(catalog, [change], NOW)
+
+    assert catalog == {"generated_at": "x", "games": [{"id": "a", "added": "2026-10-15", "status": "active"}]}
+
+
+def test_a_note_of_exactly_the_longest_length_is_applied() -> None:
+    catalog = {"generated_at": "x", "games": [{"id": "a", "added": "2026-10-15", "status": "active"}]}
+
+    assert ls.apply_changes(catalog, [ls.Change("a", "broken", "broken", "x" * ls.MAX_NOTE)], NOW) == ["a"]
 
 
 def test_a_change_for_an_unknown_game_or_status_is_refused() -> None:

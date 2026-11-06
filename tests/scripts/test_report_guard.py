@@ -96,6 +96,16 @@ def test_the_link_keeps_the_stable_json_format(repo: Path) -> None:
     assert text == json.dumps(document, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
 
 
+def test_the_link_leaves_non_ascii_text_unescaped(repo: Path) -> None:
+    shelves = popularity_text().replace("wordle", "wörtle")
+    (repo / "data" / "v1" / "popularity.json").write_text(shelves, encoding="utf-8")
+    (repo.parent / "reference" / "popularity.json").write_text(shelves, encoding="utf-8")
+    (repo / REPORT).write_text("# Week 2026-W43\n", encoding="utf-8")
+
+    assert run(repo) == 0
+    assert "wörtle" in (repo / "data" / "v1" / "popularity.json").read_text(encoding="utf-8")
+
+
 def test_a_tampered_catalog_fails_the_job(repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
     """What a prompt tampered to "edit games.json" leaves behind is caught, and nothing gets linked."""
     (repo / REPORT).write_text("# Week 2026-W43\n", encoding="utf-8")
