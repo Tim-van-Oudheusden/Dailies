@@ -1,8 +1,9 @@
-"""Hand mutants of the shell scripts, which neither pytest-cov nor a mutation tool measures (#331).
+"""Hand mutants of the shell and Python scripts, which no mutation tool reaches (#331, #409).
 
-Each row changes one string in a script and names the test that must fail on the result. A mutant that survives marks a
-branch that runs but that no assertion pins (#198, #329). When a hand mutation pass finds one, add the test that kills
-it and a row here; see docs/testing.md "Shell mutants".
+pytest-cov does not see a shell script, and of a Python script it only shows which lines ran. Each row changes one
+string in a script and names the test that must fail on the result. A mutant that survives marks a branch that runs but
+that no assertion pins (#198, #329). When a hand mutation pass finds one, add the test that kills it and a row here; see
+docs/testing.md "Shell mutants". The table pins those known kills: it does not find new ones.
 """
 
 import os
@@ -65,6 +66,28 @@ PR_REVIEW_CHECK = "scripts/pr-review-check.sh"
 PR_REVIEW_CHECK_SUITE = "tests/scripts/test_pr_review_check.py::test_pr_review_check_shell_suite_passes"
 SANDBOX = "scripts/sandbox.sh"
 SANDBOX_TESTS = "tests/scripts/test_sandbox.py"
+URLCHECK = "scripts/lib/urlcheck.py"
+VALIDATE_SUBMISSION = "scripts/validate_submission.py"
+# test_validate_submission.py holds the cases for validate_submission.py and lib/urlcheck.py.
+VALIDATE_SUBMISSION_TESTS = "tests/scripts/test_validate_submission.py"
+APPLY_LINK_STATUS = "scripts/apply_link_status.py"
+APPLY_LINK_STATUS_TESTS = "tests/scripts/test_apply_link_status.py"
+COLLECT = "scripts/popularity/collect.py"
+COLLECT_TESTS = "tests/scripts/test_collect.py"
+COMPLIANCE_ISSUE = "scripts/compliance_issue.py"
+COMPLIANCE_ISSUE_TESTS = "tests/scripts/test_compliance_issue.py"
+COMPUTE = "scripts/popularity/compute.py"
+COMPUTE_TESTS = "tests/scripts/test_compute.py"
+FLATPARK_PAYLOAD = "scripts/flatpark_payload.py"
+FLATPARK_PAYLOAD_TESTS = "tests/scripts/test_flatpark_payload.py"
+LINK_STATUS = "scripts/lib/linkstatus.py"
+LINK_STATUS_TESTS = "tests/scripts/test_link_status.py"
+PR_BODY = "scripts/popularity/pr_body.py"
+PR_BODY_TESTS = "tests/scripts/test_pr_body.py"
+RELEASE_CHECK = "scripts/release_check.py"
+RELEASE_CHECK_TESTS = "tests/scripts/test_release_check.py"
+REPORT_GUARD = "scripts/popularity/report_guard.py"
+REPORT_GUARD_TESTS = "tests/scripts/test_report_guard.py"
 
 MUTANTS = [
     Mutant(
@@ -913,6 +936,518 @@ MUTANTS = [
         "[ -t 0 ] && [ -t 1 ]",
         "true",
         f"{SANDBOX_TESTS}::test_without_a_terminal_the_container_asks_for_none",
+    ),
+    # Python scripts: the behaviour #406 and #408 pinned after a hand sweep found it unasserted (#409).
+    Mutant(
+        "a public session ignores a proxy in the environment",
+        URLCHECK,
+        "session.trust_env = False",
+        "session.trust_env = True",
+        f"{VALIDATE_SUBMISSION_TESTS}::test_a_public_session_ignores_a_proxy_in_the_environment",
+    ),
+    Mutant(
+        "a page is requested as a stream, so its body is not read in full",
+        URLCHECK,
+        "stream=True,",
+        "stream=False,",
+        f"{VALIDATE_SUBMISSION_TESTS}::test_requests_send_a_descriptive_user_agent_and_a_timeout",
+    ),
+    Mutant(
+        "a 308 is followed and checked like the other redirects",
+        URLCHECK,
+        "frozenset({301, 302, 303, 307, 308})",
+        "frozenset({301, 302, 303, 307})",
+        f"{VALIDATE_SUBMISSION_TESTS}::test_every_redirect_status_is_followed_and_checked",
+    ),
+    Mutant(
+        "a Location header on a normal answer is not a redirect",
+        URLCHECK,
+        "if response.status_code not in REDIRECT_STATUSES or not location:",
+        "if not location:",
+        f"{VALIDATE_SUBMISSION_TESTS}::test_a_location_header_on_a_normal_answer_is_not_a_redirect",
+    ),
+    Mutant(
+        "two sites on a shared hosting domain are different sites",
+        URLCHECK,
+        "include_psl_private_domains=True",
+        "include_psl_private_domains=False",
+        f"{VALIDATE_SUBMISSION_TESTS}::test_two_sites_on_a_shared_hosting_domain_are_different_sites",
+    ),
+    Mutant(
+        "a page is read up to MAX_BODY and no further",
+        URLCHECK,
+        "if len(body) >= MAX_BODY:",
+        "if len(body) > MAX_BODY:",
+        f"{VALIDATE_SUBMISSION_TESTS}::test_a_page_that_never_ends_is_read_up_to_512_kib_and_no_further",
+    ),
+    Mutant(
+        "the first title of a page wins over a later one",
+        URLCHECK,
+        'if tag == "title" and self.title is None:',
+        'if tag == "title":',
+        f"{VALIDATE_SUBMISSION_TESTS}::test_the_first_title_wins_over_a_later_one",
+    ),
+    Mutant(
+        "a stray closing title tag does not stop the real title",
+        URLCHECK,
+        'if tag == "title" and self._parts is not None:',
+        'if tag == "title":',
+        f"{VALIDATE_SUBMISSION_TESTS}::test_a_stray_closing_title_tag_does_not_stop_the_real_title",
+    ),
+    Mutant(
+        "a page title is decoded with the charset the response names",
+        URLCHECK,
+        'data.decode(response.encoding or "utf-8", errors="replace")',
+        'data.decode("utf-8", errors="replace")',
+        f"{VALIDATE_SUBMISSION_TESTS}::test_a_page_title_is_decoded_with_the_charset_the_response_names",
+    ),
+    Mutant(
+        "bytes that do not fit the named charset do not stop the check",
+        URLCHECK,
+        'response.encoding or "utf-8", errors="replace"',
+        'response.encoding or "utf-8", errors="strict"',
+        f"{VALIDATE_SUBMISSION_TESTS}::test_bytes_a_page_got_wrong_in_its_title_do_not_stop_the_check",
+    ),
+    Mutant(
+        "bytes that do not fit the fallback charset do not stop the check",
+        URLCHECK,
+        'text = data.decode("utf-8", errors="replace")',
+        'text = data.decode("utf-8", errors="strict")',
+        f"{VALIDATE_SUBMISSION_TESTS}::test_bytes_a_page_got_wrong_in_its_title_do_not_stop_the_check",
+    ),
+    Mutant(
+        "a page with no charset is read as UTF-8",
+        URLCHECK,
+        'response.encoding or "utf-8"',
+        'response.encoding or "latin-1"',
+        f"{VALIDATE_SUBMISSION_TESTS}::test_a_page_with_no_charset_is_read_as_utf_8",
+    ),
+    Mutant(
+        "a page that trickles past the deadline is given up on",
+        URLCHECK,
+        "if monotonic() > deadline:",
+        "if False:",
+        f"{VALIDATE_SUBMISSION_TESTS}::test_a_page_that_trickles_past_the_deadline_counts_as_a_timeout",
+    ),
+    Mutant(
+        "a page that trickles past the deadline counts as a timeout",
+        URLCHECK,
+        "raise CheckError(msg, timed_out=True)",
+        "raise CheckError(msg)",
+        f"{VALIDATE_SUBMISSION_TESTS}::test_a_page_that_trickles_past_the_deadline_counts_as_a_timeout",
+    ),
+    Mutant(
+        "a 429 from Cloudflare is a bot wall",
+        URLCHECK,
+        "HTTPStatus.TOO_MANY_REQUESTS, ",
+        "",
+        f"{VALIDATE_SUBMISSION_TESTS}::test_a_challenge_status_from_cloudflare_is_a_bot_wall",
+    ),
+    Mutant(
+        "a dead page behind Cloudflare is not a bot wall",
+        URLCHECK,
+        "if response.status_code not in BOT_WALL_STATUSES:",
+        "if False:",
+        f"{VALIDATE_SUBMISSION_TESTS}::test_a_dead_page_behind_cloudflare_is_not_a_bot_wall",
+    ),
+    Mutant(
+        "empty text gets no code span",
+        URLCHECK,
+        '    if not text:\n        return ""\n',
+        "",
+        f"{VALIDATE_SUBMISSION_TESTS}::test_code_span_pads_only_a_span_that_touches_a_backtick",
+    ),
+    Mutant(
+        "a code span that starts with a backtick is padded",
+        URLCHECK,
+        'text.startswith("`") or text.endswith("`")',
+        'text.endswith("`")',
+        f"{VALIDATE_SUBMISSION_TESTS}::test_code_span_pads_only_a_span_that_touches_a_backtick",
+    ),
+    Mutant(
+        "a code span that ends with a backtick is padded",
+        URLCHECK,
+        'text.startswith("`") or text.endswith("`")',
+        'text.startswith("`")',
+        f"{VALIDATE_SUBMISSION_TESTS}::test_code_span_pads_only_a_span_that_touches_a_backtick",
+    ),
+    Mutant(
+        "a code span that touches no backtick is not padded",
+        URLCHECK,
+        'padding = " " if text.startswith("`") or text.endswith("`") else ""',
+        'padding = " "',
+        f"{VALIDATE_SUBMISSION_TESTS}::test_code_span_pads_only_a_span_that_touches_a_backtick",
+    ),
+    Mutant(
+        "a description of exactly the minimum length is ok",
+        VALIDATE_SUBMISSION,
+        "if len(description) < MIN_DESCRIPTION:",
+        "if len(description) <= MIN_DESCRIPTION:",
+        f"{VALIDATE_SUBMISSION_TESTS}::test_a_description_of_exactly_the_minimum_length_is_ok",
+    ),
+    Mutant(
+        "a field the issue parser left as a list counts as empty",
+        VALIDATE_SUBMISSION,
+        'return value.strip() if isinstance(value, str) else ""',
+        "return str(value).strip()",
+        f"{VALIDATE_SUBMISSION_TESTS}::test_a_field_the_issue_parser_left_as_a_list_counts_as_empty",
+    ),
+    Mutant(
+        "every form category maps to a catalog category",
+        VALIDATE_SUBMISSION,
+        '"Food": "food",',
+        '"Food": "meals",',
+        f"{VALIDATE_SUBMISSION_TESTS}::test_every_form_category_maps_to_a_catalog_category",
+    ),
+    Mutant(
+        "the category labels are the ones the form offers",
+        VALIDATE_SUBMISSION,
+        '"Sports": "sports",',
+        '"Sport": "sports",',
+        f"{VALIDATE_SUBMISSION_TESTS}::test_every_form_category_maps_to_a_catalog_category",
+    ),
+    Mutant(
+        "the report of a valid submission says it passed",
+        VALIDATE_SUBMISSION,
+        '"✅ passed" if result.ok',
+        '"❌ needs changes" if result.ok',
+        f"{VALIDATE_SUBMISSION_TESTS}::test_cli_writes_result_and_report_for_a_valid_submission",
+    ),
+    Mutant(
+        "the report of an invalid submission says it needs changes",
+        VALIDATE_SUBMISSION,
+        'else "❌ needs changes"',
+        'else "✅ passed"',
+        f"{VALIDATE_SUBMISSION_TESTS}::test_cli_exits_1_and_explains_an_invalid_submission",
+    ),
+    Mutant(
+        "the report's table has its separator row",
+        VALIDATE_SUBMISSION,
+        '        "| --- | --- | --- |",\n',
+        "",
+        f"{VALIDATE_SUBMISSION_TESTS}::test_cli_writes_result_and_report_for_a_valid_submission",
+    ),
+    Mutant(
+        "a report with no warnings has no Warnings heading",
+        VALIDATE_SUBMISSION,
+        "if result.warnings:",
+        "if True:",
+        f"{VALIDATE_SUBMISSION_TESTS}::test_cli_writes_result_and_report_for_a_valid_submission",
+    ),
+    Mutant(
+        "an unreachable site's report lists the same-site check as skipped",
+        VALIDATE_SUBMISSION,
+        '[str(site.unreachable)])\n        result.record("Same site", [], skipped=True)\n',
+        "[str(site.unreachable)])\n",
+        f"{VALIDATE_SUBMISSION_TESTS}::test_cli_marks_the_checks_an_unreachable_site_could_not_run_as_skipped",
+    ),
+    Mutant(
+        "an unreachable site's report lists the page-title check as skipped",
+        VALIDATE_SUBMISSION,
+        'result.record("Page title", [], skipped=True)\n        return\n    result.record("Reachable", [])',
+        'return\n    result.record("Reachable", [])',
+        f"{VALIDATE_SUBMISSION_TESTS}::test_cli_marks_the_checks_an_unreachable_site_could_not_run_as_skipped",
+    ),
+    Mutant(
+        "a skipped check says an earlier check failed",
+        VALIDATE_SUBMISSION,
+        '"skipped: an earlier check failed"',
+        '"skipped"',
+        f"{VALIDATE_SUBMISSION_TESTS}::test_cli_marks_the_checks_an_unreachable_site_could_not_run_as_skipped",
+    ),
+    Mutant(
+        "non-ASCII text stays readable in the result file",
+        VALIDATE_SUBMISSION,
+        "json.dumps(output, indent=2, ensure_ascii=False)",
+        "json.dumps(output, indent=2, ensure_ascii=True)",
+        f"{VALIDATE_SUBMISSION_TESTS}::test_cli_keeps_non_ascii_text_readable_in_the_result_and_the_report",
+    ),
+    Mutant(
+        "non-ASCII text stays readable in the report",
+        VALIDATE_SUBMISSION,
+        "json.dumps(result.entry, indent=2, ensure_ascii=False)",
+        "json.dumps(result.entry, indent=2, ensure_ascii=True)",
+        f"{VALIDATE_SUBMISSION_TESTS}::test_cli_keeps_non_ascii_text_readable_in_the_result_and_the_report",
+    ),
+    Mutant(
+        "the result file has a two-space indent",
+        VALIDATE_SUBMISSION,
+        "json.dumps(output, indent=2,",
+        "json.dumps(output, indent=4,",
+        f"{VALIDATE_SUBMISSION_TESTS}::test_cli_writes_the_result_with_a_two_space_indent",
+    ),
+    Mutant(
+        "nothing to change leaves the catalog's format alone",
+        APPLY_LINK_STATUS,
+        "if applied:",
+        "if True:",
+        f"{APPLY_LINK_STATUS_TESTS}::test_nothing_to_change_does_not_reformat_the_file",
+    ),
+    Mutant(
+        "a plain 500 is retried like the other server errors",
+        COLLECT,
+        "response.status_code >= HTTPStatus.INTERNAL_SERVER_ERROR",
+        "response.status_code > HTTPStatus.INTERNAL_SERVER_ERROR",
+        f"{COLLECT_TESTS}::test_retries_once_on_a_server_error",
+    ),
+    Mutant(
+        "a rank entry that is not an object is a malformed answer",
+        COLLECT,
+        '(item.get("date"), item.get("rank")) if isinstance(item, dict) else (None, None)',
+        '(item.get("date"), item.get("rank"))',
+        f"{COLLECT_TESTS}::test_malformed_body_marks_the_domain_failed",
+    ),
+    Mutant(
+        "the top-ranked domain is a valid Tranco answer",
+        COLLECT,
+        "type(rank) is not int or rank < 1",
+        "type(rank) is not int or rank <= 1",
+        f"{COLLECT_TESTS}::test_the_top_ranked_domain_is_a_valid_answer",
+    ),
+    Mutant(
+        "a Wikipedia item that is not an object is a malformed answer",
+        COLLECT,
+        "value = body.get(key) if isinstance(body, dict) else None",
+        "value = body.get(key)",
+        f"{COLLECT_TESTS}::test_wikipedia_malformed_body_is_a_failed_entry",
+    ),
+    Mutant(
+        "a Radar answer that is not an object is a malformed answer",
+        COLLECT,
+        'if isinstance(body, dict) and body.get("success") is True else None',
+        'if body.get("success") is True else None',
+        f"{COLLECT_TESTS}::test_radar_malformed_body_is_a_failed_entry",
+    ),
+    Mutant(
+        "a Radar answer without success is malformed even with a result",
+        COLLECT,
+        'if isinstance(body, dict) and body.get("success") is True else None',
+        "if isinstance(body, dict) else None",
+        f"{COLLECT_TESTS}::test_radar_malformed_body_is_a_failed_entry",
+    ),
+    Mutant(
+        "a Radar bucket that is not a digit string is a malformed answer",
+        COLLECT,
+        "not (isinstance(bucket, str) and bucket.isdigit())",
+        "not str(bucket).isdigit()",
+        f"{COLLECT_TESTS}::test_radar_malformed_body_is_a_failed_entry",
+    ),
+    Mutant(
+        "a boolean Radar rank is a malformed answer",
+        COLLECT,
+        "(isinstance(rank, bool) or not isinstance(rank, int | float) or rank < 1)",
+        "(not isinstance(rank, int | float) or rank < 1)",
+        f"{COLLECT_TESTS}::test_radar_malformed_body_is_a_failed_entry",
+    ),
+    Mutant(
+        "a Radar rank of zero is a malformed answer",
+        COLLECT,
+        "int | float) or rank < 1)",
+        "int | float) or rank < 0)",
+        f"{COLLECT_TESTS}::test_radar_malformed_body_is_a_failed_entry",
+    ),
+    Mutant(
+        "a Radar rank of one is a valid answer",
+        COLLECT,
+        "int | float) or rank < 1)",
+        "int | float) or rank <= 1)",
+        f"{COLLECT_TESTS}::test_radar_rank_one_is_a_valid_answer",
+    ),
+    Mutant(
+        "the open issue is found by its marker after its title was edited",
+        COMPLIANCE_ISSUE,
+        'MARKER in (issue.get("body") or "") or bool(',
+        "bool(",
+        f"{COMPLIANCE_ISSUE_TESTS}::test_the_open_issue_is_found_by_its_marker_after_its_title_was_edited",
+    ),
+    Mutant(
+        "a short report goes in the issue whole",
+        COMPLIANCE_ISSUE,
+        "if len(report) > room:",
+        "if True:",
+        f"{COMPLIANCE_ISSUE_TESTS}::test_a_short_report_goes_in_whole",
+    ),
+    Mutant(
+        "a plain 200 from GitHub is accepted",
+        COMPLIANCE_ISSUE,
+        "if not http.HTTPStatus.OK <= response.status",
+        "if not http.HTTPStatus.OK < response.status",
+        f"{COMPLIANCE_ISSUE_TESTS}::test_github_api_accepts_a_plain_200",
+    ),
+    Mutant(
+        "a weight of exactly zero is valid",
+        COMPUTE,
+        "not 0 <= weight <= 1",
+        "not 0 < weight <= 1",
+        f"{COMPUTE_TESTS}::test_a_weight_of_exactly_zero_or_one_is_valid",
+    ),
+    Mutant(
+        "a weight of exactly one is valid",
+        COMPUTE,
+        "not 0 <= weight <= 1",
+        "not 0 <= weight < 1",
+        f"{COMPUTE_TESTS}::test_a_weight_of_exactly_zero_or_one_is_valid",
+    ),
+    Mutant(
+        "the sixth most popular game can trend",
+        COMPUTE,
+        "TRENDING_EXCLUDES_TOP = 5",
+        "TRENDING_EXCLUDES_TOP = 6",
+        f"{COMPUTE_TESTS}::test_the_sixth_most_popular_game_can_trend",
+    ),
+    Mutant(
+        "exactly the minimum of risers gets no backfill",
+        COMPUTE,
+        "TRENDING_MINIMUM = 3",
+        "TRENDING_MINIMUM = 4",
+        f"{COMPUTE_TESTS}::test_exactly_the_minimum_of_risers_gets_no_backfill",
+    ),
+    Mutant(
+        "a failed domain with no history is not reported as carried forward",
+        COMPUTE,
+        'reasons[game_id] = "carried_forward" if prior else "score"',
+        'reasons[game_id] = "carried_forward"',
+        f"{COMPUTE_TESTS}::test_a_failed_domain_with_no_history_is_not_reported_as_carried_forward",
+    ),
+    Mutant(
+        "the summary lists at most five risers",
+        COMPUTE,
+        "[mover(g) for g in up[:TOP_MOVERS]]",
+        "[mover(g) for g in up]",
+        f"{COMPUTE_TESTS}::test_summary_lists_at_most_five_movers_each_way",
+    ),
+    Mutant(
+        "the written file is one Pages can serve",
+        COMPUTE,
+        "    temporary.chmod(0o644)\n",
+        "",
+        f"{COMPUTE_TESTS}::test_main_writes_a_file_pages_can_serve",
+    ),
+    Mutant(
+        "the weights are read from beside the catalog by default",
+        COMPUTE,
+        'args.catalog.parent / "domain_weights.json"',
+        'args.raw / "domain_weights.json"',
+        f"{COMPUTE_TESTS}::test_main_reads_the_weights_beside_the_catalog_by_default",
+    ),
+    Mutant(
+        "each path is in the FlatPark archive once",
+        FLATPARK_PAYLOAD,
+        "recursive=False",
+        "recursive=True",
+        f"{FLATPARK_PAYLOAD_TESTS}::test_each_path_is_in_the_archive_once",
+    ),
+    Mutant(
+        "a hijacked game does not stop the games after it",
+        LINK_STATUS,
+        '_note(f"link check {week}: {seen.reason}")))\n            continue',
+        '_note(f"link check {week}: {seen.reason}")))\n            break',
+        f"{LINK_STATUS_TESTS}::test_a_hijacked_game_does_not_stop_the_games_after_it",
+    ),
+    Mutant(
+        "a first failure does not stop the games after it",
+        LINK_STATUS,
+        "if since == week:\n            continue",
+        "if since == week:\n            break",
+        f"{LINK_STATUS_TESTS}::test_a_first_failure_does_not_stop_the_games_after_it",
+    ),
+    Mutant(
+        "a note of exactly the longest length is kept whole",
+        LINK_STATUS,
+        "return text if len(text) <= MAX_NOTE else",
+        "return text if len(text) < MAX_NOTE else",
+        f"{LINK_STATUS_TESTS}::test_a_note_of_exactly_the_longest_length_is_kept_whole",
+    ),
+    Mutant(
+        "a malformed week is refused",
+        LINK_STATUS,
+        r"-W(\d{2})$",
+        r"-W?(\d{2})$",
+        f"{LINK_STATUS_TESTS}::test_a_malformed_week_is_refused",
+    ),
+    Mutant(
+        "a change already made does not stop the ones after it",
+        LINK_STATUS,
+        'if entry.get("status") == change.status:\n            continue',
+        'if entry.get("status") == change.status:\n            break',
+        f"{LINK_STATUS_TESTS}::test_a_change_already_made_does_not_stop_the_ones_after_it",
+    ),
+    Mutant(
+        "the statuses are the ones the catalog schema allows",
+        LINK_STATUS,
+        'frozenset({"active", "broken", "retired"})',
+        'frozenset({"active", "broken"})',
+        f"{LINK_STATUS_TESTS}::test_statuses_are_the_ones_the_catalog_schema_allows",
+    ),
+    Mutant(
+        "a change with a bad event changes nothing",
+        LINK_STATUS,
+        "if not EVENT.match(change.event) or len(change.note) > MAX_NOTE:",
+        "if len(change.note) > MAX_NOTE:",
+        f"{LINK_STATUS_TESTS}::test_a_change_with_a_bad_event_or_an_oversized_note_changes_nothing",
+    ),
+    Mutant(
+        "a change with an oversized note changes nothing",
+        LINK_STATUS,
+        "if not EVENT.match(change.event) or len(change.note) > MAX_NOTE:",
+        "if not EVENT.match(change.event):",
+        f"{LINK_STATUS_TESTS}::test_a_change_with_a_bad_event_or_an_oversized_note_changes_nothing",
+    ),
+    Mutant(
+        "a note of exactly the longest length is applied",
+        LINK_STATUS,
+        "or len(change.note) > MAX_NOTE:",
+        "or len(change.note) >= MAX_NOTE:",
+        f"{LINK_STATUS_TESTS}::test_a_note_of_exactly_the_longest_length_is_applied",
+    ),
+    Mutant(
+        "a pipe in a game name is escaped",
+        PR_BODY,
+        r'.replace("|", "\\|")',
+        '.replace("|", "/")',
+        f"{PR_BODY_TESTS}::test_pipe_in_a_game_name_does_not_break_the_table",
+    ),
+    Mutant(
+        "a newline in a game name stays on its table row",
+        PR_BODY,
+        r'.replace("\n", " ")',
+        "",
+        f"{PR_BODY_TESTS}::test_newline_in_a_game_name_stays_on_its_table_row",
+    ),
+    Mutant(
+        "a body without a run URL ends the sentence with no link",
+        PR_BODY,
+        'f"{raw}: {run_url}" if run_url else f"{raw}."',
+        'f"{raw}: {run_url}"',
+        f"{PR_BODY_TESTS}::test_a_body_without_a_run_url_ends_the_sentence_with_no_link",
+    ),
+    Mutant(
+        "meson.build without a project call is an error",
+        RELEASE_CHECK,
+        'PROJECT_VERSION.search(project["args"]) if project else None',
+        'PROJECT_VERSION.search(project["args"])',
+        f"{RELEASE_CHECK_TESTS}::test_meson_without_a_project_call_is_an_error",
+    ),
+    Mutant(
+        "older release notes stay out of the newest release",
+        RELEASE_CHECK,
+        'self._state = "done"',
+        'self._state = "release"',
+        f"{RELEASE_CHECK_TESTS}::test_older_release_notes_stay_out_of_the_newest_release",
+    ),
+    Mutant(
+        "verify tells the workflow a tag is a prerelease",
+        RELEASE_CHECK,
+        "{'true' if result.prerelease else 'false'}",
+        "false",
+        f"{RELEASE_CHECK_TESTS}::test_cli_verify_tells_the_workflow_a_tag_is_a_prerelease",
+    ),
+    Mutant(
+        "the report link leaves non-ASCII text unescaped",
+        REPORT_GUARD,
+        "sort_keys=True, ensure_ascii=False",
+        "sort_keys=True, ensure_ascii=True",
+        f"{REPORT_GUARD_TESTS}::test_the_link_leaves_non_ascii_text_unescaped",
     ),
 ]
 

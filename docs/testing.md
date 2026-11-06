@@ -158,9 +158,11 @@ and requires exit 1 (tests failed). A mutant that passes is a missing assertion,
 instead of mutating nothing. A control runs every killing test on an unmutated copy and requires it to pass. Each row
 costs about half a second.
 
-When a hand mutation pass finds a surviving mutant of a shell script, add the test that kills it and a row for it in
-the same pull request. Python scripts are not in the table: the coverage floors above measure which of their lines ran,
-and nothing mutates them. Only `dailies/core` has a Python mutation report, [below](#python-mutants).
+When a hand mutation pass finds a surviving mutant of a script, shell or Python, add the test that kills it and a row
+for it in the same pull request. Python scripts have rows too: the coverage floors above measure which of their lines
+ran, and mutmut cannot reach them without rewriting the test loaders that import each script by path (#409). The table
+only pins kills someone found by hand. It does not look for new ones, so it is no mutation report: only `dailies/core`
+has a Python mutation report, [below](#python-mutants).
 
 ## Python mutants
 
