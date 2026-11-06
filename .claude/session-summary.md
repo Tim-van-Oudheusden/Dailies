@@ -9,11 +9,13 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-05. #381 on `test/381-mutmut-pin-check`.
+2026-11-06. #392 on `ci/fix-merge-queue-dispatch`.
 
-- **Outcome:** `tests/tooling/test_tool_pins.py` now reads the `mutmut==` pin in `mutants.yml` and in the install
-  snippets of `docs/testing.md` and `docs/metrics/README.md`, and fails while they differ. Its docstring and the
-  CONTRIBUTING pin bullet name mutmut and no longer count workflows.
+- **Outcome:** `land` in `scripts/merge-queue.sh` tries each dispatch up to three times. A workflow that still will not
+  start gets an `::error` with the command to start it by hand; the others and the next run still start, and the run
+  ends red.
 - **Open follow-ups:** none.
 - **Gotchas:**
-  - The system `python3` here is 3.11; the code base uses PEP 695 syntax, so run the suite on 3.12+.
+  - `test_shell_mutants.py` needs each row's old text to occur exactly once, so the second `for attempt in 1 2 3; do`
+    loop made the rows quote the line after it too.
+  - `Queue.run` now always stubs `sleep`; a retry test must not wait 10 s per attempt.

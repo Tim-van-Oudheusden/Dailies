@@ -44,10 +44,22 @@ UNHELD="all(.labels[]; $(printf '.name != "%s" and ' "${KEEP_OUT_LABELS[@]}")tru
 # checks against the workflows' own triggers.
 MAIN_PUSH_WORKFLOWS=(ci.yml coverage-gate.yml pages.yml quality-report.yml windows.yml)
 
+# GitHub's workflow dispatch answers HTTP 500 now and then, so one failure is
+# not final. The last failure names the workflow and how to start it by hand.
+start_workflow() {
+  local attempt
+  for attempt in 1 2 3; do
+    gh workflow run "$1" --ref main && return 0
+    [ "$attempt" -lt 3 ] && sleep 10
+  done
+  echo "::error title=Merge queue::could not start $1; start it by hand: gh workflow run $1 --ref main"
+  return 1
+}
+
 # Picks up runs that land, reject or skip a pull request, so each merge is
 # verified against the main it lands on.
 queue_next_run() {
-  gh workflow run merge-queue.yml --ref main
+  start_workflow merge-queue.yml
 }
 
 # GitHub computes the merge state lazily and answers UNKNOWN until it has.
@@ -122,7 +134,7 @@ next() {
 }
 
 land() {
-  local number="$1" head="$2" verified_main="$3" main ready workflow
+  local number="$1" head="$2" verified_main="$3" main ready workflow failed=0
   main="$(git ls-remote origin refs/heads/main | cut -f1)"
   if [ "$main" != "$verified_main" ]; then
     echo "::notice title=Merge queue::main moved since #${number} was verified; verifying again"
@@ -140,10 +152,14 @@ land() {
   # --match-head-commit refuses the merge if the branch moved past what was verified.
   gh pr merge "$number" --merge --match-head-commit "$head"
   close_linked_issues "$number"
+  # The merge has landed, so a workflow that will not start must not stop the
+  # others or the next run. The run still fails: a gate that never ran on main
+  # leaves no other trace, unlike an issue left open.
   for workflow in "${MAIN_PUSH_WORKFLOWS[@]}"; do
-    gh workflow run "$workflow" --ref main
+    start_workflow "$workflow" || failed=1
   done
-  queue_next_run
+  queue_next_run || failed=1
+  return "$failed"
 }
 
 reject() {

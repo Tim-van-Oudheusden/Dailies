@@ -154,6 +154,10 @@ required check that finishes does. To drain the queue by hand: `gh workflow run 
 `scripts/merge-queue.sh`, and `tests/scripts/test_merge_queue.py` and `tests/tooling/test_merge_queue_workflow.py`
 cover it.
 
+If the queue cannot start one of `main`'s push workflows or the next run after a merge, it tries twice more, logs an
+`::error` with the command to start it by hand, starts the others, and fails, so the run shows that `main` missed a
+gate.
+
 `.github/CODEOWNERS` names the maintainer as owner of every `high` path, so those pull requests request his review.
 It does not gate the merge: the ruleset leaves `require_code_owner_review` off, because an author cannot approve his
 own pull request.
