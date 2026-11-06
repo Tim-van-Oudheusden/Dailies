@@ -126,8 +126,8 @@ MUTANTS = [
     Mutant(
         "the queue stops asking for the merge state after three answers",
         MERGE_QUEUE,
-        "for attempt in 1 2 3; do",
-        "for attempt in 1 2 3 4; do",
+        "for attempt in 1 2 3; do\n    state=",
+        "for attempt in 1 2 3 4; do\n    state=",
         f"{MERGE_QUEUE_TESTS}::test_next_gives_up_on_a_merge_state_still_unknown_after_three_asks",
     ),
     Mutant(
@@ -143,6 +143,27 @@ MUTANTS = [
         '|| echo "::warning title=Merge queue::could not close',
         '|| true "::warning title=Merge queue::could not close',
         f"{MERGE_QUEUE_TESTS}::test_land_still_starts_main_push_workflows_and_the_next_run_when_closing_an_issue_fails",
+    ),
+    Mutant(
+        "a dispatch that fails once is tried again",
+        MERGE_QUEUE,
+        "for attempt in 1 2 3; do\n    gh workflow run",
+        "for attempt in 1; do\n    gh workflow run",
+        f"{MERGE_QUEUE_TESTS}::test_land_tries_again_when_a_workflow_does_not_start_the_first_time",
+    ),
+    Mutant(
+        "a workflow that will not start does not stop the others or the next run",
+        MERGE_QUEUE,
+        'start_workflow "$workflow" || failed=1',
+        'start_workflow "$workflow"',
+        f"{MERGE_QUEUE_TESTS}::test_land_starts_the_rest_names_the_workflow_that_would_not_start_and_fails",
+    ),
+    Mutant(
+        "a run that left a main push workflow unstarted fails",
+        MERGE_QUEUE,
+        'return "$failed"',
+        "return 0",
+        f"{MERGE_QUEUE_TESTS}::test_land_starts_the_rest_names_the_workflow_that_would_not_start_and_fails",
     ),
     Mutant(
         "--since with no value is a usage error",
