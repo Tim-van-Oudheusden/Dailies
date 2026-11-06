@@ -94,7 +94,9 @@ them in order:
 2. **Required checks:** `gh pr view <N> --json mergeStateStatus` must be `CLEAN`. `BLOCKED` means one of the required
    checks (`PR review rubric`, `Build, lint, test`, `Unit-test coverage floors`, `Static checks`, `Flatpak (x86_64)`;
    `.github/rulesets/main.json`) failed or has not run, or a review thread is unresolved. `BEHIND` and `DIRTY` mean the
-   branch needs a rebase or a conflict fixed.
+   branch needs a rebase or a conflict fixed. `UNSTABLE` means every required check passed but another check, such as
+   `Windows (experimental)` or CodeQL, is red or pending, and the queue logs `#<N> is UNSTABLE` as a notice in its run.
+   Re-run that check if it failed on infrastructure, otherwise fix what it found.
 3. **High risk:** the queue leaves high-risk PRs for the maintainer and logs `#<N> is high risk` as a notice in its
    run. The tier comes from `.github/risk-assessment.yml` ([`risk-tiers.md`](risk-tiers.md)), and `.github/CODEOWNERS`
    has requested the maintainer's review on them. Dependabot's PRs change workflow or script-lock files, so they are

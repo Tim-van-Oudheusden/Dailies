@@ -17,9 +17,10 @@
 #       Hold a pull request that failed verification, link the run, move on.
 #
 # Ready means: from this repository (not a fork), not a draft, none of the
-# KEEP_OUT_LABELS, merge state CLEAN (no failing check, required or not, so
-# UNSTABLE stays out; review threads resolved), and not high risk by
-# scripts/tier-classify.sh: high-risk changes wait for the maintainer.
+# KEEP_OUT_LABELS, merge state CLEAN (every required check passing and no other
+# check red or pending, so UNSTABLE stays out; review threads resolved), and not
+# high risk by scripts/tier-classify.sh: high-risk changes wait for the
+# maintainer.
 # Needs gh authenticated (GH_TOKEN) and pointed at the repository (GH_REPO, or
 # run from a checkout).
 set -euo pipefail
@@ -101,7 +102,7 @@ close_linked_issues() {
 }
 
 next() {
-  local candidates number head tier
+  local candidates number head tier state
   # gh lists open pull requests by default; --jq runs gh's built-in jq, so the
   # runner needs no jq. Listed into a variable so a failed listing fails the
   # job (set -e) instead of passing for an empty queue. gh lists newest first,
@@ -115,7 +116,12 @@ next() {
   while read -r number head; do
     # An empty listing still reads one empty line.
     [ -n "$number" ] || continue
-    [ "$(merge_state "$number")" = CLEAN ] || continue
+    state="$(merge_state "$number")"
+    # Required checks pass here, so nothing else on the PR says why it waits.
+    if [ "$state" = UNSTABLE ]; then
+      echo "::notice title=Merge queue::#${number} is UNSTABLE: a check that is not required is red or pending; it stays out of the queue until that check passes"
+    fi
+    [ "$state" = CLEAN ] || continue
     git fetch --no-tags --quiet origin "refs/pull/${number}/head"
     # A push since the listing: the run its checks start sees it.
     [ "$(git rev-parse FETCH_HEAD)" = "$head" ] || continue

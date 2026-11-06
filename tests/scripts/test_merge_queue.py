@@ -303,6 +303,17 @@ def test_next_rates_a_file_moved_out_of_a_high_risk_path_by_its_old_path(tmp_pat
     assert result.outputs == {}
 
 
+def test_next_reports_a_pull_request_held_back_by_a_check_that_is_not_required(tmp_path: Path) -> None:
+    # UNSTABLE means every required check passed and another did not, so nothing else says why the pull request waits.
+    # The queue still requires CLEAN: picking it would merge past a red optional check.
+    result = queue_of(tmp_path, [{"number": 4, "mergeStateStatus": "UNSTABLE"}]).run("next")
+
+    assert result.status == 0, result.stderr
+    assert "::notice title=Merge queue::#4 is UNSTABLE" in result.stdout
+    assert result.outputs == {}
+    assert result.calls == []
+
+
 def test_next_rates_only_the_pull_requests_own_changes_when_main_moved_since_it_branched(tmp_path: Path) -> None:
     # A workflow change merged to main after the pull request branched is not part of the pull request:
     # tier-classifier.yml rates BASE...HEAD, from the merge base, and so does the queue.
