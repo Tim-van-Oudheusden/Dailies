@@ -75,6 +75,17 @@ def test_nothing_to_change_leaves_the_file_alone(tmp_path: Path) -> None:
     assert catalog.read_bytes() == CATALOG.read_bytes()
 
 
+def test_nothing_to_change_does_not_reformat_the_file(tmp_path: Path) -> None:
+    # The nightly job opens a pull request for any diff, so a rewrite here could open one that changes no status.
+    change = {"id": "worldle", "status": "active", "event": "restored", "note": "link check: passes"}
+    catalog, changes = setup(tmp_path, [change])
+    compact = json.dumps(json.loads(catalog.read_text(encoding="utf-8")))
+    catalog.write_text(compact, encoding="utf-8")
+
+    assert run(catalog, changes) == 0
+    assert catalog.read_text(encoding="utf-8") == compact
+
+
 def test_an_unknown_game_is_an_error_and_changes_nothing(tmp_path: Path) -> None:
     changes_list = [
         {"id": "worldle", "status": "broken", "event": "broken", "note": "n"},

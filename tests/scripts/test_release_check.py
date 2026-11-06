@@ -111,6 +111,11 @@ def test_meson_without_project_version_is_an_error() -> None:
         rc.meson_version("project('dailies')\ndependency('gtk4', version: '>= 4.24')\n")
 
 
+def test_meson_without_a_project_call_is_an_error() -> None:
+    with pytest.raises(rc.ReleaseError, match=r"meson\.build"):
+        rc.meson_version("dependency('gtk4', version: '>= 4.24')\n")
+
+
 # Metainfo
 
 
@@ -120,6 +125,14 @@ def test_newest_release_is_the_first_entry() -> None:
     assert newest.version == "0.2.0"
     assert newest.date == date(2026, 11, 1)
     assert newest.notes == "Second."
+
+
+def test_older_release_notes_stay_out_of_the_newest_release() -> None:
+    releases = "\n".join(
+        [release("0.2.0", "2026-11-01", "<p>Second.</p>"), release("0.1.0", "2026-10-01", "<p>First.</p>")]
+    )
+
+    assert rc.newest_release(METAINFO.format(releases=releases)).notes == "Second."
 
 
 def test_notes_become_markdown() -> None:
@@ -248,6 +261,16 @@ def test_cli_verify_prints_step_outputs(tmp_path: Path, capsys: pytest.CaptureFi
     root = make_repo(tmp_path)
     assert rc.main(["--root", str(root), "verify", "--tag", "v0.1.0"]) == 0
     assert capsys.readouterr().out == f"version=0.1.0\nprerelease=false\npinned_commit={PINNED}\n"
+
+
+def test_cli_verify_tells_the_workflow_a_tag_is_a_prerelease(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # release.yml reads this output: a beta published without it would go out as the latest stable release.
+    root = make_repo(tmp_path, meson="0.2.0-beta.1", releases=release("0.2.0-beta.1"))
+
+    assert rc.main(["--root", str(root), "verify", "--tag", "v0.2.0-beta.1"]) == 0
+    assert "prerelease=true\n" in capsys.readouterr().out
 
 
 def test_cli_verify_mismatch_exits_1_with_message(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:

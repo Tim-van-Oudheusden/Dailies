@@ -1,6 +1,7 @@
 import importlib.util
 import json
 import math
+import stat
 from datetime import UTC, datetime
 from pathlib import Path
 from types import ModuleType
@@ -230,6 +231,15 @@ def test_committed_weights_file_is_valid_and_puts_wordle_and_connections_first()
     assert nyt[:2] == ["wordle", "nyt-connections"]
 
 
+def test_a_weight_of_exactly_zero_or_one_is_valid(tmp_path: Path) -> None:
+    games = [game("wordle", "nytimes.com"), game("nyt-strands", "nytimes.com")]
+    weights = {"nytimes.com": {"wordle": 1, "nyt-strands": 0}}
+    path = tmp_path / "domain_weights.json"
+    path.write_text(json.dumps(weights), encoding="utf-8")
+
+    assert compute.load_weights(path, catalog(*games)) == weights
+
+
 def test_missing_override_file_means_no_overrides(tmp_path: Path) -> None:
     assert compute.load_weights(tmp_path / "domain_weights.json", catalog(game("wordle", "nytimes.com"))) == {}
 
@@ -332,6 +342,37 @@ def test_trending_excludes_the_top_five_popular() -> None:
     assert top_five.isdisjoint(item["id"] for item in trending)
     assert all(item["reason"] == "score" and item["delta"] == 0.05 for item in trending)
     assert [item["id"] for item in trending] == ["game-05", "game-06", "game-07", "game-08", "game-09"]
+
+
+def test_the_sixth_most_popular_game_can_trend() -> None:
+    cat, data = simple(100)
+    scores = compute.compute(cat, data, None, {}, NOW)[0]["scores"]
+    last = previous(
+        "2026-W42",
+        {key: (value["popularity"] - 0.05, [value["popularity"] - 0.05] * 3) for key, value in scores.items()},
+    )
+
+    popularity, _ = compute.compute(cat, data, last, {}, NOW)
+
+    assert popularity["popular"][5]["id"] in {item["id"] for item in popularity["trending"]}
+
+
+def test_exactly_the_minimum_of_risers_gets_no_backfill() -> None:
+    cat, data = simple(20)
+    scores = compute.compute(cat, data, None, {}, NOW)[0]["scores"]
+    risers = ["game-10", "game-11", "game-12"]
+    last = previous(
+        "2026-W42",
+        {
+            key: (value["popularity"] - rise, [value["popularity"] - rise] * 3)
+            for key, value in scores.items()
+            for rise in [0.05 if key in risers else 0]
+        },
+    )
+
+    popularity, _ = compute.compute(cat, data, last, {}, NOW)
+
+    assert [item["id"] for item in popularity["trending"]] == risers
 
 
 def test_trending_needs_a_rise_above_the_threshold() -> None:
@@ -458,6 +499,16 @@ def test_failed_domain_without_history_scores_zero() -> None:
     assert popularity["popular"][-1]["reason"] == "score"
 
 
+def test_a_failed_domain_with_no_history_is_not_reported_as_carried_forward() -> None:
+    games = [game(f"game-{index}") for index in range(5)]
+    data = raw({entry["domain"]: None if entry["id"] == "game-0" else ranks(1000) for entry in games})
+
+    popularity, _ = compute.compute(catalog(*games), data, None, {}, NOW)
+
+    reasons = {item["id"]: item["reason"] for item in popularity["popular"]}
+    assert reasons["game-0"] == "score"
+
+
 # --- output ---------------------------------------------------------------------------------------------------------
 
 
@@ -479,6 +530,19 @@ def test_output_header() -> None:
     assert popularity["valid_until"] == "2026-10-29T04:21:09Z"
     assert popularity["stale"] is False
     assert any("Tranco" in line for line in popularity["attribution"])
+
+
+def test_summary_lists_at_most_five_movers_each_way() -> None:
+    cat, data = simple(20)
+    scores = compute.compute(cat, data, None, {}, NOW)[0]["scores"]
+    last = previous(
+        "2026-W42",
+        {key: (value["popularity"] - 0.1, [value["popularity"] - 0.1]) for key, value in scores.items()},
+    )
+
+    _, summary = compute.compute(cat, data, last, {}, NOW)
+
+    assert len(summary["top_movers"]["up"]) == 5
 
 
 def test_summary_lists_top_movers() -> None:
@@ -544,6 +608,21 @@ def test_main_writes_both_files(tmp_path: Path) -> None:
     jsonschema.Draft202012Validator(SCHEMA).validate(popularity)
     assert popularity["week"] == "2026-W43"
     assert json.loads((tmp_path / "summary.json").read_text(encoding="utf-8"))["week"] == "2026-W43"
+
+
+def test_main_writes_a_file_pages_can_serve(tmp_path: Path) -> None:
+    assert compute.main(cli_args(tmp_path, 0)) == 0
+
+    assert stat.S_IMODE((tmp_path / "popularity.json").stat().st_mode) == 0o644
+
+
+def test_main_reads_the_weights_beside_the_catalog_by_default(tmp_path: Path) -> None:
+    args = cli_args(tmp_path, 0)
+    flag = args.index("--weights")
+    del args[flag : flag + 2]
+    (tmp_path / "domain_weights.json").write_text('["not an object"]', encoding="utf-8")
+
+    assert compute.main(args) != 0
 
 
 def test_main_reads_last_weeks_file_for_history(tmp_path: Path) -> None:

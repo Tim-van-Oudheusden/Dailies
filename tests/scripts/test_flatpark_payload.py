@@ -68,6 +68,16 @@ def test_members_are_root_owned_stamped_with_the_epoch_and_keep_the_launcher_exe
     assert members["share/dailies"].isdir()
 
 
+def test_each_path_is_in_the_archive_once(tmp_path: Path) -> None:
+    tree = make_tree(tmp_path / "tree", mtime=1_700_000_000)
+
+    fp.write_archive(tree, tmp_path / "payload.tar.xz", EPOCH)
+
+    with tarfile.open(tmp_path / "payload.tar.xz") as archive:
+        names = archive.getnames()
+    assert len(names) == len(set(names))
+
+
 def test_a_complete_tree_misses_nothing(tmp_path: Path) -> None:
     assert fp.missing_files(make_tree(tmp_path / "tree", mtime=EPOCH)) == []
 

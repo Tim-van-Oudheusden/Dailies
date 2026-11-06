@@ -85,6 +85,14 @@ def test_pipe_in_a_game_name_does_not_break_the_table() -> None:
     row = next(line for line in pr_body.render(data).splitlines() if "That" in line)
 
     assert row.count("|") - row.count("\\|") == 4
+    assert "This \\| That" in row
+
+
+def test_newline_in_a_game_name_stays_on_its_table_row() -> None:
+    data = summary(popular=1)
+    data["popular"][0]["name"] = "This\nThat"
+
+    assert "This That" in pr_body.render(data)
 
 
 def test_source_health_reports_counts_and_problem_domains() -> None:
@@ -110,6 +118,10 @@ def test_run_url_is_linked_for_the_raw_signals() -> None:
     url = "https://github.com/Tim-van-Oudheusden/Dailies/actions/runs/123"
 
     assert url in pr_body.render(summary(), run_url=url)
+
+
+def test_a_body_without_a_run_url_ends_the_sentence_with_no_link() -> None:
+    assert pr_body.render(summary()).rstrip().endswith("(kept 90 days).")
 
 
 def test_main_writes_the_body_file(tmp_path: Path) -> None:

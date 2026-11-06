@@ -126,10 +126,11 @@ def test_requests_are_spaced_one_second_apart() -> None:
     assert clock.sleeps == [1.0, 1.0]
 
 
-def test_retries_once_on_a_server_error() -> None:
+@pytest.mark.parametrize("status", [500, 502])
+def test_retries_once_on_a_server_error(status: int) -> None:
     cat = catalog(("worldle", "teuteuf.fr", "active"))
     clock = FakeClock()
-    session = FakeSession({API + "teuteuf.fr": [FakeResponse(502, {}), ok("teuteuf.fr", 40873)]})
+    session = FakeSession({API + "teuteuf.fr": [FakeResponse(status, {}), ok("teuteuf.fr", 40873)]})
     data = run(session, cat, clock)
     assert session.calls == [API + "teuteuf.fr"] * 2
     assert clock.sleeps == [1.0]
@@ -201,6 +202,7 @@ def test_network_error_marks_the_domain_failed() -> None:
         {"ranks": [{"date": "2026-10-18", "rank": "5"}]},
         {"ranks": [{"date": 5, "rank": 5}]},
         {"ranks": [{"date": "2026-10-18", "rank": True}]},
+        {"ranks": ["2026-10-18"]},
     ],
 )
 def test_malformed_body_marks_the_domain_failed(body: object) -> None:
@@ -208,6 +210,14 @@ def test_malformed_body_marks_the_domain_failed(body: object) -> None:
     data = run(FakeSession({API + "teuteuf.fr": [FakeResponse(200, body)]}), cat)
     assert data["domains"]["teuteuf.fr"]["ok"] is False
     assert data["domains"]["teuteuf.fr"]["error"].startswith("malformed response")
+
+
+def test_the_top_ranked_domain_is_a_valid_answer() -> None:
+    cat = catalog(("worldle", "teuteuf.fr", "active"))
+
+    data = run(FakeSession({API + "teuteuf.fr": [ok("teuteuf.fr", 1)]}), cat)
+
+    assert data["domains"]["teuteuf.fr"]["ok"] is True
 
 
 def test_unranked_domain_is_ok_with_no_ranks() -> None:
@@ -320,7 +330,9 @@ def test_wikipedia_missing_article_is_a_failed_entry() -> None:
     assert data["health"] == {"ok": 0, "failed": 1, "count": 1}
 
 
-@pytest.mark.parametrize("body", [{}, {"items": [{"views": -1}]}, {"items": [{"views": "7"}]}, ["items"]])
+@pytest.mark.parametrize(
+    "body", [{}, {"items": [{"views": -1}]}, {"items": [{"views": "7"}]}, {"items": ["7"]}, ["items"]]
+)
 def test_wikipedia_malformed_body_is_a_failed_entry(body: object) -> None:
     cat = full_catalog({"id": "wordle", "name": "Wordle", "domain": "nytimes.com", "wikipedia": "Wordle"})
     session = FakeSession({WIKI + "Wordle" + WIKI_DAYS: [FakeResponse(200, body)]})
@@ -404,12 +416,31 @@ def test_radar_reads_the_popular_bucket_with_the_token() -> None:
 
 @pytest.mark.parametrize(
     "body",
-    [{"success": False, "result": None}, {"success": True, "result": {}}, {"success": True, "result": []}],
+    [
+        [],
+        {"success": False, "result": None},
+        {"success": False, "result": {"details_0": {"bucket": "200", "rank": 5}}},
+        {"success": True, "result": {}},
+        {"success": True, "result": []},
+        {"success": True, "result": {"details_0": {"bucket": 200}}},
+        {"success": True, "result": {"details_0": {"rank": True}}},
+        {"success": True, "result": {"details_0": {"rank": "5"}}},
+        {"success": True, "result": {"details_0": {"rank": 0}}},
+    ],
 )
 def test_radar_malformed_body_is_a_failed_entry(body: object) -> None:
     session = FakeSession({RADAR + "nytimes.com?rankingType=POPULAR&format=JSON": [FakeResponse(200, body)]})
     data = collect.collect_radar(catalog(("wordle", "nytimes.com", "active")), session, "secret", **clockwork())
     assert data["domains"]["nytimes.com"]["error"].startswith("malformed response")
+
+
+def test_radar_rank_one_is_a_valid_answer() -> None:
+    body = {"success": True, "result": {"details_0": {"bucket": "200", "rank": 1}}}
+    session = FakeSession({RADAR + "nytimes.com?rankingType=POPULAR&format=JSON": [FakeResponse(200, body)]})
+
+    data = collect.collect_radar(catalog(("wordle", "nytimes.com", "active")), session, "secret", **clockwork())
+
+    assert data["domains"]["nytimes.com"]["rank"] == 1
 
 
 def write_catalog(tmp_path: Path) -> Path:

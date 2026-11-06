@@ -155,6 +155,14 @@ def test_the_open_issue_is_found_by_its_title_after_its_body_was_edited(
     assert [(method, path) for method, path, _ in api.writes()] == [("PATCH", f"{ISSUES}/7")]
 
 
+def test_the_open_issue_is_found_by_its_marker_after_its_title_was_edited(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = FakeGitHub([compliance_issue(title="Nightly checks are red", body=f"{ci.MARKER}\nAn older report")])
+    run(tmp_path, FAILING, api, monkeypatch)
+    assert [(method, path) for method, path, _ in api.writes()] == [("PATCH", f"{ISSUES}/7")]
+
+
 def test_other_ci_issues_and_pull_requests_are_left_alone(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     other = {"number": 3, "title": "ci: flaky icons test", "body": "", "labels": [{"name": "ci"}]}
     pull_request = compliance_issue(number=5, pull_request={"url": "https://api.github.com/repos/o/r/pulls/5"})
@@ -246,6 +254,14 @@ def test_a_long_report_is_cut_to_fit_an_issue_body(tmp_path: Path, monkeypatch: 
     assert "- Script dependencies (pip-audit)" in body
     assert "cut" in body
     assert body.rstrip().endswith("</details>")
+
+
+def test_a_short_report_goes_in_whole(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    api = FakeGitHub()
+
+    run(tmp_path, FAILING, api, monkeypatch)
+
+    assert "cut to fit" not in api.issues[0]["body"]
 
 
 def test_an_api_error_exits_2(
@@ -344,6 +360,12 @@ def test_github_api_sends_no_body_for_a_get_and_reads_an_empty_answer_as_none(mo
 
     assert ci.github_api("secret")("GET", ISSUES, None) is None
     assert connection.requests[0][2] is None
+
+
+def test_github_api_accepts_a_plain_200(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(ci.http.client, "HTTPSConnection", FakeConnection(200, b"[]"))
+
+    assert ci.github_api("secret")("GET", ISSUES, None) == []
 
 
 def test_github_api_raises_oserror_with_the_status_on_a_refusal(monkeypatch: pytest.MonkeyPatch) -> None:
