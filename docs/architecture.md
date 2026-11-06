@@ -368,8 +368,9 @@ request goes through `scripts/lib/urlcheck.py`, so only public https addresses a
 `data/v1/` and are never installed with the app ([`data-format.md`](data-format.md#icons)).
 
 **Publishing.** `pages.yml` publishes `data/v1/` (schemas included) and `docs/popularity/` to GitHub Pages at
-`https://tim-van-oudheusden.github.io/Dailies/v1/` on every push to `main` that touches them. The app tries that URL
-first and falls back to `raw.githubusercontent.com` on a server error, a 429 or a network failure.
+`https://tim-van-oudheusden.github.io/Dailies/v1/` on every push to `main` that touches them, and after every merge by
+the merge queue. The app tries that URL first and falls back to `raw.githubusercontent.com` on a server error, a 429 or
+a network failure.
 
 **Weekly report.** In the `publish` job of `popularity.yml`, `anthropics/claude-code-action` writes
 `docs/popularity/<week>.md` from `summary.json` and `popularity.json`; it may write that one file and nothing else.
