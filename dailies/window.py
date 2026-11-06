@@ -328,6 +328,8 @@ class Window(Adw.ApplicationWindow):
 
     def _on_search(self, _action: Gio.SimpleAction, _parameter: None) -> None:
         self.search_bar.props.search_mode_enabled = True
+        # The search bar is on the content, which a collapsed split view may have hidden behind the sidebar.
+        self.split_view.props.show_content = True
         self.search_entry.grab_focus()
 
     def _on_show_section(self, _action: Gio.SimpleAction, parameter: GLib.Variant) -> None:

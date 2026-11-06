@@ -1,4 +1,4 @@
-"""The main window's built-in browser page on the navigation view; run by Meson (see tests/meson.build).
+"""The main window: the built-in browser page on the navigation view, and the library's keys; run by Meson.
 
 The window is a widget with animated page transitions, so the module starts a private Broadway server like
 tests/gi/test_tile.py, and keeps animations on.
@@ -14,6 +14,7 @@ import time
 import unittest
 from collections.abc import Callable
 from pathlib import Path
+from unittest import mock
 
 # The built-in browser writes its website data here, not into the home directory of whoever runs the tests.
 _HOME = Path(tempfile.mkdtemp())
@@ -60,6 +61,8 @@ from gi.repository import Adw, Gtk
 Adw.init()
 Gio.resources_register(Gio.Resource.load(os.environ["DAILIES_GRESOURCE"]))
 
+from dailies import config
+from dailies.application import Application
 from dailies.core.cache import CacheDir
 from dailies.core.web import display_host
 from dailies.data.done_today import DoneToday
@@ -165,6 +168,56 @@ class BrowserPageTest(unittest.TestCase):
         assert self.criticals == [], self.criticals
         sessions = _HOME / "data" / "dailies" / "web" / "games"
         assert sorted(p.name for p in sessions.iterdir()) == ["first", "second"]
+
+
+class LibraryKeysTest(unittest.TestCase):
+    """The library's keys, which the application binds, in the library and in the built-in browser."""
+
+    def setUp(self) -> None:
+        Gtk.Settings.get_default().props.gtk_enable_animations = True
+        # The bundled game list is in the source tree, and the refresh on the first map must not leave the machine.
+        for name, value in (("PKGDATADIR", str(BUNDLE.parents[1])), ("DATA_URLS", ["http://127.0.0.1:9/v1/"])):
+            patcher = mock.patch.object(config, name, value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        self.app = Application()
+        # One application id per test, as in BrowserPageTest.
+        self.app.props.application_id = f"{SCHEMA_ID}.Test.{self._testMethodName}"
+        self.app.props.flags = Gio.ApplicationFlags.NON_UNIQUE
+        self.app.register(None)
+        self.addCleanup(self.app.done_today.close)
+        self.app.settings.set_string("open-mode", "in-app")
+        self.addCleanup(self.app.settings.reset, "open-mode")
+        self.app.activate()
+        self.window = self.app.props.active_window
+        self.addCleanup(self.window.destroy)
+        assert run_until(self.window.get_mapped)
+
+    def test_the_library_keys_reach_the_web_page_while_a_game_is_shown(self) -> None:
+        game = dataclasses.replace(self.app.store.model.get_item(0).props.game, url="https://first.invalid/")
+        view = self.window.navigation_view
+        assert self.app.get_actions_for_accel("<Control>f") == ["win.search"]
+        assert self.app.get_actions_for_accel("<Control>d") == ["win.toggle-favorite"]
+
+        self.window.open_game(game)
+        assert run_until(lambda: view.props.visible_page.props.tag == "browser")
+        assert self.app.get_actions_for_accel("<Control>f") == []
+        assert self.app.get_actions_for_accel("<Control>d") == []
+
+        view.pop()
+        assert run_until(lambda: view.props.visible_page.props.tag == "library")
+        assert self.app.get_actions_for_accel("<Control>f") == ["win.search"]
+        assert self.app.get_actions_for_accel("<Control>d") == ["win.toggle-favorite"]
+
+    def test_search_in_a_collapsed_window_shows_the_content(self) -> None:
+        split_view = self.window.split_view
+        split_view.props.collapsed = True
+        split_view.props.show_content = False
+
+        self.window.activate_action("win.search", None)
+
+        assert split_view.props.show_content
+        assert self.window.search_bar.props.search_mode_enabled
 
 
 if __name__ == "__main__":

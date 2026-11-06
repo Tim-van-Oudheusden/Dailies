@@ -281,7 +281,8 @@ else:
   There are no injected scripts or styles, no ad blocking and no user-agent spoofing: `user-agent` is empty unless the
   user sets it for a compatibility fix. One `WebView` lives at a time, in a `WebKit.WebContext` of its own; when its
   page is popped the view is closed and dropped with its context, which ends its web processes (the network sessions
-  stay). Ctrl+R reloads while the page is shown and refreshes the game list on the library.
+  stay). Ctrl+R reloads while the page is shown and refreshes the game list on the library. Ctrl+F (search), Ctrl+D
+  (favourite) and Shift+F10 or Menu (tile menu) act on the library only, so the web page gets them while it is shown.
 - Preferences → Built-in browser has a **Privacy and compatibility** expander row with the six browser keys; the
   website-data row says that switching moves no data and games will need to sign in again. **Clear website data…**
   clears every session: the shared one and every `web/games/<id>` directory on disk, opened in this run or not.

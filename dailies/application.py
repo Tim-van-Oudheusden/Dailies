@@ -26,6 +26,8 @@ from dailies.ui.favorites_transfer import Transfer
 
 _REFRESH_ACCELS = ["<Control>r"]
 _GAME_MENU_ACCELS = ["<Shift>F10", "Menu"]
+_SEARCH_ACCELS = ["<Control>f"]
+_TOGGLE_FAVORITE_ACCELS = ["<Control>d"]
 
 
 class Application(Adw.Application):
@@ -85,10 +87,13 @@ class Application(Adw.Application):
 
     def _on_visible_page(self, view: Adw.NavigationView, _pspec: GObject.ParamSpec) -> None:
         # Ctrl+R refreshes the game list on the library and reloads the page in the built-in browser; application
-        # accelerators win over page shortcuts, so the browser page borrows it while it is shown. Shift+F10 and Menu
-        # are left to the web page's own context menu there.
+        # accelerators win over page shortcuts, so the browser page borrows it while it is shown. Ctrl+F (search) and
+        # Ctrl+D (favourite the focused tile) act on the library, hidden behind that page, so they are left to the web
+        # page there, as are Shift+F10 and Menu for its own context menu.
         browser = view.props.visible_page.props.tag == "browser"
         self.set_accels_for_action("app.refresh", [] if browser else _REFRESH_ACCELS)
+        self.set_accels_for_action("win.search", [] if browser else _SEARCH_ACCELS)
+        self.set_accels_for_action("win.toggle-favorite", [] if browser else _TOGGLE_FAVORITE_ACCELS)
         self.set_accels_for_action("win.show-game-menu", [] if browser else _GAME_MENU_ACCELS)
 
     def _on_preferences(self) -> None:
@@ -144,8 +149,8 @@ class Application(Adw.Application):
             self.add_action(action)
             self.set_accels_for_action(f"app.{name}", accels)
         # The window adds these actions (dailies/window.py).
-        self.set_accels_for_action("win.toggle-favorite", ["<Control>d"])
-        self.set_accels_for_action("win.search", ["<Control>f"])
+        self.set_accels_for_action("win.toggle-favorite", _TOGGLE_FAVORITE_ACCELS)
+        self.set_accels_for_action("win.search", _SEARCH_ACCELS)
         self.set_accels_for_action("win.show-game-menu", _GAME_MENU_ACCELS)
 
     def _favorites_transfer(self) -> Transfer:

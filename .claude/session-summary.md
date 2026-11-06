@@ -9,11 +9,15 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-05. #381 on `test/381-mutmut-pin-check`.
+2026-11-06. #389 on `fix/389-search-hidden-page`.
 
-- **Outcome:** `tests/tooling/test_tool_pins.py` now reads the `mutmut==` pin in `mutants.yml` and in the install
-  snippets of `docs/testing.md` and `docs/metrics/README.md`, and fails while they differ. Its docstring and the
-  CONTRIBUTING pin bullet name mutmut and no longer count workflows.
+- **Outcome:** Ctrl+F and Ctrl+D are released while the built-in browser page is shown, like Ctrl+R, Shift+F10 and
+  Menu (`Application._on_visible_page`), and `win.search` shows the content of a collapsed split view.
+  `tests/gi/test_window.py: LibraryKeysTest` runs the real `Application` with `config.PKGDATADIR` pointed at the
+  source tree and `config.DATA_URLS` at a closed local port.
 - **Open follow-ups:** none.
 - **Gotchas:**
-  - The system `python3` here is 3.11; the code base uses PEP 695 syntax, so run the suite on 3.12+.
+  - Without the GNOME SDK, the gi tests run against conda-forge `libadwaita`, `gtk4`, `pygobject`, `libsoup`, `meson`
+    and `pkg-config` (plus `expat` and `zlib` for the `.pc` files) and blueprint-compiler v0.22 from git, installed
+    with `--no-deps`. conda-forge has neither `gtk4-broadwayd` nor WebKitGTK: run weston `--backend=headless` with
+    `GDK_BACKEND=wayland` instead of Broadway, and only CI's Flatpak job opens a real browser page.
