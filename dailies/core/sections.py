@@ -133,7 +133,7 @@ def sort_key(
 
 
 def favorite_moves(section: str, mode: SortMode, order: Sequence[str], game_id: str) -> set[Move]:
-    """Return the moves `game_id` can make: none outside Favorites or while a sort mode overrides the favourite order.
+    """Return the moves `game_id` can make: none outside Favorites or under any sort mode but the default.
 
     The tile menu disables the other moves; with none, the game cannot be dragged either.
     """
