@@ -379,6 +379,17 @@ def test_next_fails_instead_of_reporting_an_empty_queue_when_listing_fails(tmp_p
     assert result.outputs == {}
 
 
+def test_next_fails_instead_of_skipping_a_pull_request_whose_merge_state_cannot_be_read(tmp_path: Path) -> None:
+    # A failed read is not a pull request that is merely not ready: the run must not pass for a healthy queue.
+    queue = queue_of(tmp_path, [{"number": 7}])
+    queue.fail_calls_starting_with("pr view 7 --json mergeStateStatus")
+
+    result = queue.run("next")
+
+    assert result.status != 0
+    assert result.outputs == {}
+
+
 # --- land ---------------------------------------------------------------------------------------------------------
 
 
@@ -535,6 +546,19 @@ def test_land_does_not_merge_a_pull_request_that_stopped_being_ready_during_veri
 
     assert result.status == 0, result.stderr
     assert result.calls == ["workflow run merge-queue.yml --ref main"]
+
+
+def test_land_fails_instead_of_calling_a_pull_request_not_ready_when_its_merge_state_cannot_be_read(
+    tmp_path: Path,
+) -> None:
+    queue = queue_of(tmp_path, [{"number": 7, "closingIssues": [12]}])
+    queue.fail_calls_starting_with("pr view 7 --json mergeStateStatus")
+
+    result = queue.run("land", "7", queue.heads[7], queue.main)
+
+    assert result.status != 0
+    assert "stopped being ready" not in result.stdout
+    assert result.calls == []
 
 
 # --- reject -------------------------------------------------------------------------------------------------------

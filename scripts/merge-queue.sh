@@ -63,10 +63,12 @@ queue_next_run() {
 }
 
 # GitHub computes the merge state lazily and answers UNKNOWN until it has.
+# A failed gh call fails the function, not a retry. Callers assign the result to
+# a variable: set -e does not reach a substitution inside `[ ... ]`.
 merge_state() {
   local state attempt
   for attempt in 1 2 3; do
-    state="$(gh pr view "$1" --json mergeStateStatus --jq .mergeStateStatus)"
+    state="$(gh pr view "$1" --json mergeStateStatus --jq .mergeStateStatus)" || return 1
     [ "$state" != UNKNOWN ] && break
     [ "$attempt" -lt 3 ] && sleep 5
   done
@@ -101,7 +103,7 @@ close_linked_issues() {
 }
 
 next() {
-  local candidates number head tier
+  local candidates number head tier state
   # gh lists open pull requests by default; --jq runs gh's built-in jq, so the
   # runner needs no jq. Listed into a variable so a failed listing fails the
   # job (set -e) instead of passing for an empty queue. gh lists newest first,
@@ -115,7 +117,8 @@ next() {
   while read -r number head; do
     # An empty listing still reads one empty line.
     [ -n "$number" ] || continue
-    [ "$(merge_state "$number")" = CLEAN ] || continue
+    state="$(merge_state "$number")"
+    [ "$state" = CLEAN ] || continue
     git fetch --no-tags --quiet origin "refs/pull/${number}/head"
     # A push since the listing: the run its checks start sees it.
     [ "$(git rev-parse FETCH_HEAD)" = "$head" ] || continue
@@ -134,7 +137,7 @@ next() {
 }
 
 land() {
-  local number="$1" head="$2" verified_main="$3" main ready workflow failed=0
+  local number="$1" head="$2" verified_main="$3" main ready state workflow failed=0
   main="$(git ls-remote origin refs/heads/main | cut -f1)"
   if [ "$main" != "$verified_main" ]; then
     echo "::notice title=Merge queue::main moved since #${number} was verified; verifying again"
@@ -143,7 +146,8 @@ land() {
   fi
 
   ready="$(gh pr view "$number" --json isDraft,labels --jq "(.isDraft | not) and ${UNHELD}")"
-  if [ "$ready" != true ] || [ "$(merge_state "$number")" != CLEAN ]; then
+  state="$(merge_state "$number")"
+  if [ "$ready" != true ] || [ "$state" != CLEAN ]; then
     echo "::notice title=Merge queue::#${number} stopped being ready during verification; skipped"
     queue_next_run
     return 0

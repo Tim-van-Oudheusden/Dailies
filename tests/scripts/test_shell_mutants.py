@@ -145,6 +145,20 @@ MUTANTS = [
         f"{MERGE_QUEUE_TESTS}::test_next_gives_up_on_a_merge_state_still_unknown_after_three_asks",
     ),
     Mutant(
+        "a merge state the queue cannot read fails the run",
+        MERGE_QUEUE,
+        "--jq .mergeStateStatus)\" || return 1",
+        "--jq .mergeStateStatus)\" || true",
+        f"{MERGE_QUEUE_TESTS}::test_next_fails_instead_of_skipping_a_pull_request_whose_merge_state_cannot_be_read",
+    ),
+    Mutant(
+        "land reads the merge state of the pull request before it merges",
+        MERGE_QUEUE,
+        '  state="$(merge_state "$number")"\n  if [ "$ready"',
+        '  state=CLEAN\n  if [ "$ready"',
+        f"{MERGE_QUEUE_TESTS}::test_land_fails_instead_of_calling_a_pull_request_not_ready_when_its_merge_state_cannot_be_read",
+    ),
+    Mutant(
         "the queue rates a pull request from the merge base, as tier-classifier.yml does",
         MERGE_QUEUE,
         '"HEAD...$1"',
