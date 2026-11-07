@@ -370,6 +370,15 @@ class PageDecisionsTest(WindowTest):
 
         assert run_until(lambda: page.overlay.get_child() is None)
 
+    def test_a_page_still_shown_keeps_its_own_questions(self) -> None:
+        self.run_script("addEventListener('beforeunload', event => { event.preventDefault(); event.returnValue = '' })")
+
+        self.run_script(f"location.href = '{self.site}/pop-up'")
+
+        # WebKit shows its dialog as a child of the view, next to the web content. Only Back answers for the user.
+        assert run_until(lambda: self.web_view.get_first_child().get_next_sibling() is not None)
+        assert self.web_view.get_uri() == f"{self.site}/"
+
 
 if __name__ == "__main__":
     unittest.main()
