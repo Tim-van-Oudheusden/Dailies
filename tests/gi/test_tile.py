@@ -218,6 +218,31 @@ class GameTileTest(unittest.TestCase):
         assert Gtk.test_accessible_has_property(card, Gtk.AccessibleProperty.DESCRIPTION)
         assert self.item.props.caption == "Geography · Easy"
 
+    def test_the_card_description_says_when_the_game_is_unavailable_or_done(self) -> None:
+        card = self.tile.open_button
+        update_property = card.update_property
+        # Read off a recorder: GTK has no getter for a widget's accessible properties.
+        described: list[str] = []
+
+        def record(properties: list[Gtk.AccessibleProperty], values: list[object]) -> None:
+            described.extend(
+                value
+                for name, value in zip(properties, values, strict=True)
+                if name == Gtk.AccessibleProperty.DESCRIPTION
+            )
+            update_property(properties, values)
+
+        patcher = mock.patch.object(card, "update_property", side_effect=record)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+        self.item.props.done = True
+        assert described[-1] == "Geography · Easy, done today"
+        self.item.update(game=worldle(status=Status.BROKEN), favorite=False, popular_rank=0, trending_rank=0)
+        assert described[-1] == "Geography · Easy, unavailable, done today"
+        self.item.props.done = False
+        assert described[-1] == "Geography · Easy, unavailable"
+
     def test_pressing_the_card_opens_the_game(self) -> None:
         self.tile.open_button.emit("clicked")
         assert self.opened == ["worldle"]
