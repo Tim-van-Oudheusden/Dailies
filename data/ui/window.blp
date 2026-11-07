@@ -176,7 +176,7 @@ template $DailiesWindow: Adw.ApplicationWindow {
                         factory: BuilderListItemFactory {
                           template ListItem {
                             accessible-label: bind template.item as <$DailiesGameObject>.name;
-                            accessible-description: bind template.item as <$DailiesGameObject>.caption;
+                            accessible-description: bind template.item as <$DailiesGameObject>.description;
 
                             child: $DailiesGameTile {
                               game: bind template.item as <$DailiesGameObject>;

@@ -224,7 +224,26 @@ class GameObjectTest(unittest.TestCase):
         obj.update(game=broken, favorite=False, popular_rank=0, trending_rank=0)
         assert not obj.props.available
         assert obj.props.caption == "Geography · Hard"
-        assert sorted(notified) == ["available", "caption", "difficulty-label", "game"]
+        assert sorted(notified) == ["available", "caption", "description", "difficulty-label", "game"]
+
+    def test_the_description_follows_the_game_being_done_and_unavailable(self) -> None:
+        obj = GameObject(game("worldle", "Worldle", Category.GEOGRAPHY, Difficulty.EASY))
+        assert obj.props.description == "Geography · Easy"
+
+        notified: list[str] = []
+        obj.connect("notify::description", lambda _obj, pspec: notified.append(pspec.name))
+        obj.props.done = True
+        assert obj.props.description == "Geography · Easy, done today"
+        assert notified == ["description"]
+
+        broken = game("worldle", "Worldle", Category.GEOGRAPHY, Difficulty.EASY, Status.BROKEN)
+        obj.update(game=broken, favorite=False, popular_rank=0, trending_rank=0)
+        assert obj.props.description == "Geography · Easy, unavailable, done today"
+        assert notified == ["description", "description"]
+
+        obj.props.done = False
+        assert obj.props.description == "Geography · Easy, unavailable"
+        assert notified == ["description", "description", "description"]
 
 
 if __name__ == "__main__":
