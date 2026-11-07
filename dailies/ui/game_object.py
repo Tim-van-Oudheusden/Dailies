@@ -13,11 +13,12 @@ class GameObject(GObject.Object):
 
     `name`, `category-label`, `difficulty-label`, `caption` ("Geography · Easy", all translated) and `available`
     (the game is active) follow `game`. `description` is what screen readers say after the name: the caption, then
-    that the game is unavailable or done today; it follows `game` and `done`. A rank of 0 means the game is not on that shelf this week. `done` says whether
-    the game was marked as done today; the store sets it apart from `update`, as it changes with the day. The window
-    sets `in-favorites` (the game is a favourite and Favorites is shown), `can-move-up` and `can-move-down` (it can move
-    in the favourite order there), which drive the tile's menu and drag-and-drop. `icon` is the game's icon as a
-    `Gdk.Paintable` once `request_icon` has found one (`dailies.data.icons.Icons`), else None.
+    that the game is unavailable or done today; it follows `game` and `done`. A rank of 0 means the game is not on
+    that shelf this week. `done` says whether the game was marked as done today; the store sets it apart from
+    `update`, as it changes with the day. The window sets `in-favorites` (the game is a favourite and Favorites is
+    shown), `can-move-up` and `can-move-down` (it can move in the favourite order there), which drive the tile's menu
+    and drag-and-drop. `icon` is the game's icon as a `Gdk.Paintable` once `request_icon` has found one
+    (`dailies.data.icons.Icons`), else None.
     """
 
     __gtype_name__ = "DailiesGameObject"
@@ -43,7 +44,7 @@ class GameObject(GObject.Object):
         self._load_icon = load_icon
         self._set(_derived(game, done=False))
         # Connected here, before any tile connects its own handler, so a tile reacting to `done` reads the new text.
-        self.connect("notify::done", lambda *_args: self._set(self._describe()))
+        self.connect("notify::done", lambda *_args: self._set(_derived(self.props.game, done=self.props.done)))
 
     def request_icon(self) -> None:
         """Ask for the game's icon; a tile calls this whenever it shows the game, and `icon` follows."""
@@ -74,12 +75,6 @@ class GameObject(GObject.Object):
             trending_rank=self.props.trending_rank,
             done=self.props.done,
         )
-
-    def _describe(self) -> dict[str, object]:
-        description = library.tile_description(
-            self.props.caption, available=self.props.available, done=self.props.done
-        )
-        return {"description": description}
 
     def _set(self, values: dict[str, object]) -> None:
         for name, value in values.items():
