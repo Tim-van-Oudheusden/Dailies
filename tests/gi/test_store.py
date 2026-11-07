@@ -86,6 +86,13 @@ class StoreTest(unittest.TestCase):
         assert len(self.store.model) == len(catalog.parse((BUNDLE / "games.json").read_bytes()).games)
         assert self.cache.etag("games") is None
 
+    def test_an_unreadable_cache_is_replaced_by_the_bundle(self) -> None:
+        self.cache.path.write_bytes(b"a file where the cache directory should be")
+
+        self.store.load_initial()
+
+        assert self.ids() == [game.id for game in catalog.parse((BUNDLE / "games.json").read_bytes()).games]
+
     def test_a_valid_cache_is_used_as_is(self) -> None:
         fetched = datetime.now(UTC) - timedelta(hours=1)
         body = edited("games", lambda document: document["games"].pop())

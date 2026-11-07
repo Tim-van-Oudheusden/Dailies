@@ -84,7 +84,7 @@ class CacheDir:
         self.path = path
 
     def read(self, name: str) -> bytes | None:
-        """Return the cached body of `name`, or None when there is none."""
+        """Return the cached body of `name`, or None when there is none or it cannot be read."""
         return self._read(f"{name}.json")
 
     def etag(self, name: str) -> str | None:
@@ -124,6 +124,9 @@ class CacheDir:
         try:
             return (self.path / filename).read_bytes()
         except FileNotFoundError:
+            return None
+        except OSError as e:
+            log.warning("could not read %s, treating it as not cached: %s", self.path / filename, e)
             return None
 
     def _write(self, filename: str, data: bytes) -> None:

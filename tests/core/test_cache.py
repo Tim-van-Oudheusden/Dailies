@@ -38,6 +38,16 @@ def test_an_empty_cache_has_nothing(cache_dir: CacheDir) -> None:
     assert cache_dir.fetched_at("games") is None
 
 
+def test_an_unreadable_cache_is_an_empty_one(tmp_path: Path) -> None:
+    blocked = tmp_path / "x"
+    blocked.write_bytes(b"a file where the directory should be")
+    unreadable = CacheDir(blocked)
+
+    assert unreadable.read("games") is None
+    assert unreadable.etag("games") is None
+    assert unreadable.fetched_at("games") is None
+
+
 def test_store_writes_body_etag_and_fetched_time(cache_dir: CacheDir) -> None:
     cache_dir.store("games", GAMES, '"abc"', NOW)
 
