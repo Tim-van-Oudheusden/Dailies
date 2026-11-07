@@ -126,6 +126,7 @@ class WindowTest(unittest.TestCase):
         self.addCleanup(directory.cleanup)
         store = Store(CacheDir(Path(directory.name) / "v1"), BUNDLE, self.app.favorites, done_today=self.app.done_today)
         store.load_initial()
+        self.store = store
         # Hosts that never resolve: the test needs no network, and no site retitles the page.
         game = store.model.get_item(0).props.game
         self.games = [dataclasses.replace(game, url=f"https://{name}.invalid/") for name in ("first", "second")]
@@ -398,8 +399,7 @@ class StaleBannerTest(WindowTest):
         os.environ["TZ"] = "UTC-2"
         time.tzset()
 
-        self.window._store.props.last_success = datetime(2026, 10, 1, 22, 30, tzinfo=UTC)
-        self.window._update_banner()
+        self.store.props.last_success = datetime(2026, 10, 1, 22, 30, tzinfo=UTC)
 
         assert self.window.stale_banner.props.title == library.stale_banner_title(date(2026, 10, 2))
 
