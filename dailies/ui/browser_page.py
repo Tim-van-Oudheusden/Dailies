@@ -230,7 +230,8 @@ class BrowserPage(Adw.NavigationPage):
     The page uses the network session of `game_id` (`session`) and follows the browser settings in `_PAGE_KEYS`; a
     new user agent reloads the page, since a loaded page keeps the one it was loaded with.
     `open_external` opens a link in the default browser; `hand_off_pop_up` does the same for a script's pop-up, and
-    tells the user so. Call `close()` when the page is popped: it closes the web view, which ends its web process.
+    tells the user so. Call `close()` when the page is popped: it closes the web view, which ends its web process, and
+    a `beforeunload` handler cannot stop it. A site that closes itself (`window.close()`) pops the page.
     """
 
     __gtype_name__ = "DailiesBrowserPage"
@@ -278,6 +279,7 @@ class BrowserPage(Adw.NavigationPage):
         view.connect("create", self._on_create)
         view.connect("permission-request", self._on_permission_request)
         view.connect("close", self._on_close)
+        view.connect("script-dialog", self._on_script_dialog)
         history_buttons = Gtk.GestureClick(button=0, propagation_phase=Gtk.PropagationPhase.CAPTURE)
         history_buttons.connect("pressed", self._on_mouse_pressed)
         view.add_controller(history_buttons)
@@ -327,12 +329,15 @@ class BrowserPage(Adw.NavigationPage):
 
     def close(self) -> None:
         """Close the web view, so that its web process ends; the page shows nothing afterwards."""
-        # The settings must not keep a closed page alive, nor reload it.
+        # The settings must not keep a closed page alive, nor reload it. With them gone, the page is closing.
         for handler in self._settings_handlers:
             self._settings.disconnect(handler)
         self._settings_handlers.clear()
         if self._web_view is not None:
             self._web_view.try_close()
+
+    def _closing(self) -> bool:
+        return not self._settings_handlers
 
     def _on_action(self, _action: Gio.SimpleAction, _param: None, activate: Callable[[WebKit.WebView], None]) -> None:
         if self._web_view is not None:
@@ -357,6 +362,16 @@ class BrowserPage(Adw.NavigationPage):
         # which ends their web processes.
         self.overlay.set_child(None)
         self._web_view = None
+        if not self._closing():
+            # The site closed itself (`window.close()`): leave the page as Back does, which closes it.
+            self.activate_action("navigation.pop", None)
+
+    def _on_script_dialog(self, _view: WebKit.WebView, dialog: WebKit.ScriptDialog) -> bool:
+        # Leaving was already chosen (Back, or another game), and a popped page could not show the question: leave.
+        if self._closing() and dialog.get_dialog_type() == WebKit.ScriptDialogType.BEFORE_UNLOAD_CONFIRM:
+            dialog.confirm_set_confirmed(True)
+            return True
+        return False
 
     def _uri(self) -> str:
         return (self._web_view and self._web_view.get_uri()) or ""
