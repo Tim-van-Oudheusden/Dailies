@@ -15,6 +15,7 @@ import threading
 import time
 import unittest
 from collections.abc import Callable
+from datetime import UTC, date, datetime
 from pathlib import Path
 from unittest import mock
 
@@ -70,7 +71,7 @@ from dailies.core.web import display_host
 from dailies.data.done_today import DoneToday
 from dailies.data.favorites import Favorites
 from dailies.data.store import Store
-from dailies.ui import opener
+from dailies.ui import library, opener
 from dailies.window import Window
 
 BUNDLE = Path(__file__).resolve().parents[2] / "data" / "v1"
@@ -125,6 +126,7 @@ class WindowTest(unittest.TestCase):
         self.addCleanup(directory.cleanup)
         store = Store(CacheDir(Path(directory.name) / "v1"), BUNDLE, self.app.favorites, done_today=self.app.done_today)
         store.load_initial()
+        self.store = store
         # Hosts that never resolve: the test needs no network, and no site retitles the page.
         game = store.model.get_item(0).props.game
         self.games = [dataclasses.replace(game, url=f"https://{name}.invalid/") for name in ("first", "second")]
@@ -378,6 +380,28 @@ class PageDecisionsTest(WindowTest):
         # WebKit shows its dialog as a child of the view, next to the web content. Only Back answers for the user.
         assert run_until(lambda: self.web_view.get_first_child().get_next_sibling() is not None)
         assert self.web_view.get_uri() == f"{self.site}/"
+
+
+class StaleBannerTest(WindowTest):
+    @unittest.skipUnless(hasattr(time, "tzset"), "time.tzset is Unix-only")
+    def test_the_banner_shows_the_local_date_of_the_last_fetch(self) -> None:
+        previous = os.environ.get("TZ")
+
+        def restore_zone() -> None:
+            if previous is None:
+                os.environ.pop("TZ", None)
+            else:
+                os.environ["TZ"] = previous
+            time.tzset()
+
+        self.addCleanup(restore_zone)
+        # POSIX "UTC-2" is two hours east of UTC, so 22:30 UTC on 1 October is already 2 October here.
+        os.environ["TZ"] = "UTC-2"
+        time.tzset()
+
+        self.store.props.last_success = datetime(2026, 10, 1, 22, 30, tzinfo=UTC)
+
+        assert self.window.stale_banner.props.title == library.stale_banner_title(date(2026, 10, 2))
 
 
 if __name__ == "__main__":
