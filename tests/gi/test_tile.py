@@ -217,6 +217,9 @@ class GameTileTest(unittest.TestCase):
         assert Gtk.test_accessible_has_relation(card, Gtk.AccessibleRelation.LABELLED_BY)
         assert Gtk.test_accessible_has_property(card, Gtk.AccessibleProperty.DESCRIPTION)
         assert self.item.props.caption == "Geography · Easy"
+        assert self.item.props.description == "Geography · Easy"
+        self.item.props.done = True
+        assert self.item.props.description == "Geography · Easy, done today"
 
     def test_pressing_the_card_opens_the_game(self) -> None:
         self.tile.open_button.emit("clicked")

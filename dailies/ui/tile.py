@@ -4,7 +4,7 @@ from dailies import config
 from dailies.core import opening, sections, web
 from dailies.core.opening import OpenMode
 from dailies.core.reorder import Move
-from dailies.ui import library, opener
+from dailies.ui import opener
 from dailies.ui.game_object import GameObject
 
 
@@ -332,8 +332,7 @@ class GameTile(Gtk.Overlay):
             self.open_button.add_css_class("done")
         else:
             self.open_button.remove_css_class("done")
-        description = library.tile_description(item.props.caption, available=item.props.available, done=done)
-        self.open_button.update_property([Gtk.AccessibleProperty.DESCRIPTION], [description])
+        self.open_button.update_property([Gtk.AccessibleProperty.DESCRIPTION], [item.props.description])
 
     def _show_icon(self) -> None:
         icon = self._item.props.icon
