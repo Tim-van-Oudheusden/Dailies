@@ -518,5 +518,5 @@ class Window(Adw.ApplicationWindow):
     def _update_banner(self) -> None:
         last_success = self._store.props.last_success
         if last_success is not None:
-            self.stale_banner.props.title = library.stale_banner_title(last_success.date())
+            self.stale_banner.props.title = library.stale_banner_title(last_success.astimezone().date())
         self.stale_banner.props.revealed = self._store.props.stale_banner
