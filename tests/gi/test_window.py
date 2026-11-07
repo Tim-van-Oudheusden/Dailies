@@ -351,6 +351,25 @@ class PageDecisionsTest(WindowTest):
             () => answer("allowed"), error => answer(error.code == error.PERMISSION_DENIED ? "denied" : "other")))"""
         assert self.answer_of(location) == "denied"
 
+    def test_a_page_that_closes_itself_returns_to_the_library(self) -> None:
+        page = self.view.props.visible_page
+
+        # A page with one history entry may close itself, as a page a game opened does.
+        self.run_script("window.close()")
+
+        assert run_until(lambda: self.view.props.visible_page.props.tag == "library")
+        assert page.overlay.get_child() is None
+        assert not self.window.lookup_action("game-done").props.enabled
+        assert self.criticals == [], self.criticals
+
+    def test_a_page_that_asks_to_stay_is_closed_when_left(self) -> None:
+        page = self.view.props.visible_page
+        self.run_script("addEventListener('beforeunload', event => { event.preventDefault(); event.returnValue = '' })")
+
+        self.view.pop()
+
+        assert run_until(lambda: page.overlay.get_child() is None)
+
 
 if __name__ == "__main__":
     unittest.main()

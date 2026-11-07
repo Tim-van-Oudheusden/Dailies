@@ -281,7 +281,10 @@ else:
   There are no injected scripts or styles, no ad blocking and no user-agent spoofing: `user-agent` is empty unless the
   user sets it for a compatibility fix. One `WebView` lives at a time, in a `WebKit.WebContext` of its own; when its
   page is popped the view is closed and dropped with its context, which ends its web processes (the network sessions
-  stay). Ctrl+R reloads while the page is shown and refreshes the game list on the library.
+  stay). A `beforeunload` handler cannot keep a closing view alive: its confirmation is answered "leave", since Back
+  already chose to leave and a popped page has nowhere to ask. A site that closes itself (`window.close()`) pops its
+  page, back to the library, like a closed browser tab. Ctrl+R reloads while the page is shown and refreshes the game
+  list on the library.
 - Preferences → Built-in browser has a **Privacy and compatibility** expander row with the six browser keys; the
   website-data row says that switching moves no data and games will need to sign in again. **Clear website data…**
   clears every session: the shared one and every `web/games/<id>` directory on disk, opened in this run or not.
