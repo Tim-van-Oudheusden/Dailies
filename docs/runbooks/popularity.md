@@ -106,10 +106,15 @@ itself once the required checks pass (#79); a failed check leaves it open for a 
   revert the merge commit in a pull request.
 - **A required check failed.** Read the failing check, fix the cause in its own pull request if it is a code bug, then
   start a new run, or merge the open pull request by hand once its checks pass.
-- **Weekly report.** If the workflow has the `narrate` input wired to a report step (#66) and only the report failed,
-  the numbers in the pull request are still valid: merge it, then either start a run with the report
-  (`gh workflow run popularity.yml -f narrate=true`) or skip the report for that week. Until #66 lands, `narrate` is
-  accepted and ignored.
+- **Weekly report.** **Write the report** writes it on the Monday run and on a manual run with `narrate` ticked. If
+  only its **Write the weekly report with Claude** step failed, the job stays green: the numbers are still valid, and
+  the pull request carries the shelves alone and merges itself as usual. Then either start a run with the report
+  (`gh workflow run popularity.yml -f narrate=true`; within the same ISO week it replaces that week's shelves) or skip
+  the report for that week.
+- **The report guard failed.** **Guard the changed paths and link the report** in **Write the report** found a change
+  the model may not make, or a report that is not a regular file. The job fails and no pull request opens, so the
+  current shelves stay. This is a control tripping, so read the `::error::` lines before starting a new run
+  ([`SECURITY-AI.md`](../security/SECURITY-AI.md#the-popularity-report)).
 
 Users need to do nothing: their apps fetch the merged file within 24 hours of being opened (`MAX_AGE` in
 `dailies/core/cache.py`).
