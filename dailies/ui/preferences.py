@@ -1,5 +1,7 @@
 """The Preferences dialog: how games open, browser website data, the category badge, and the catalog's last update."""
 
+from functools import partial
+
 from gi.repository import Adw, Gio, GLib, Gtk
 
 from dailies import config
@@ -189,8 +191,15 @@ class PreferencesDialog(Adw.PreferencesDialog):
         from dailies.ui import browser_page
 
         # Every session: the shared one and each game's, also those of games not opened since the app started.
-        browser_page.clear_all(self._settings, self._on_cleared)
+        # The window is taken now, while this dialog is attached: a closed dialog has no root, and the answer can
+        # arrive after it closed.
+        browser_page.clear_all(self._settings, partial(self._on_cleared, self.get_root()))
 
-    def _on_cleared(self, cleared: bool) -> None:
-        title = _("Website data cleared") if cleared else _("Could not clear website data")
-        self.add_toast(Adw.Toast(title=title))
+    def _on_cleared(self, window: Adw.ApplicationWindow, cleared: bool) -> None:
+        toast = Adw.Toast(title=_("Website data cleared") if cleared else _("Could not clear website data"))
+        # Shown where the user is looking: in Preferences while one is open, which may not be this dialog any more.
+        dialog = window.get_visible_dialog()
+        if isinstance(dialog, Adw.PreferencesDialog):
+            dialog.add_toast(toast)
+        else:
+            window.toast_overlay.add_toast(toast)

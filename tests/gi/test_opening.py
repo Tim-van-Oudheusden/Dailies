@@ -10,6 +10,7 @@ import sys
 import tempfile
 import time
 import unittest
+from collections.abc import Callable
 from pathlib import Path
 from unittest import mock
 
@@ -54,6 +55,7 @@ from gi.repository import Adw
 Adw.init()
 Gio.resources_register(Gio.Resource.load(os.environ["DAILIES_GRESOURCE"]))
 
+import dailies.ui
 from dailies.core.opening import Notice, OpenMode
 from dailies.ui import opener
 from dailies.ui.preferences import PreferencesDialog
@@ -71,6 +73,14 @@ def wait_for(path: Path) -> None:
     context = GLib.MainContext.default()
     deadline = time.monotonic() + 10
     while not path.exists() and time.monotonic() < deadline:
+        context.iteration(False)
+        time.sleep(0.01)
+
+
+def iterate_until(condition: Callable[[], object]) -> None:
+    context = GLib.MainContext.default()
+    deadline = time.monotonic() + 10
+    while not condition() and time.monotonic() < deadline:
         context.iteration(False)
         time.sleep(0.01)
 
@@ -323,6 +333,88 @@ class BrowserPreferencesTest(unittest.TestCase):
         assert self.dialog.session_isolation_row.props.selected == 1
         assert self.dialog.cookie_policy_row.props.selected == 2
         assert not self.dialog.hardware_acceleration_row.props.active
+
+
+class ClearWebsiteDataResultTest(unittest.TestCase):
+    """The answer to "Clear website data" is shown where the user is looking, also when Preferences closed first."""
+
+    def setUp(self) -> None:
+        self.settings = Gio.Settings.new(os.environ["DAILIES_SCHEMA_ID"])
+        for name, value in (("have_webkit", True), ("host_access", False)):
+            patcher = mock.patch.object(opener, name, return_value=value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        self.overlay = Adw.ToastOverlay()
+        self.window = Adw.ApplicationWindow(content=self.overlay)
+        self.window.toast_overlay = self.overlay
+        self.window.present()
+        self.addCleanup(self.window.destroy)
+        self.dialog = PreferencesDialog(settings=self.settings, store=FakeStore())
+        self.addCleanup(self.dialog.force_close)
+        # Toasts are read off recorders: Adw.ToastOverlay and Adw.Dialog have no getter for them.
+        self.on_window: list[str] = []
+        self.in_dialog: list[str] = []
+        for widget, titles in ((self.overlay, self.on_window), (self.dialog, self.in_dialog)):
+            patcher = mock.patch.object(widget, "add_toast", side_effect=self.recorder(titles))
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    @staticmethod
+    def recorder(titles: list[str]) -> Callable[[Adw.Toast], None]:
+        def record(toast: Adw.Toast) -> None:
+            titles.append(toast.props.title)
+
+        return record
+
+    def start_clearing(self) -> Callable[[bool], None]:
+        """Confirm the alert with the dialog presented, and return the callback `clear_all` was given."""
+        self.dialog.present(self.window)
+        iterate_until(lambda: self.window.get_visible_dialog() is self.dialog)
+        assert self.window.get_visible_dialog() is self.dialog
+        alert = mock.Mock()
+        alert.choose_finish.return_value = "clear"
+        fake = mock.Mock()
+        with mock.patch.object(dailies.ui, "browser_page", fake, create=True):
+            self.dialog._on_clear_chosen(alert, mock.Mock())  # noqa: SLF001
+        return fake.clear_all.call_args.args[1]
+
+    def test_the_result_is_shown_in_preferences_while_it_is_open(self) -> None:
+        on_cleared = self.start_clearing()
+
+        on_cleared(True)
+
+        assert self.in_dialog == ["Website data cleared"]
+        assert self.on_window == []
+
+    def test_a_failure_reaches_the_window_when_preferences_closed_first(self) -> None:
+        on_cleared = self.start_clearing()
+        self.dialog.force_close()
+        iterate_until(lambda: self.window.get_visible_dialog() is None)
+        assert self.window.get_visible_dialog() is None
+
+        on_cleared(False)
+
+        assert self.on_window == ["Could not clear website data"]
+        assert self.in_dialog == []
+
+    def test_the_result_is_shown_in_a_preferences_dialog_opened_since(self) -> None:
+        on_cleared = self.start_clearing()
+        self.dialog.force_close()
+        iterate_until(lambda: self.window.get_visible_dialog() is None)
+        reopened = PreferencesDialog(settings=self.settings, store=FakeStore())
+        self.addCleanup(reopened.force_close)
+        in_reopened: list[str] = []
+        patcher = mock.patch.object(reopened, "add_toast", side_effect=self.recorder(in_reopened))
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        reopened.present(self.window)
+        iterate_until(lambda: self.window.get_visible_dialog() is reopened)
+        assert self.window.get_visible_dialog() is reopened
+
+        on_cleared(True)
+
+        assert in_reopened == ["Website data cleared"]
+        assert self.on_window == []
 
 
 if __name__ == "__main__":
