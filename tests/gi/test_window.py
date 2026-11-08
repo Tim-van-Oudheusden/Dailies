@@ -18,6 +18,7 @@ from collections.abc import Callable
 from datetime import UTC, date, datetime
 from pathlib import Path
 from unittest import mock
+from xml.etree import ElementTree as ET
 
 # The built-in browser writes its website data here, not into the home directory of whoever runs the tests.
 _HOME = Path(tempfile.mkdtemp())
@@ -380,6 +381,22 @@ class PageDecisionsTest(WindowTest):
         # WebKit shows its dialog as a child of the view, next to the web content. Only Back answers for the user.
         assert run_until(lambda: self.web_view.get_first_child().get_next_sibling() is not None)
         assert self.web_view.get_uri() == f"{self.site}/"
+
+
+class GridItemTest(WindowTest):
+    def test_screen_readers_get_the_games_name_and_description(self) -> None:
+        # GTK hands out no grid item's Gtk.ListItem, so this reads the template the grid's factory builds each one from.
+        template = self.window.grid_view.get_factory().props.bytes.get_data()
+        root = ET.fromstring(template)  # noqa: S314 - the app's own compiled resource
+        bound = {
+            binding.get("name"): (binding.find("lookup").get("type"), binding.find("lookup").get("name"))
+            for binding in root.find("template").findall("binding")
+        }
+
+        assert bound == {
+            "accessible-label": ("DailiesGameObject", "name"),
+            "accessible-description": ("DailiesGameObject", "description"),
+        }
 
 
 class StaleBannerTest(WindowTest):
