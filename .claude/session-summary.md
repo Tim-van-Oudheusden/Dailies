@@ -9,17 +9,14 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-13. #451 on `ci/451-allow-squash-merge`.
+2026-11-14. #434 on `chore/434-release-0.3.2` (step 1 of CONTRIBUTING "Cutting a release").
 
-- **Outcome:** `.github/rulesets/main.json` allows `merge` and `squash` (no rebase) so Hive's merge sweep can
-  squash-merge; `tests/tooling/test_ruleset.py` pins it. `AGENTS.md`, `CONTRIBUTING.md` (protection, merge queue,
-  release steps), `docs/multi-agent.md` and `docs/agent-tasks/README.md` no longer say merge commits only. The merge
-  queue and the popularity auto-merge still use `--merge`.
-- **Open follow-ups:** after merge the maintainer must turn on "Allow squash merging"
-  (`gh api -X PATCH repos/Tim-van-Oudheusden/Dailies -F allow_squash_merge=true`) and PUT the ruleset to id
-  `25235943`; until both happen GitHub still refuses squash merges.
+- **Outcome:** `meson.build` is at 0.3.2 and the metainfo has a 0.3.2 release covering #418 (a page the site closes),
+  80ae6d7 (Ctrl+F reaches the page), #423 (clear result after Preferences closes), #427 (local date in the stale
+  banner) and #429 (done/unavailable for screen readers). The screenshot URLs moved from `v0.3.0` to `v0.3.1`; the PNGs
+  are byte-identical at both tags (`git diff v0.3.0 v0.3.1 -- data/screenshots` is empty).
+- **Open follow-ups:** after this merges, `build(flatpak): pin release manifest to 0.3.2 (#434)` sets the `dailies`
+  `commit` to its merge commit, with nothing merged in between (no `tag` to drop: the 0.3.1 pin holds only a
+  `commit`); then the checklist and `v0.3.2` tag. #444 (pin to v0.3.1) is superseded by the 0.3.2 pin.
 - **Gotchas:**
-  - The ruleset's `allowed_merge_methods` only narrows the repository's own merge settings; it cannot enable a method
-    the repository has off.
-  - `docs/research/**` and `docs/proposals/**` still say "merge commits only": they record MinimalUI and the state at
-    the time of writing, so they were left as they are.
+  - `release_check.py verify` only rejects a future release date, so a tag after 2026-11-14 needs no change.
