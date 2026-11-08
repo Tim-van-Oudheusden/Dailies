@@ -9,13 +9,14 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-06. #392 on `ci/fix-merge-queue-dispatch`.
+2026-11-08. #438 on `ci/438-curl-retry`.
 
-- **Outcome:** `land` in `scripts/merge-queue.sh` tries each dispatch up to three times. A workflow that still will not
-  start gets an `::error` with the command to start it by hand; the others and the next run still start, and the run
-  ends red.
-- **Open follow-ups:** none.
+- **Outcome:** the `Static checks` job's shellcheck and actionlint downloads retry (`curl --retry 5 --retry-all-errors
+  --retry-delay 5`), so one GitHub 504 on a release asset no longer turns the required check red. The SHA-256 lines
+  still verify the download.
+- **Open follow-ups:** the failed jobs of runs 42467761287 and 42467761288 on `main` (f94e7e5) and of release PR #437
+  need a manual re-run; the Flatpak `appid-url-not-reachable` 504 and the MSYS2 download are left as they are (#438).
 - **Gotchas:**
-  - `test_shell_mutants.py` needs each row's old text to occur exactly once, so the second `for attempt in 1 2 3; do`
-    loop made the rows quote the line after it too.
-  - `Queue.run` now always stubs `sleep`; a retry test must not wait 10 s per attempt.
+  - Running the tooling tests needs Python 3.12+ (PEP 695 generics in `dailies/core`) and `ruamel.yaml`:
+    `uv run --no-project --python 3.13 --with-requirements scripts/requirements.txt --with pytest python -m pytest
+    tests/tooling`.

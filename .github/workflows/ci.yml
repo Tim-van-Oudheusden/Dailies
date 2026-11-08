@@ -65,18 +65,20 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      # Release binaries pinned by SHA-256: no third-party action and no docker:// image.
+      # Release binaries pinned by SHA-256: no third-party action and no docker:// image. The downloads retry, since a
+      # GitHub 504 on a release asset turned this required check red twice in four days (#438); the checksum still
+      # verifies whatever arrives.
       - name: Install shellcheck and actionlint
         run: |
           mkdir -p "$RUNNER_TEMP/bin"
           cd "$RUNNER_TEMP"
           shellcheck_archive="shellcheck-v${SHELLCHECK_VERSION}.linux.x86_64.tar.xz"
-          curl -fsSLO "https://github.com/koalaman/shellcheck/releases/download/v${SHELLCHECK_VERSION}/${shellcheck_archive}"
+          curl -fsSLO --retry 5 --retry-all-errors --retry-delay 5 "https://github.com/koalaman/shellcheck/releases/download/v${SHELLCHECK_VERSION}/${shellcheck_archive}"
           echo "${SHELLCHECK_SHA256}  ${shellcheck_archive}" | sha256sum -c -
           tar -xJf "$shellcheck_archive"
           mv "shellcheck-v${SHELLCHECK_VERSION}/shellcheck" bin/
           actionlint_archive="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
-          curl -fsSLO "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/${actionlint_archive}"
+          curl -fsSLO --retry 5 --retry-all-errors --retry-delay 5 "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/${actionlint_archive}"
           echo "${ACTIONLINT_SHA256}  ${actionlint_archive}" | sha256sum -c -
           tar -xzf "$actionlint_archive" -C bin actionlint
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
