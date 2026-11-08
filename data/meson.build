@@ -1,24 +1,6 @@
 subdir('icons')
 
-blueprints = custom_target(
-  'blueprints',
-  input: files(
-    'ui/browser-page.blp',
-    'ui/game-tile.blp',
-    'ui/preferences.blp',
-    'ui/shortcuts-dialog.blp',
-    'ui/window.blp',
-  ),
-  output: '.',
-  command: [
-    find_program('blueprint-compiler', version: '>= 0.22'),
-    'batch-compile',
-    '--minify',
-    '@OUTPUT@',
-    '@CURRENT_SOURCE_DIR@',
-    '@INPUT@',
-  ],
-)
+subdir('ui')
 
 desktop_file = i18n.merge_file(
   input: configure_file(

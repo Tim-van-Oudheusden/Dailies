@@ -70,7 +70,9 @@ docs/                       testing, risk tiers, metrics, runbooks, reflections,
 **Where code goes.** Anything that can be expressed without GTK or GLib (parsing, validation, ranking, search) goes in
 `dailies/core`, so it is tested with plain pytest on any machine. `dailies/data` and `dailies/ui` stay thin layers that
 read from GLib APIs and render with GTK. UI layout lives in Blueprint files under `data/ui/`, never in hand-written
-`.ui` XML.
+`.ui` XML. A new `.blp` goes into both lists in `data/ui/meson.build`: `input:` and, as its `.ui` name, `output:`. A
+`.ui` missing from `output:` still compiles, but one `ninja` can leave `dailies.gresource` holding the old template
+(#432); `tests/tooling/test_blueprints.py` fails `pytest` while the two lists differ.
 
 **Where a test goes.** In the `tests/` directory that mirrors the code it covers: a test for `dailies/core/catalog.py`
 goes in `tests/core/test_catalog.py`, one for `scripts/validate_submission.py` in `tests/scripts/`. Checks on the
