@@ -43,6 +43,15 @@ print(os.environ.get("FAKE_DIGEST_OUTPUT", "flathub/flatpak-external-data-checke
 sys.exit(int(os.environ.get("FAKE_DIGEST_RC", "0")))
 """
 
+# Stands in for scripts/check_pages.py: prints FAKE_PAGES_OUTPUT, exits FAKE_PAGES_RC.
+PAGES_CHECK_STUB = """
+import os
+import sys
+
+print(os.environ.get("FAKE_PAGES_OUTPUT", "games.json: Pages serves this checkout's copy (sha256 551f08c9fe9762d7)"))
+sys.exit(int(os.environ.get("FAKE_PAGES_RC", "0")))
+"""
+
 HIGH_ALERT = {
     "state": "open",
     "html_url": "https://github.com/o/r/security/dependabot/1",
@@ -64,6 +73,8 @@ def run(
     check_links.write_text(CHECK_LINKS_STUB, encoding="utf-8")
     checker_digest = tmp_path / "check_checker_digest.py"
     checker_digest.write_text(CHECKER_DIGEST_STUB, encoding="utf-8")
+    pages_check = tmp_path / "check_pages.py"
+    pages_check.write_text(PAGES_CHECK_STUB, encoding="utf-8")
     alerts_file = tmp_path / "alerts.json"
     alerts_file.write_text(json.dumps(alerts), encoding="utf-8")
     environment = {
@@ -76,6 +87,7 @@ def run(
         "ACMM_MIN_LEVEL": "0",
         "CHECK_LINKS": str(check_links),
         "CHECKER_DIGEST": str(checker_digest),
+        "PAGES_CHECK": str(pages_check),
         "LINKS_ARGS": str(tmp_path / "links-args.txt"),
         **env,
     }
@@ -98,6 +110,7 @@ def test_all_checks_pass(tmp_path: Path) -> None:
     assert "| GNOME runtime supported (org.gnome.Platform//51) | ✅ pass |" in result.stdout
     assert "| ACMM codebase level (L0+) | ✅ pass |" in result.stdout
     assert "| External data checker image is :latest | ✅ pass |" in result.stdout
+    assert "| GitHub Pages serves this commit's data | ✅ pass |" in result.stdout
     assert "## Failures" not in result.stdout
 
 
@@ -159,6 +172,28 @@ def test_an_unreachable_registry_fails_the_checker_image_row(tmp_path: Path) -> 
     assert result.returncode == 1
     assert "| External data checker image is :latest | ❌ fail |" in result.stdout
     assert "could not read ghcr.io: timed out" in result.stdout
+
+
+def test_pages_serving_old_data_fails_with_the_checksums_and_the_runbook(tmp_path: Path) -> None:
+    stale = (
+        "games.json: Pages serves sha256 aaaaaaaaaaaaaaaa, this checkout has bbbbbbbbbbbbbbbb"
+        " (last changed 2 days ago)\n"
+        "Pages is not serving this checkout's data to the apps; see docs/runbooks/pages.md."
+    )
+    result = run(tmp_path, [], FAKE_PAGES_RC="1", FAKE_PAGES_OUTPUT=stale)
+    assert result.returncode == 1
+    assert "| GitHub Pages serves this commit's data | ❌ fail |" in result.stdout
+    assert "### GitHub Pages data" in result.stdout
+    assert "this checkout has bbbbbbbbbbbbbbbb" in result.stdout
+    # The other checks still run.
+    assert "| External data checker image is :latest | ✅ pass |" in result.stdout
+
+
+def test_an_unreadable_checkout_fails_the_pages_row(tmp_path: Path) -> None:
+    result = run(tmp_path, [], FAKE_PAGES_RC="2", FAKE_PAGES_OUTPUT="check_pages: could not read data/v1/games.json")
+    assert result.returncode == 1
+    assert "| GitHub Pages serves this commit's data | ❌ fail |" in result.stdout
+    assert "check_pages: could not read data/v1/games.json" in result.stdout
 
 
 def test_an_acmm_level_below_the_minimum_fails_with_the_gaps(tmp_path: Path) -> None:
@@ -297,7 +332,7 @@ def test_the_compliance_issue_script_reads_the_failing_rows_of_this_report(tmp_p
     compliance_issue = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(compliance_issue)
 
-    failing = run(tmp_path, [HIGH_ALERT], FAKE_WEEKDAY="7", FAKE_LINKS_RC="1", FAKE_DIGEST_RC="1")
+    failing = run(tmp_path, [HIGH_ALERT], FAKE_WEEKDAY="7", FAKE_LINKS_RC="1", FAKE_DIGEST_RC="1", FAKE_PAGES_RC="1")
     links_error = run(tmp_path, [], FAKE_WEEKDAY="7", FAKE_LINKS_RC="2")
     passing = run(tmp_path, [], FAKE_WEEKDAY="7")
 
@@ -305,6 +340,7 @@ def test_the_compliance_issue_script_reads_the_failing_rows_of_this_report(tmp_p
     assert compliance_issue.failing_checks(failing.stdout) == [
         "Dependabot alerts (high+)",
         "External data checker image is :latest",
+        "GitHub Pages serves this commit's data",
     ]
     assert compliance_issue.failing_checks(links_error.stdout) == ["Catalog links (weekly)"]
     assert compliance_issue.failing_checks(passing.stdout) == []

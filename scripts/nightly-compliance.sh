@@ -29,7 +29,15 @@
 #      was built 10 days ago and is still not pinned (the checker-pin job opens
 #      its pull request after 3 days); so does an unreachable ghcr.io.
 #      CHECKER_DIGEST replaces the script; the tests use it.
-#   6. Catalog links, Sundays (UTC) only, or any day with --force-links or
+#   6. Published data: scripts/check_pages.py compares the games.json and
+#      popularity.json GitHub Pages serves with the checkout's, byte for byte
+#      (#435). A failed Pages run leaves the old files up, which every app
+#      accepts, so a merged data fix would reach nobody without this row
+#      (docs/runbooks/pages.md). A difference is not failed while the change
+#      is younger than an hour, the time a deploy takes to show; a file Pages
+#      does not serve fails at once. PAGES_CHECK replaces the script; the
+#      tests use it.
+#   7. Catalog links, Sundays (UTC) only, or any day with --force-links or
 #      DAILIES_FORCE_LINKS=1: scripts/check_links.py checks every active
 #      entry of data/v1/games.json with the submission validator's rules. A
 #      broken link is a warning, not a failure (#302): its report goes to a
@@ -206,7 +214,16 @@ if [ "$digest_check" -ne 0 ]; then
 fi
 row "External data checker image is :latest" "$digest_check"
 
-# 6. Catalog links, weekly: every active catalog entry, with the submission validator's rules.
+# 6. What GitHub Pages serves to the apps against this checkout's data/v1.
+pages_out="$(python3 -I "${PAGES_CHECK:-scripts/check_pages.py}" 2>&1)"
+pages_check=$?
+if [ "$pages_check" -ne 0 ]; then
+  echo "$pages_out" >&2
+  detail_block "GitHub Pages data" "$pages_out"
+fi
+row "GitHub Pages serves this commit's data" "$pages_check"
+
+# 7. Catalog links, weekly: every active catalog entry, with the submission validator's rules.
 if [ "$force_links" = 1 ] || [ "$(date -u +%u)" = 7 ]; then
   links_md="$(mktemp)"
   links_args=(--catalog data/v1/games.json --out "$links_md")

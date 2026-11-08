@@ -165,8 +165,8 @@ scripts/strategy-report.sh --since "$since" --issues issues.json --prs prs.json
 
 Checks that can go stale without a code change, run every night so drift shows up before the next PR trips over it:
 Dependabot alerts, advisories in the CI tools, the GNOME runtime's end of life, the ACMM self-check, a newer
-`flatpak-external-data-checker` image than the pinned one, and on Sundays the liveness of every game link. The checks
-and when each fails are listed in
+`flatpak-external-data-checker` image than the pinned one, GitHub Pages serving data older than `main`, and on Sundays
+the liveness of every game link. The checks and when each fails are listed in
 [`docs/testing.md`](../testing.md#nightly-compliance). A failing check also opens, or updates, the one
 `ci: nightly compliance: N failing checks` issue, and the first passing run closes it
 ([`docs/testing.md`](../testing.md#the-nightly-compliance-issue)).
