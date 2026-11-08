@@ -88,6 +88,8 @@ RELEASE_CHECK = "scripts/release_check.py"
 RELEASE_CHECK_TESTS = "tests/scripts/test_release_check.py"
 REPORT_GUARD = "scripts/popularity/report_guard.py"
 REPORT_GUARD_TESTS = "tests/scripts/test_report_guard.py"
+CHECK_PAGES = "scripts/check_pages.py"
+CHECK_PAGES_TESTS = "tests/scripts/test_check_pages.py"
 
 MUTANTS = [
     Mutant(
@@ -138,6 +140,20 @@ MUTANTS = [
         'details+="$(cat "$links_md")"',
         'warnings+="$(cat "$links_md")"',
         f"{NIGHTLY_COMPLIANCE_TESTS}::test_a_links_check_error_with_a_report_puts_the_report_under_failures",
+    ),
+    Mutant(
+        "the Pages row captures why check_pages.py could not run, which it writes to stderr (#435)",
+        NIGHTLY_COMPLIANCE,
+        'scripts/check_pages.py}" 2>&1)"',
+        'scripts/check_pages.py}")"',
+        f"{NIGHTLY_COMPLIANCE_TESTS}::test_an_unreadable_checkout_fails_the_pages_row",
+    ),
+    Mutant(
+        "the Pages row runs scripts/check_pages.py when the tests do not replace it (#435)",
+        NIGHTLY_COMPLIANCE,
+        "${PAGES_CHECK:-scripts/check_pages.py}",
+        "${PAGES_CHECK:-scripts/check_page.py}",
+        f"{NIGHTLY_COMPLIANCE_TESTS}::test_each_script_the_tests_replace_defaults_to_one_in_the_repository",
     ),
     Mutant(
         "the queue says why it skips an UNSTABLE pull request",
@@ -1448,6 +1464,76 @@ MUTANTS = [
         "sort_keys=True, ensure_ascii=False",
         "sort_keys=True, ensure_ascii=True",
         f"{REPORT_GUARD_TESTS}::test_the_link_leaves_non_ascii_text_unescaped",
+    ),
+    Mutant(
+        "check_pages.py reads the last commit of a file, not every commit's time (#435)",
+        CHECK_PAGES,
+        '"log", "-1", ',
+        '"log", ',
+        f"{CHECK_PAGES_TESTS}::test_last_commit_reads_the_committer_time_of_the_file",
+    ),
+    Mutant(
+        "check_pages.py reads the last commit that touched the file, not the last commit (#435)",
+        CHECK_PAGES,
+        '"--format=%cI", "--", path]',
+        '"--format=%cI"]',
+        f"{CHECK_PAGES_TESTS}::test_last_commit_reads_the_committer_time_of_the_file",
+    ),
+    Mutant(
+        "an age of one to two days reads in days (#435)",
+        CHECK_PAGES,
+        "if age.days >= 1:",
+        "if age.days > 1:",
+        f"{CHECK_PAGES_TESTS}::test_age_text_names_the_largest_whole_unit",
+    ),
+    Mutant(
+        "one day is singular (#435)",
+        CHECK_PAGES,
+        "{'s' * (age.days != 1)}",
+        "s",
+        f"{CHECK_PAGES_TESTS}::test_age_text_names_the_largest_whole_unit",
+    ),
+    Mutant(
+        "hours are plural (#435)",
+        CHECK_PAGES,
+        "{'s' * (hours != 1)}",
+        "",
+        f"{CHECK_PAGES_TESTS}::test_age_text_names_the_largest_whole_unit",
+    ),
+    Mutant(
+        "one minute is singular (#435)",
+        CHECK_PAGES,
+        "{'s' * (minutes != 1)}",
+        "s",
+        f"{CHECK_PAGES_TESTS}::test_age_text_names_the_largest_whole_unit",
+    ),
+    Mutant(
+        "a commit time git does not print is an error, not a traceback (#435)",
+        CHECK_PAGES,
+        "except (OSError, ValueError, subprocess.CalledProcessError)",
+        "except (OSError, subprocess.CalledProcessError)",
+        f"{CHECK_PAGES_TESTS}::test_a_commit_time_that_cannot_be_read_is_an_error",
+    ),
+    Mutant(
+        "git missing from PATH is an error, not a traceback (#435)",
+        CHECK_PAGES,
+        "except (OSError, ValueError, subprocess.CalledProcessError)",
+        "except (ValueError, subprocess.CalledProcessError)",
+        f"{CHECK_PAGES_TESTS}::test_a_commit_time_that_cannot_be_read_is_an_error",
+    ),
+    Mutant(
+        "the default clock is in UTC, as git's commit times carry an offset (#435)",
+        CHECK_PAGES,
+        "dt.datetime.now(dt.UTC)",
+        "dt.datetime.now()",
+        f"{CHECK_PAGES_TESTS}::test_the_defaults_compare_this_repository_against_the_clock_in_utc",
+    ),
+    Mutant(
+        "the default --repo is the repository the script is in (#435)",
+        CHECK_PAGES,
+        "default=Path(__file__).resolve().parents[1]",
+        "default=Path(__file__).resolve().parents[0]",
+        f"{CHECK_PAGES_TESTS}::test_the_defaults_compare_this_repository_against_the_clock_in_utc",
     ),
 ]
 

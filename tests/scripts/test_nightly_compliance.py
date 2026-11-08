@@ -1,6 +1,7 @@
 import importlib.util
 import json
 import os
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -43,12 +44,14 @@ print(os.environ.get("FAKE_DIGEST_OUTPUT", "flathub/flatpak-external-data-checke
 sys.exit(int(os.environ.get("FAKE_DIGEST_RC", "0")))
 """
 
-# Stands in for scripts/check_pages.py: prints FAKE_PAGES_OUTPUT, exits FAKE_PAGES_RC.
+# Stands in for scripts/check_pages.py: prints FAKE_PAGES_OUTPUT, and FAKE_PAGES_ERROR to stderr, exits FAKE_PAGES_RC.
 PAGES_CHECK_STUB = """
 import os
 import sys
 
 print(os.environ.get("FAKE_PAGES_OUTPUT", "games.json: Pages serves this checkout's copy (sha256 551f08c9fe9762d7)"))
+if "FAKE_PAGES_ERROR" in os.environ:
+    print(os.environ["FAKE_PAGES_ERROR"], file=sys.stderr)
 sys.exit(int(os.environ.get("FAKE_PAGES_RC", "0")))
 """
 
@@ -190,10 +193,20 @@ def test_pages_serving_old_data_fails_with_the_checksums_and_the_runbook(tmp_pat
 
 
 def test_an_unreadable_checkout_fails_the_pages_row(tmp_path: Path) -> None:
-    result = run(tmp_path, [], FAKE_PAGES_RC="2", FAKE_PAGES_OUTPUT="check_pages: could not read data/v1/games.json")
+    # check_pages.py writes why it exits 2 to stderr, so the report has the reason only if the row captures stderr too.
+    error = "check_pages: could not read data/v1/games.json"
+    result = run(tmp_path, [], FAKE_PAGES_RC="2", FAKE_PAGES_OUTPUT="", FAKE_PAGES_ERROR=error)
     assert result.returncode == 1
     assert "| GitHub Pages serves this commit's data | ❌ fail |" in result.stdout
-    assert "check_pages: could not read data/v1/games.json" in result.stdout
+    assert error in result.stdout.split("### GitHub Pages data", 1)[1]
+
+
+def test_each_script_the_tests_replace_defaults_to_one_in_the_repository() -> None:
+    # run() replaces these scripts with stubs, so no other test reaches the default path the nightly run uses.
+    defaults = dict(re.findall(r'"\$\{([A-Z_]+):-(scripts/[^}]+)\}"', SCRIPT.read_text(encoding="utf-8")))
+    assert sorted(defaults) == ["CHECKER_DIGEST", "CHECK_LINKS", "PAGES_CHECK"]
+    for path in defaults.values():
+        assert (ROOT / path).is_file(), path
 
 
 def test_an_acmm_level_below_the_minimum_fails_with_the_gaps(tmp_path: Path) -> None:
