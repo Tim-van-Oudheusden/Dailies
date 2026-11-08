@@ -125,6 +125,8 @@ back a hijack or takedown fix, reply on that issue once Pages serves it, as
   link survives the copy; the `github-pages` environment deploys only from `main`.
 - The app checks every download before replacing its cached copy and keeps the last good one, so a broken deployment
   never empties the game list.
-- Not covered: nothing compares what Pages serves with `main`, and nothing alerts when a **Pages** run fails apart
-  from GitHub's own failed-run notification. After merging a data fix that has to reach users, check it as Diagnose
-  step 1 describes.
+- Every night the [nightly compliance](../testing.md#nightly-compliance) row "GitHub Pages serves this commit's data"
+  compares `games.json` and `popularity.json` on Pages with `main`, as Diagnose step 1 does, and opens the
+  `ci: nightly compliance` issue when they differ an hour after the change, or when Pages does not serve them (#435).
+- Not covered: the nightly row can take up to a day to notice, and it does not compare `icons/`. After merging a data
+  fix that has to reach users soon, check it as Diagnose step 1 describes.
