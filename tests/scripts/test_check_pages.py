@@ -129,9 +129,17 @@ def test_an_unreadable_checkout_is_an_error(tmp_path: Path, capsys: pytest.Captu
     assert "check_pages: could not read" in capsys.readouterr().err
 
 
-def test_a_commit_time_that_cannot_be_read_is_an_error(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+# What last_commit raises when git fails, when git is not on PATH, and when it prints no date (a path no commit has).
+@pytest.mark.parametrize(
+    "error",
+    [subprocess.CalledProcessError(128, ["git"]), FileNotFoundError("git"), ValueError("Invalid isoformat string: ''")],
+    ids=["git-failed", "no-git", "no-date"],
+)
+def test_a_commit_time_that_cannot_be_read_is_an_error(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], error: Exception
+) -> None:
     def broken(_repo: Path, _path: str) -> dt.datetime:
-        raise subprocess.CalledProcessError(128, ["git"])
+        raise error
 
     rc = cp.main(["--repo", str(checkout(tmp_path))], fetch=serving(games=OLD), committed=broken, now=lambda: NOW)
     assert rc == 2
@@ -155,6 +163,42 @@ def test_last_commit_reads_the_committer_time_of_the_file(tmp_path: Path) -> Non
         subprocess.run(["git", "-C", str(repo), *command], env=env, check=True)  # noqa: S603, S607 - test repo
 
     assert cp.last_commit(repo, "data/v1/games.json") == dt.datetime(2026, 11, 2, 12, 33, 52, tzinfo=dt.UTC)
+
+    # A later commit that touches only the other file moves that file's time, not this one's. A full clone has both
+    # commits; the workflow's shallow clone has one, so this is what a local run reports.
+    (repo / "data" / "v1" / "popularity.json").write_bytes(OLD)
+    later = {**env, "GIT_AUTHOR_DATE": "2026-11-05T08:00:00Z", "GIT_COMMITTER_DATE": "2026-11-05T08:00:00Z"}
+    subprocess.run(["git", "-C", str(repo), "commit", "-qam", "popularity"], env=later, check=True)  # noqa: S603, S607
+
+    assert cp.last_commit(repo, "data/v1/games.json") == dt.datetime(2026, 11, 2, 12, 33, 52, tzinfo=dt.UTC)
+    assert cp.last_commit(repo, "data/v1/popularity.json") == dt.datetime(2026, 11, 5, 8, 0, tzinfo=dt.UTC)
+
+
+@pytest.mark.parametrize(
+    ("age", "text"),
+    [
+        (dt.timedelta(days=1, hours=5), "1 day"),
+        (dt.timedelta(days=3), "3 days"),
+        (dt.timedelta(hours=1, minutes=59), "1 hour"),
+        (dt.timedelta(hours=23), "23 hours"),
+        (dt.timedelta(minutes=1, seconds=30), "1 minute"),
+    ],
+)
+def test_age_text_names_the_largest_whole_unit(age: dt.timedelta, text: str) -> None:
+    assert cp.age_text(age) == text
+
+
+def test_the_defaults_compare_this_repository_against_the_clock_in_utc() -> None:
+    # nightly-compliance.sh runs the script with no arguments, so --repo and the clock come from the defaults.
+    files = {BASE + name: (ROOT / "data" / "v1" / name).read_bytes() for name in cp.FILES}
+    assert cp.main([], fetch=FakePages(files)) == 0
+
+    # The committer time git prints carries an offset, so the default clock must too, or the subtraction raises.
+    def yesterday(_repo: Path, _path: str) -> dt.datetime:
+        return dt.datetime.now(dt.UTC) - dt.timedelta(days=1, minutes=5)
+
+    stale = {**files, BASE + "games.json": OLD}
+    assert cp.main([], fetch=FakePages(stale), committed=yesterday) == 1
 
 
 def test_https_get_refuses_a_url_that_is_not_https() -> None:
