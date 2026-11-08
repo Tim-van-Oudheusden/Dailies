@@ -9,13 +9,15 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-06. #392 on `ci/fix-merge-queue-dispatch`.
+2026-11-08. #434 on `chore/434-release-0.3.2` (step 1 of CONTRIBUTING "Cutting a release").
 
-- **Outcome:** `land` in `scripts/merge-queue.sh` tries each dispatch up to three times. A workflow that still will not
-  start gets an `::error` with the command to start it by hand; the others and the next run still start, and the run
-  ends red.
-- **Open follow-ups:** none.
+- **Outcome:** `meson.build` is at 0.3.2 and the metainfo has a 0.3.2 release covering #418 (a page the site closes),
+  80ae6d7 (Ctrl+F reaches the page), #423 (clear result after Preferences closes), #427 (local date in the stale
+  banner) and #429 (done/unavailable for screen readers). The screenshot URLs moved from `v0.3.0` to `v0.3.1`; the PNGs
+  are byte-identical at both tags (`git diff v0.3.0 v0.3.1 -- data/screenshots` is empty).
+- **Open follow-ups:** after this merges, `build(flatpak): pin release manifest to 0.3.2 (#434)` sets the `dailies`
+  `commit` to its merge commit, with nothing merged in between (no `tag` to drop: the 0.3.1 pin holds only a
+  `commit`); then the maintainer runs the manual checklist and pushes `v0.3.2`. The `gnome-51` image digest bump is
+  workflow-only (human).
 - **Gotchas:**
-  - `test_shell_mutants.py` needs each row's old text to occur exactly once, so the second `for attempt in 1 2 3; do`
-    loop made the rows quote the line after it too.
-  - `Queue.run` now always stubs `sleep`; a retry test must not wait 10 s per attempt.
+  - If the tag slips past 2026-11-08, nothing has to change: `release_check.py verify` only rejects a future date.
