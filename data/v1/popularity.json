@@ -3,7 +3,7 @@
     "Tranco (https://tranco-list.eu): domain ranks, used with attribution; licence not stated by its maintainers",
     "Wikimedia Analytics API (https://wikimedia.org/api/rest_v1/): English Wikipedia pageviews, CC0 1.0"
   ],
-  "generated_at": "2026-11-02T12:32:56Z",
+  "generated_at": "2026-11-09T12:59:15Z",
   "method_version": 4,
   "popular": [
     {
@@ -22,172 +22,184 @@
       "id": "wordle",
       "rank": 3,
       "reason": "score",
-      "score": 0.9529
+      "score": 0.954
     },
     {
       "id": "nyt-connections",
       "rank": 4,
       "reason": "score",
-      "score": 0.9529
+      "score": 0.954
     },
     {
       "id": "keyword",
       "rank": 5,
       "reason": "score",
-      "score": 0.8699
+      "score": 0.8663
     },
     {
       "id": "quordle",
       "rank": 6,
       "reason": "score",
-      "score": 0.8202
+      "score": 0.8198
     },
     {
       "id": "octordle",
       "rank": 7,
       "reason": "score",
-      "score": 0.8202
+      "score": 0.8198
     },
     {
       "id": "dordle",
       "rank": 8,
       "reason": "score",
-      "score": 0.809
+      "score": 0.8094
     },
     {
       "id": "bracket-city",
       "rank": 9,
       "reason": "score",
-      "score": 0.7731
+      "score": 0.7733
     },
     {
       "id": "phrazle",
       "rank": 10,
       "reason": "score",
-      "score": 0.6024
+      "score": 0.6042
     },
     {
       "id": "cinematrix",
       "rank": 11,
       "reason": "score",
-      "score": 0.5995
+      "score": 0.5993
     }
   ],
-  "report": "../popularity/2026-W45.md",
+  "report": "../popularity/2026-W46.md",
   "schema_version": 1,
   "scores": {
     "absurdle": {
       "history": [
+        0.3356,
         0.3352,
         0.3316
       ],
-      "popularity": 0.3356,
-      "tranco_rank": 119246,
-      "trend": 0.0022,
-      "wiki_views_7d": 424
+      "popularity": 0.3334,
+      "tranco_rank": 118726,
+      "trend": -0.0007,
+      "wiki_views_7d": 341
     },
     "actorle": {
       "history": [
+        0.1488,
         0.1449,
         0.1404
       ],
-      "popularity": 0.1488,
-      "tranco_rank": 677054,
-      "trend": 0.0061,
+      "popularity": 0.1523,
+      "tranco_rank": 652652,
+      "trend": 0.0076,
       "wiki_views_7d": null
     },
     "angle": {
       "history": [
+        0.1648,
         0.1563,
         0.1484
       ],
-      "popularity": 0.1648,
-      "tranco_rank": 573599,
-      "trend": 0.0125,
+      "popularity": 0.1733,
+      "tranco_rank": 524810,
+      "trend": 0.0168,
       "wiki_views_7d": null
     },
     "antiwordle": {
       "history": [
+        0.0654,
         0.0659,
         0.0664
       ],
-      "popularity": 0.0654,
-      "tranco_rank": 1606524,
-      "trend": -0.0008,
+      "popularity": 0.0658,
+      "tranco_rank": 1598640,
+      "trend": -0.0001,
       "wiki_views_7d": null
     },
     "artle": {
       "history": [
+        0.5285,
         0.5265,
         0.5249
       ],
-      "popularity": 0.5285,
-      "tranco_rank": 13235,
-      "trend": 0.0028,
+      "popularity": 0.5282,
+      "tranco_rank": 13274,
+      "trend": 0.0016,
       "wiki_views_7d": null
     },
     "bandle": {
       "history": [
+        0.2796,
         0.2879,
         0.2969
       ],
-      "popularity": 0.2796,
-      "tranco_rank": 174464,
-      "trend": -0.0128,
+      "popularity": 0.2708,
+      "tranco_rank": 191226,
+      "trend": -0.0173,
       "wiki_views_7d": null
     },
     "betweenle": {
       "history": [
+        0.1696,
         0.1674,
         0.1653
       ],
-      "popularity": 0.1696,
-      "tranco_rank": 545649,
-      "trend": 0.0033,
+      "popularity": 0.1726,
+      "tranco_rank": 528721,
+      "trend": 0.0052,
       "wiki_views_7d": null
     },
     "blossom": {
       "history": [
         0.8202,
+        0.8202,
         0.8196
       ],
-      "popularity": 0.8202,
-      "tranco_rank": 644,
-      "trend": 0.0003,
+      "popularity": 0.8198,
+      "tranco_rank": 647,
+      "trend": -0.0002,
       "wiki_views_7d": null
     },
     "box-office-game": {
       "history": [
+        0.063,
         0.0637,
         0.0641
       ],
-      "popularity": 0.063,
-      "tranco_rank": 1645897,
-      "trend": -0.0009,
+      "popularity": 0.0639,
+      "tranco_rank": 1631495,
+      "trend": 0.0003,
       "wiki_views_7d": null
     },
     "bracket-city": {
       "history": [
+        0.7731,
         0.7726,
         0.7732
       ],
-      "popularity": 0.7731,
-      "tranco_rank": 1049,
-      "trend": 0.0002,
+      "popularity": 0.7733,
+      "tranco_rank": 1048,
+      "trend": 0.0003,
       "wiki_views_7d": null
     },
     "cemantix": {
       "history": [
+        0.2914,
         0.2904,
         0.2904
       ],
-      "popularity": 0.2914,
-      "tranco_rank": 154455,
-      "trend": 0.001,
+      "popularity": 0.2925,
+      "tranco_rank": 152729,
+      "trend": 0.0018,
       "wiki_views_7d": null
     },
     "chessguessr": {
       "history": [
+        0.0,
         0.0,
         0.0
       ],
@@ -199,6 +211,7 @@
     "chessle": {
       "history": [
         0.0,
+        0.0,
         0.0
       ],
       "popularity": 0.0,
@@ -208,96 +221,106 @@
     },
     "chronophoto": {
       "history": [
+        0.156,
         0.154,
         0.1544
       ],
-      "popularity": 0.156,
-      "tranco_rank": 628109,
-      "trend": 0.0018,
+      "popularity": 0.1592,
+      "tranco_rank": 607629,
+      "trend": 0.0044,
       "wiki_views_7d": null
     },
     "cine2nerdle": {
       "history": [
+        0.0202,
         0.0364,
         0.0522
       ],
-      "popularity": 0.0202,
-      "tranco_rank": 2564221,
-      "trend": -0.0241,
+      "popularity": 0.0,
+      "tranco_rank": 3205708,
+      "trend": -0.0363,
       "wiki_views_7d": null
     },
     "cinematrix": {
       "history": [
+        0.5995,
         0.599,
         0.599
       ],
-      "popularity": 0.5995,
-      "tranco_rank": 6344,
-      "trend": 0.0005,
+      "popularity": 0.5993,
+      "tranco_rank": 6355,
+      "trend": 0.0001,
       "wiki_views_7d": null
     },
     "clues-by-sam": {
       "history": [
+        0.3666,
         0.3661,
         0.3656
       ],
-      "popularity": 0.3666,
-      "tranco_rank": 70876,
-      "trend": 0.0007,
+      "popularity": 0.3676,
+      "tranco_rank": 70099,
+      "trend": 0.0015,
       "wiki_views_7d": null
     },
     "colorfle": {
       "history": [
+        0.1482,
         0.1447,
         0.1402
       ],
-      "popularity": 0.1482,
-      "tranco_rank": 681229,
-      "trend": 0.0058,
+      "popularity": 0.1523,
+      "tranco_rank": 652560,
+      "trend": 0.0079,
       "wiki_views_7d": null
     },
     "conexo": {
       "history": [
+        0.2756,
         0.2753,
         0.275
       ],
-      "popularity": 0.2756,
-      "tranco_rank": 181862,
-      "trend": 0.0005,
+      "popularity": 0.2769,
+      "tranco_rank": 179376,
+      "trend": 0.0016,
       "wiki_views_7d": null
     },
     "contexto": {
       "history": [
+        0.3448,
         0.3283,
         0.3116
       ],
-      "popularity": 0.3448,
-      "tranco_rank": 88824,
-      "trend": 0.0249,
+      "popularity": 0.3628,
+      "tranco_rank": 73699,
+      "trend": 0.0346,
       "wiki_views_7d": null
     },
     "costcodle": {
       "history": [
+        0.1295,
         0.1098,
         0.092
       ],
-      "popularity": 0.1295,
-      "tranco_rank": 826248,
-      "trend": 0.0286,
+      "popularity": 0.1478,
+      "tranco_rank": 683520,
+      "trend": 0.0374,
       "wiki_views_7d": null
     },
     "countryle": {
       "history": [
+        0.1172,
         0.0991,
         0.0766
       ],
-      "popularity": 0.1172,
-      "tranco_rank": 938467,
-      "trend": 0.0294,
+      "popularity": 0.1406,
+      "tranco_rank": 736646,
+      "trend": 0.043,
       "wiki_views_7d": null
     },
     "crossover-grid": {
       "history": [
+        0.0,
         0.0,
         0.0
       ],
@@ -309,6 +332,7 @@
     "crosswordle": {
       "history": [
         0.0,
+        0.0,
         0.0
       ],
       "popularity": 0.0,
@@ -318,36 +342,40 @@
     },
     "daily-dozen-trivia": {
       "history": [
+        0.1868,
         0.1851,
         0.1848
       ],
-      "popularity": 0.1868,
-      "tranco_rank": 456663,
-      "trend": 0.0018,
+      "popularity": 0.1896,
+      "tranco_rank": 443406,
+      "trend": 0.004,
       "wiki_views_7d": null
     },
     "dordle": {
       "history": [
+        0.809,
         0.8081,
         0.8081
       ],
-      "popularity": 0.809,
-      "tranco_rank": 724,
-      "trend": 0.0009,
+      "popularity": 0.8094,
+      "tranco_rank": 720,
+      "trend": 0.001,
       "wiki_views_7d": null
     },
     "dotadle": {
       "history": [
+        0.132,
         0.1527,
         0.1639
       ],
-      "popularity": 0.132,
-      "tranco_rank": 805618,
-      "trend": -0.0263,
+      "popularity": 0.1145,
+      "tranco_rank": 965078,
+      "trend": -0.035,
       "wiki_views_7d": null
     },
     "dungleon": {
       "history": [
+        0.0,
         0.0,
         0.0
       ],
@@ -358,166 +386,183 @@
     },
     "emovi": {
       "history": [
+        0.4299,
         0.4247,
         0.4202
       ],
-      "popularity": 0.4299,
-      "tranco_rank": 36770,
-      "trend": 0.0075,
+      "popularity": 0.4358,
+      "tranco_rank": 34574,
+      "trend": 0.0109,
       "wiki_views_7d": null
     },
     "factle": {
       "history": [
+        0.4171,
         0.4168,
         0.4169
       ],
-      "popularity": 0.4171,
-      "tranco_rank": 41965,
-      "trend": 0.0003,
+      "popularity": 0.4191,
+      "tranco_rank": 41124,
+      "trend": 0.0022,
       "wiki_views_7d": null
     },
     "flagle": {
       "history": [
+        0.204,
         0.2044,
         0.2036
       ],
-      "popularity": 0.204,
-      "tranco_rank": 382036,
-      "trend": -0.0,
+      "popularity": 0.2068,
+      "tranco_rank": 370891,
+      "trend": 0.0028,
       "wiki_views_7d": null
     },
     "flickle": {
       "history": [
+        0.0749,
         0.072,
         0.0676
       ],
-      "popularity": 0.0749,
-      "tranco_rank": 1454600,
-      "trend": 0.0051,
+      "popularity": 0.0802,
+      "tranco_rank": 1377067,
+      "trend": 0.0087,
       "wiki_views_7d": null
     },
     "foodguessr": {
       "history": [
+        0.2126,
         0.2069,
         0.2052
       ],
-      "popularity": 0.2126,
-      "tranco_rank": 349507,
-      "trend": 0.0066,
+      "popularity": 0.2183,
+      "tranco_rank": 329330,
+      "trend": 0.0101,
       "wiki_views_7d": null
     },
     "framed": {
       "history": [
+        0.3872,
         0.3862,
         0.3858
       ],
-      "popularity": 0.3872,
-      "tranco_rank": 57203,
-      "trend": 0.0012,
+      "popularity": 0.3889,
+      "tranco_rank": 56255,
+      "trend": 0.0025,
       "wiki_views_7d": null
     },
     "gamedle": {
       "history": [
+        0.3569,
         0.3566,
         0.3557
       ],
       "popularity": 0.3569,
-      "tranco_rank": 78306,
-      "trend": 0.0008,
+      "tranco_rank": 78355,
+      "trend": 0.0005,
       "wiki_views_7d": null
     },
     "geogrid": {
       "history": [
+        0.1984,
         0.1975,
         0.1977
       ],
-      "popularity": 0.1984,
-      "tranco_rank": 404892,
-      "trend": 0.0008,
+      "popularity": 0.2011,
+      "tranco_rank": 393561,
+      "trend": 0.0032,
       "wiki_views_7d": null
     },
     "geoguessr-daily": {
       "history": [
+        0.5387,
         0.5378,
         0.5355
       ],
-      "popularity": 0.5387,
-      "tranco_rank": 11903,
-      "trend": 0.002,
+      "popularity": 0.5373,
+      "tranco_rank": 12077,
+      "trend": -0.0,
       "wiki_views_7d": null
     },
     "globle": {
       "history": [
+        0.387,
         0.3866,
         0.3867
       ],
-      "popularity": 0.387,
-      "tranco_rank": 57318,
-      "trend": 0.0004,
+      "popularity": 0.3883,
+      "tranco_rank": 56589,
+      "trend": 0.0015,
       "wiki_views_7d": null
     },
     "guess-the-game": {
       "history": [
         0.3694,
+        0.3694,
         0.3695
       ],
-      "popularity": 0.3694,
-      "tranco_rank": 68840,
-      "trend": -0.0,
+      "popularity": 0.3701,
+      "tranco_rank": 68327,
+      "trend": 0.0007,
       "wiki_views_7d": null
     },
     "harmonies": {
       "history": [
+        0.175,
         0.1742,
         0.1732
       ],
-      "popularity": 0.175,
-      "tranco_rank": 516077,
-      "trend": 0.0013,
+      "popularity": 0.1781,
+      "tranco_rank": 499692,
+      "trend": 0.004,
       "wiki_views_7d": null
     },
     "heardle-decades": {
       "history": [
+        0.2064,
         0.2052,
         0.2033
       ],
-      "popularity": 0.2064,
-      "tranco_rank": 372721,
+      "popularity": 0.2072,
+      "tranco_rank": 369490,
       "trend": 0.0022,
       "wiki_views_7d": null
     },
     "hexcodle": {
       "history": [
         0.0,
+        0.0,
         0.0
       ],
       "popularity": 0.0,
-      "tranco_rank": 3661580,
+      "tranco_rank": 3598669,
       "trend": 0.0,
       "wiki_views_7d": null
     },
     "immaculate-footy": {
       "history": [
+        0.4876,
         0.4887,
         0.4938
       ],
-      "popularity": 0.4876,
-      "tranco_rank": 20211,
-      "trend": -0.0037,
+      "popularity": 0.4878,
+      "tranco_rank": 20170,
+      "trend": -0.0022,
       "wiki_views_7d": null
     },
     "immaculate-grid": {
       "history": [
+        0.4876,
         0.4887,
         0.4938
       ],
-      "popularity": 0.4876,
-      "tranco_rank": 20211,
-      "trend": -0.0037,
-      "wiki_views_7d": 109
+      "popularity": 0.4878,
+      "tranco_rank": 20170,
+      "trend": -0.0022,
+      "wiki_views_7d": 119
     },
     "jumblie": {
       "history": [
+        0.0,
         0.0,
         0.0
       ],
@@ -528,16 +573,18 @@
     },
     "keyword": {
       "history": [
+        0.8699,
         0.8721,
         0.8733
       ],
-      "popularity": 0.8699,
-      "tranco_rank": 385,
-      "trend": -0.0028,
+      "popularity": 0.8663,
+      "tranco_rank": 400,
+      "trend": -0.0055,
       "wiki_views_7d": null
     },
     "kilordle": {
       "history": [
+        0.0,
         0.0,
         0.0
       ],
@@ -548,26 +595,29 @@
     },
     "la-palabra-del-dia": {
       "history": [
+        0.4764,
         0.4771,
         0.4772
       ],
-      "popularity": 0.4764,
-      "tranco_rank": 22710,
-      "trend": -0.0008,
+      "popularity": 0.4768,
+      "tranco_rank": 22607,
+      "trend": -0.0001,
       "wiki_views_7d": null
     },
     "le-mot": {
       "history": [
+        0.2657,
         0.2633,
         0.2609
       ],
-      "popularity": 0.2657,
-      "tranco_rank": 201557,
-      "trend": 0.0036,
+      "popularity": 0.269,
+      "tranco_rank": 194662,
+      "trend": 0.0057,
       "wiki_views_7d": null
     },
     "lingule": {
       "history": [
+        0.0,
         0.0,
         0.0
       ],
@@ -579,35 +629,39 @@
     "linkedin-pinpoint": {
       "history": [
         1.0,
+        1.0,
         1.0
       ],
       "popularity": 1.0,
-      "tranco_rank": 18,
+      "tranco_rank": 17,
       "trend": 0.0,
       "wiki_views_7d": null
     },
     "linkedin-queens": {
       "history": [
         1.0,
+        1.0,
         1.0
       ],
       "popularity": 1.0,
-      "tranco_rank": 18,
+      "tranco_rank": 17,
       "trend": 0.0,
       "wiki_views_7d": null
     },
     "loldle": {
       "history": [
+        0.3385,
         0.3554,
         0.3695
       ],
-      "popularity": 0.3385,
-      "tranco_rank": 94813,
-      "trend": -0.0239,
+      "popularity": 0.3258,
+      "tranco_rank": 108074,
+      "trend": -0.0287,
       "wiki_views_7d": null
     },
     "lyricle": {
       "history": [
+        0.0,
         0.0,
         0.0
       ],
@@ -618,556 +672,612 @@
     },
     "mathler": {
       "history": [
+        0.1659,
         0.1612,
         0.1551
       ],
-      "popularity": 0.1659,
-      "tranco_rank": 566843,
-      "trend": 0.0077,
+      "popularity": 0.1742,
+      "tranco_rank": 520009,
+      "trend": 0.0135,
       "wiki_views_7d": null
     },
     "metaflora": {
       "history": [
+        0.2322,
         0.2274,
         0.2243
       ],
-      "popularity": 0.2322,
-      "tranco_rank": 285136,
-      "trend": 0.0063,
+      "popularity": 0.2339,
+      "tranco_rank": 280068,
+      "trend": 0.0059,
       "wiki_views_7d": null
     },
     "metazooa": {
       "history": [
+        0.2322,
         0.2274,
         0.2243
       ],
-      "popularity": 0.2322,
-      "tranco_rank": 285136,
-      "trend": 0.0063,
+      "popularity": 0.2339,
+      "tranco_rank": 280068,
+      "trend": 0.0059,
       "wiki_views_7d": null
     },
     "minute-cryptic": {
       "history": [
+        0.3761,
         0.3752,
         0.3746
       ],
-      "popularity": 0.3761,
-      "tranco_rank": 64217,
-      "trend": 0.0012,
+      "popularity": 0.3776,
+      "tranco_rank": 63230,
+      "trend": 0.0023,
       "wiki_views_7d": null
     },
     "movie-grid": {
       "history": [
+        0.1568,
         0.1533,
         0.1511
       ],
-      "popularity": 0.1568,
-      "tranco_rank": 622578,
-      "trend": 0.0046,
+      "popularity": 0.1608,
+      "tranco_rank": 597744,
+      "trend": 0.0071,
       "wiki_views_7d": null
     },
     "moviedle": {
       "history": [
+        0.1316,
         0.1313,
         0.1309
       ],
-      "popularity": 0.1316,
-      "tranco_rank": 808869,
-      "trend": 0.0005,
+      "popularity": 0.132,
+      "tranco_rank": 805082,
+      "trend": 0.0007,
       "wiki_views_7d": null
     },
     "murdle": {
       "history": [
+        0.2668,
         0.2461,
         0.2237
       ],
-      "popularity": 0.2668,
-      "tranco_rank": 199174,
-      "trend": 0.0319,
+      "popularity": 0.2843,
+      "tranco_rank": 166241,
+      "trend": 0.0388,
       "wiki_views_7d": null
     },
     "narutodle": {
       "history": [
+        0.1963,
         0.1961,
         0.1964
       ],
-      "popularity": 0.1963,
-      "tranco_rank": 413673,
-      "trend": 0.0001,
+      "popularity": 0.1981,
+      "tranco_rank": 406095,
+      "trend": 0.0018,
       "wiki_views_7d": null
     },
     "nerdle": {
       "history": [
+        0.3822,
         0.3812,
         0.3778
       ],
-      "popularity": 0.3822,
-      "tranco_rank": 61722,
-      "trend": 0.0027,
-      "wiki_views_7d": 231
+      "popularity": 0.3819,
+      "tranco_rank": 60445,
+      "trend": 0.0015,
+      "wiki_views_7d": 108
     },
     "numble": {
       "history": [
+        0.0593,
         0.0599,
         0.0599
       ],
-      "popularity": 0.0593,
-      "tranco_rank": 1711237,
-      "trend": -0.0006,
+      "popularity": 0.0601,
+      "tranco_rank": 1696640,
+      "trend": 0.0004,
       "wiki_views_7d": null
     },
     "nyt-connections": {
       "history": [
+        0.9529,
         0.9538,
         0.9562
       ],
-      "popularity": 0.9529,
-      "tranco_rank": 163,
-      "trend": -0.0021,
-      "wiki_views_7d": 2166
+      "popularity": 0.954,
+      "tranco_rank": 161,
+      "trend": -0.0003,
+      "wiki_views_7d": 1444
     },
     "nyt-letter-boxed": {
       "history": [
+        0.9529,
         0.9538,
         0.9562
       ],
-      "popularity": 0.9529,
-      "tranco_rank": 163,
-      "trend": -0.0021,
+      "popularity": 0.954,
+      "tranco_rank": 161,
+      "trend": -0.0003,
       "wiki_views_7d": 116
     },
     "nyt-mini-crossword": {
       "history": [
+        0.9529,
         0.9538,
         0.9562
       ],
-      "popularity": 0.9529,
-      "tranco_rank": 163,
-      "trend": -0.0021,
+      "popularity": 0.954,
+      "tranco_rank": 161,
+      "trend": -0.0003,
       "wiki_views_7d": null
     },
     "nyt-pips": {
       "history": [
+        0.9529,
         0.9538,
         0.9562
       ],
-      "popularity": 0.9529,
-      "tranco_rank": 163,
-      "trend": -0.0021,
+      "popularity": 0.954,
+      "tranco_rank": 161,
+      "trend": -0.0003,
       "wiki_views_7d": null
     },
     "nyt-spelling-bee": {
       "history": [
+        0.9529,
         0.9538,
         0.9562
       ],
-      "popularity": 0.9529,
-      "tranco_rank": 163,
-      "trend": -0.0021,
-      "wiki_views_7d": 381
+      "popularity": 0.954,
+      "tranco_rank": 161,
+      "trend": -0.0003,
+      "wiki_views_7d": 250
     },
     "nyt-strands": {
       "history": [
+        0.9529,
         0.9538,
         0.9562
       ],
-      "popularity": 0.9529,
-      "tranco_rank": 163,
-      "trend": -0.0021,
-      "wiki_views_7d": 652
+      "popularity": 0.954,
+      "tranco_rank": 161,
+      "trend": -0.0003,
+      "wiki_views_7d": 538
     },
     "nyt-sudoku": {
       "history": [
+        0.9529,
         0.9538,
         0.9562
       ],
-      "popularity": 0.9529,
-      "tranco_rank": 163,
-      "trend": -0.0021,
+      "popularity": 0.954,
+      "tranco_rank": 161,
+      "trend": -0.0003,
       "wiki_views_7d": null
     },
     "nyt-tiles": {
       "history": [
+        0.9529,
         0.9538,
         0.9562
       ],
-      "popularity": 0.9529,
-      "tranco_rank": 163,
-      "trend": -0.0021,
+      "popularity": 0.954,
+      "tranco_rank": 161,
+      "trend": -0.0003,
       "wiki_views_7d": null
     },
     "octordle": {
       "history": [
         0.8202,
+        0.8202,
         0.8196
       ],
-      "popularity": 0.8202,
-      "tranco_rank": 644,
-      "trend": 0.0003,
+      "popularity": 0.8198,
+      "tranco_rank": 647,
+      "trend": -0.0002,
       "wiki_views_7d": null
     },
     "onepiecedle": {
       "history": [
+        0.2022,
         0.1999,
         0.1994
       ],
-      "popularity": 0.2022,
-      "tranco_rank": 389318,
-      "trend": 0.0025,
+      "popularity": 0.2064,
+      "tranco_rank": 372673,
+      "trend": 0.0059,
       "wiki_views_7d": null
     },
     "pedantle": {
       "history": [
+        0.2914,
         0.2904,
         0.2904
       ],
-      "popularity": 0.2914,
-      "tranco_rank": 154455,
-      "trend": 0.001,
+      "popularity": 0.2925,
+      "tranco_rank": 152729,
+      "trend": 0.0018,
       "wiki_views_7d": null
     },
     "phoodle": {
       "history": [
+        0.1687,
         0.1658,
         0.1639
       ],
-      "popularity": 0.1687,
-      "tranco_rank": 550568,
-      "trend": 0.0038,
+      "popularity": 0.1725,
+      "tranco_rank": 529332,
+      "trend": 0.0064,
       "wiki_views_7d": null
     },
     "phrazle": {
       "history": [
+        0.6024,
         0.6012,
         0.6008
       ],
-      "popularity": 0.6024,
-      "tranco_rank": 6157,
-      "trend": 0.0014,
+      "popularity": 0.6042,
+      "tranco_rank": 6044,
+      "trend": 0.0027,
       "wiki_views_7d": null
     },
     "plotwords": {
       "history": [
+        0.0588,
         0.0594,
         0.0594
       ],
-      "popularity": 0.0588,
-      "tranco_rank": 1719354,
-      "trend": -0.0006,
+      "popularity": 0.0596,
+      "tranco_rank": 1704733,
+      "trend": 0.0004,
       "wiki_views_7d": null
     },
     "poeltl": {
       "history": [
+        0.2463,
         0.245,
         0.2413
       ],
-      "popularity": 0.2463,
-      "tranco_rank": 246524,
-      "trend": 0.0032,
+      "popularity": 0.2479,
+      "tranco_rank": 242258,
+      "trend": 0.0037,
       "wiki_views_7d": null
     },
     "pokedle": {
       "history": [
+        0.2062,
         0.2043,
         0.2032
       ],
-      "popularity": 0.2062,
-      "tranco_rank": 373245,
-      "trend": 0.0025,
+      "popularity": 0.2103,
+      "tranco_rank": 357758,
+      "trend": 0.0057,
       "wiki_views_7d": null
     },
     "pokedoku": {
       "history": [
+        0.2922,
         0.2916,
         0.2917
       ],
-      "popularity": 0.2922,
-      "tranco_rank": 153123,
-      "trend": 0.0005,
+      "popularity": 0.2932,
+      "tranco_rank": 151569,
+      "trend": 0.0014,
       "wiki_views_7d": null
     },
     "primel": {
       "history": [
         0.0,
+        0.0,
         0.0
       ],
-      "popularity": 0.0,
-      "tranco_rank": 3330423,
-      "trend": 0.0,
+      "popularity": 0.0121,
+      "tranco_rank": 2788406,
+      "trend": 0.0121,
       "wiki_views_7d": null
     },
     "puzzgrid": {
       "history": [
+        0.1301,
         0.1311,
         0.1427
       ],
-      "popularity": 0.1301,
-      "tranco_rank": 821168,
-      "trend": -0.0068,
+      "popularity": 0.1306,
+      "tranco_rank": 817418,
+      "trend": -0.004,
       "wiki_views_7d": null
     },
     "puzzmo": {
       "history": [
+        0.3363,
         0.3313,
         0.3227
       ],
-      "popularity": 0.3363,
-      "tranco_rank": 96958,
-      "trend": 0.0093,
+      "popularity": 0.3453,
+      "tranco_rank": 88349,
+      "trend": 0.0152,
       "wiki_views_7d": null
     },
     "quordle": {
       "history": [
         0.8202,
+        0.8202,
         0.8196
       ],
-      "popularity": 0.8202,
-      "tranco_rank": 644,
-      "trend": 0.0003,
-      "wiki_views_7d": 709
+      "popularity": 0.8198,
+      "tranco_rank": 647,
+      "trend": -0.0002,
+      "wiki_views_7d": 353
     },
     "rankdle": {
       "history": [
+        0.0653,
         0.0659,
         0.06
       ],
-      "popularity": 0.0653,
-      "tranco_rank": 1607358,
+      "popularity": 0.066,
+      "tranco_rank": 1595421,
       "trend": 0.0023,
       "wiki_views_7d": null
     },
     "redactle": {
       "history": [
+        0.2259,
         0.219,
         0.2148
       ],
-      "popularity": 0.2259,
-      "tranco_rank": 304383,
-      "trend": 0.009,
+      "popularity": 0.2317,
+      "tranco_rank": 286748,
+      "trend": 0.0118,
       "wiki_views_7d": null
     },
     "scrandle": {
       "history": [
+        0.1732,
         0.171,
         0.1698
       ],
-      "popularity": 0.1732,
-      "tranco_rank": 525802,
-      "trend": 0.0028,
+      "popularity": 0.1763,
+      "tranco_rank": 509028,
+      "trend": 0.005,
       "wiki_views_7d": null
     },
     "sedecordle": {
       "history": [
+        0.2716,
         0.2701,
         0.2685
       ],
-      "popularity": 0.2716,
-      "tranco_rank": 189676,
-      "trend": 0.0023,
+      "popularity": 0.2743,
+      "tranco_rank": 184403,
+      "trend": 0.0042,
       "wiki_views_7d": null
     },
     "semantle": {
       "history": [
+        0.1767,
         0.1819,
         0.1763
       ],
-      "popularity": 0.1767,
-      "tranco_rank": 653591,
-      "trend": -0.0024,
-      "wiki_views_7d": 69
+      "popularity": 0.1606,
+      "tranco_rank": 614121,
+      "trend": -0.0177,
+      "wiki_views_7d": 10
     },
     "smashdle": {
       "history": [
+        0.1665,
         0.1647,
         0.1636
       ],
-      "popularity": 0.1665,
-      "tranco_rank": 563170,
-      "trend": 0.0023,
+      "popularity": 0.1695,
+      "tranco_rank": 546294,
+      "trend": 0.0046,
       "wiki_views_7d": null
     },
     "songless": {
       "history": [
+        0.3835,
         0.3828,
         0.3825
       ],
-      "popularity": 0.3835,
-      "tranco_rank": 59484,
-      "trend": 0.0009,
+      "popularity": 0.3853,
+      "tranco_rank": 58375,
+      "trend": 0.0024,
       "wiki_views_7d": null
     },
     "spotle": {
       "history": [
+        0.3083,
         0.3055,
         0.3033
       ],
-      "popularity": 0.3083,
-      "tranco_rank": 129634,
-      "trend": 0.0039,
+      "popularity": 0.3095,
+      "tranco_rank": 128030,
+      "trend": 0.0038,
       "wiki_views_7d": null
     },
     "squardle": {
       "history": [
+        0.0616,
         0.0622,
         0.0624
       ],
-      "popularity": 0.0616,
-      "tranco_rank": 1671114,
-      "trend": -0.0007,
+      "popularity": 0.0624,
+      "tranco_rank": 1656526,
+      "trend": 0.0003,
       "wiki_views_7d": null
     },
     "squaredle": {
       "history": [
+        0.4028,
         0.401,
         0.4
       ],
-      "popularity": 0.4028,
-      "tranco_rank": 48703,
-      "trend": 0.0023,
+      "popularity": 0.4053,
+      "tranco_rank": 47451,
+      "trend": 0.004,
       "wiki_views_7d": null
     },
     "statele": {
       "history": [
+        0.4299,
         0.4247,
         0.4202
       ],
-      "popularity": 0.4299,
-      "tranco_rank": 36770,
-      "trend": 0.0075,
+      "popularity": 0.4358,
+      "tranco_rank": 34574,
+      "trend": 0.0109,
       "wiki_views_7d": null
     },
     "summle": {
       "history": [
+        0.0577,
         0.0583,
         0.0581
       ],
-      "popularity": 0.0577,
-      "tranco_rank": 1739351,
-      "trend": -0.0005,
+      "popularity": 0.0585,
+      "tranco_rank": 1724711,
+      "trend": 0.0005,
       "wiki_views_7d": null
     },
     "sumplete": {
       "history": [
+        0.1845,
         0.1813,
         0.1804
       ],
-      "popularity": 0.1845,
-      "tranco_rank": 467566,
-      "trend": 0.0036,
+      "popularity": 0.1934,
+      "tranco_rank": 426301,
+      "trend": 0.0113,
       "wiki_views_7d": null
     },
     "sutom": {
       "history": [
+        0.346,
         0.3454,
         0.3449
       ],
-      "popularity": 0.346,
-      "tranco_rank": 87723,
-      "trend": 0.0009,
+      "popularity": 0.3464,
+      "tranco_rank": 87295,
+      "trend": 0.001,
       "wiki_views_7d": null
     },
     "termo": {
       "history": [
+        0.4757,
         0.4763,
         0.4764
       ],
-      "popularity": 0.4757,
-      "tranco_rank": 22865,
-      "trend": -0.0006,
-      "wiki_views_7d": 72
+      "popularity": 0.4762,
+      "tranco_rank": 22761,
+      "trend": 0.0001,
+      "wiki_views_7d": 91
     },
     "thrice": {
       "history": [
+        0.2008,
         0.2001,
         0.1992
       ],
-      "popularity": 0.2008,
-      "tranco_rank": 394694,
-      "trend": 0.0012,
+      "popularity": 0.2036,
+      "tranco_rank": 383415,
+      "trend": 0.0036,
       "wiki_views_7d": null
     },
     "timeguessr": {
       "history": [
+        0.3822,
         0.3791,
         0.3778
       ],
-      "popularity": 0.3822,
-      "tranco_rank": 60287,
-      "trend": 0.0037,
+      "popularity": 0.3856,
+      "tranco_rank": 58198,
+      "trend": 0.0059,
       "wiki_views_7d": null
     },
     "tradle": {
       "history": [
+        0.4701,
         0.4708,
         0.4665
       ],
-      "popularity": 0.4701,
-      "tranco_rank": 24247,
-      "trend": 0.0015,
+      "popularity": 0.4691,
+      "tranco_rank": 24492,
+      "trend": -0.0,
       "wiki_views_7d": null
     },
     "travle": {
       "history": [
+        0.2986,
         0.2971,
         0.2968
       ],
-      "popularity": 0.2986,
-      "tranco_rank": 143317,
+      "popularity": 0.2991,
+      "tranco_rank": 142615,
       "trend": 0.0016,
       "wiki_views_7d": null
     },
     "twofer-goofer": {
       "history": [
         0.8202,
+        0.8202,
         0.8196
       ],
-      "popularity": 0.8202,
-      "tranco_rank": 644,
-      "trend": 0.0003,
+      "popularity": 0.8198,
+      "tranco_rank": 647,
+      "trend": -0.0002,
       "wiki_views_7d": null
     },
     "waffle": {
       "history": [
+        0.399,
         0.3971,
         0.3963
       ],
-      "popularity": 0.399,
-      "tranco_rank": 50621,
-      "trend": 0.0023,
+      "popularity": 0.4022,
+      "tranco_rank": 48970,
+      "trend": 0.0047,
       "wiki_views_7d": null
     },
     "weaver": {
       "history": [
+        0.1426,
         0.1402,
         0.1264
       ],
-      "popularity": 0.1426,
-      "tranco_rank": 721267,
-      "trend": 0.0093,
+      "popularity": 0.1465,
+      "tranco_rank": 692746,
+      "trend": 0.0101,
       "wiki_views_7d": null
     },
     "weddle": {
       "history": [
+        0.1513,
         0.126,
         0.1039
       ],
-      "popularity": 0.1513,
-      "tranco_rank": 659607,
-      "trend": 0.0363,
+      "popularity": 0.1666,
+      "tranco_rank": 562524,
+      "trend": 0.0395,
       "wiki_views_7d": null
     },
     "whentaken": {
       "history": [
+        0.1973,
         0.1963,
         0.1958
       ],
-      "popularity": 0.1973,
-      "tranco_rank": 409269,
-      "trend": 0.0013,
+      "popularity": 0.2,
+      "tranco_rank": 398277,
+      "trend": 0.0035,
       "wiki_views_7d": null
     },
     "wheredle": {
       "history": [
+        0.0,
         0.0,
         0.0
       ],
@@ -1178,26 +1288,29 @@
     },
     "wheretaken": {
       "history": [
+        0.4299,
         0.4247,
         0.4202
       ],
-      "popularity": 0.4299,
-      "tranco_rank": 36770,
-      "trend": 0.0075,
+      "popularity": 0.4358,
+      "tranco_rank": 34574,
+      "trend": 0.0109,
       "wiki_views_7d": null
     },
     "woordle": {
       "history": [
+        0.1274,
         0.1271,
         0.1264
       ],
-      "popularity": 0.1274,
-      "tranco_rank": 844914,
-      "trend": 0.0007,
+      "popularity": 0.1278,
+      "tranco_rank": 841173,
+      "trend": 0.0008,
       "wiki_views_7d": null
     },
     "word-peaks": {
       "history": [
+        0.0,
         0.0,
         0.0
       ],
@@ -1208,32 +1321,35 @@
     },
     "wordle": {
       "history": [
+        0.9529,
         0.9538,
         0.9562
       ],
-      "popularity": 0.9529,
-      "tranco_rank": 163,
-      "trend": -0.0021,
-      "wiki_views_7d": 94409
+      "popularity": 0.954,
+      "tranco_rank": 161,
+      "trend": -0.0003,
+      "wiki_views_7d": 83643
     },
     "worldle": {
       "history": [
+        0.4353,
         0.4322,
         0.4258
       ],
-      "popularity": 0.4353,
-      "tranco_rank": 36770,
-      "trend": 0.0063,
-      "wiki_views_7d": 608
+      "popularity": 0.4408,
+      "tranco_rank": 34574,
+      "trend": 0.0097,
+      "wiki_views_7d": 633
     },
     "xordle": {
       "history": [
+        0.0567,
         0.0573,
         0.057
       ],
-      "popularity": 0.0567,
-      "tranco_rank": 1757424,
-      "trend": -0.0004,
+      "popularity": 0.0575,
+      "tranco_rank": 1742775,
+      "trend": 0.0005,
       "wiki_views_7d": null
     }
   },
@@ -1241,52 +1357,52 @@
     "tranco": {
       "domains_requested": 98,
       "domains_resolved": 88,
-      "fetched_at": "2026-11-02T12:30:30Z",
+      "fetched_at": "2026-11-09T12:56:59Z",
       "ok": true
     },
     "wikipedia": {
-      "fetched_at": "2026-11-02T12:32:50Z",
+      "fetched_at": "2026-11-09T12:59:09Z",
       "ok": true
     }
   },
   "stale": false,
   "trending": [
     {
-      "delta": 0.0363,
-      "id": "weddle",
+      "delta": 0.043,
+      "id": "countryle",
       "rank": 1,
       "reason": "score",
-      "score": 0.0363
+      "score": 0.043
     },
     {
-      "delta": 0.0319,
-      "id": "murdle",
+      "delta": 0.0395,
+      "id": "weddle",
       "rank": 2,
       "reason": "score",
-      "score": 0.0319
+      "score": 0.0395
     },
     {
-      "delta": 0.0294,
-      "id": "countryle",
+      "delta": 0.0388,
+      "id": "murdle",
       "rank": 3,
       "reason": "score",
-      "score": 0.0294
+      "score": 0.0388
     },
     {
-      "delta": 0.0286,
+      "delta": 0.0374,
       "id": "costcodle",
       "rank": 4,
       "reason": "score",
-      "score": 0.0286
+      "score": 0.0374
     },
     {
-      "delta": 0.0249,
+      "delta": 0.0346,
       "id": "contexto",
       "rank": 5,
       "reason": "score",
-      "score": 0.0249
+      "score": 0.0346
     }
   ],
-  "valid_until": "2026-11-12T12:32:56Z",
-  "week": "2026-W45"
+  "valid_until": "2026-11-19T12:59:15Z",
+  "week": "2026-W46"
 }
