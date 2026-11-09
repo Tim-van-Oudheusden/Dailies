@@ -112,6 +112,18 @@ def test_a_deleted_catalog_fails(repo: Path, capsys: pytest.CaptureFixture[str])
     assert errors(capsys) == [f"::error::{CATALOG} is not a regular file"]
 
 
+def test_an_icon_replaced_by_a_directory_fails(repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """git lists the files inside as new icons, and the old icon path as deleted, but it is not a deleted icon."""
+    icon = repo / "data" / "v1" / "icons" / "wordle.png"
+    icon.unlink()
+    icon.mkdir()
+    (icon / "inner.png").write_bytes(b"\x89PNG inner")
+
+    assert catalog_guard.main(["--repo", str(repo)]) == 1
+
+    assert errors(capsys) == ["::error::data/v1/icons/wordle.png is not a regular file"]
+
+
 def test_a_deleted_icon_passes(repo: Path) -> None:
     (repo / "data" / "v1" / "icons" / "wordle.png").unlink()
 

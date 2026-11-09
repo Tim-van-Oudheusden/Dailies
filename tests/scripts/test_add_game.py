@@ -114,10 +114,40 @@ def test_failed_validation_result_is_refused(tmp_path: Path, capsys: pytest.Capt
     assert "did not pass validation" in capsys.readouterr().err
 
 
+@pytest.mark.parametrize("entry", [None, ["bandle-test"], "bandle-test"])
+def test_a_passed_result_without_an_entry_object_is_refused(
+    entry: object, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The workflow reads exit 1 as "refused" and 2 as an input error; a validator result that passed but carries
+    no entry object is a refusal."""
+    catalog = copy_catalog(tmp_path)
+    before = catalog.read_bytes()
+    result = tmp_path / "result.json"
+    result.write_text(json.dumps({"ok": True, "entry": entry, "errors": [], "warnings": []}), encoding="utf-8")
+
+    status = ag.main(["--entry", str(result), "--catalog", str(catalog)])
+
+    assert status == 1
+    assert catalog.read_bytes() == before
+    assert "did not pass validation" in capsys.readouterr().err
+
+
+def test_generated_at_defaults_to_the_current_time_in_utc(tmp_path: Path) -> None:
+    """The approve workflow runs the script without `now`, so the default clock is the one that writes the catalog."""
+    catalog = copy_catalog(tmp_path)
+    before = datetime.now(UTC).replace(microsecond=0)
+
+    assert ag.main(["--entry", str(write_result(tmp_path, candidate())), "--catalog", str(catalog)]) == 0
+
+    after = datetime.now(UTC)
+    stamp = json.loads(catalog.read_text(encoding="utf-8"))["generated_at"]
+    assert before <= datetime.strptime(stamp, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC) <= after
+
+
 def test_pr_body_closes_the_issue_and_shows_the_entry(tmp_path: Path) -> None:
     catalog = copy_catalog(tmp_path)
     body = tmp_path / "body.md"
-    entry = candidate(name="Bandle ```Test")
+    entry = candidate(name="Bändle ```Test")
 
     args = ["--entry", str(write_result(tmp_path, entry)), "--catalog", str(catalog), "--pr-body", str(body)]
     assert ag.main(args, now=NOW) == 0

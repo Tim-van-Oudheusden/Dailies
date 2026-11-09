@@ -90,6 +90,12 @@ REPORT_GUARD = "scripts/popularity/report_guard.py"
 REPORT_GUARD_TESTS = "tests/scripts/test_report_guard.py"
 CHECK_PAGES = "scripts/check_pages.py"
 CHECK_PAGES_TESTS = "tests/scripts/test_check_pages.py"
+ADD_GAME = "scripts/add_game.py"
+ADD_GAME_TESTS = "tests/scripts/test_add_game.py"
+CATALOG_GUARD = "scripts/catalog_guard.py"
+CATALOG_GUARD_TESTS = "tests/scripts/test_catalog_guard.py"
+ACMM_SELF_CHECK = "scripts/acmm-self-check.py"
+ACMM_SELF_CHECK_TESTS = "tests/scripts/test_acmm_self_check.py"
 
 MUTANTS = [
     Mutant(
@@ -1534,6 +1540,62 @@ MUTANTS = [
         "default=Path(__file__).resolve().parents[1]",
         "default=Path(__file__).resolve().parents[0]",
         f"{CHECK_PAGES_TESTS}::test_the_defaults_compare_this_repository_against_the_clock_in_utc",
+    ),
+    Mutant(
+        "a passed validator result without an entry object is refused (exit 1), not an input error",
+        ADD_GAME,
+        'if result.get("ok") is not True or not isinstance(entry, dict):',
+        'if result.get("ok") is not True:',
+        f"{ADD_GAME_TESTS}::test_a_passed_result_without_an_entry_object_is_refused",
+    ),
+    Mutant(
+        "generated_at falls back to the current time, as the approve workflow passes none",
+        ADD_GAME,
+        "timestamp(now or datetime.now(UTC))",
+        "timestamp(now)",
+        f"{ADD_GAME_TESTS}::test_generated_at_defaults_to_the_current_time_in_utc",
+    ),
+    Mutant(
+        "the pull request body shows the entry's non-ASCII text unescaped",
+        ADD_GAME,
+        "candidate = json.dumps(entry, indent=2, ensure_ascii=False)",
+        "candidate = json.dumps(entry, indent=2)",
+        f"{ADD_GAME_TESTS}::test_pr_body_closes_the_issue_and_shows_the_entry",
+    ),
+    Mutant(
+        "an icon path that is now a directory is not taken for a deleted icon",
+        CATALOG_GUARD,
+        "(file.exists() or path == CATALOG)",
+        "(path == CATALOG)",
+        f"{CATALOG_GUARD_TESTS}::test_an_icon_replaced_by_a_directory_fails",
+    ),
+    Mutant(
+        "--min-level accepts every level up to the highest, and the nightly passes 5",
+        ACMM_SELF_CHECK,
+        "choices=range(MAX_LEVEL + 1)",
+        "choices=range(MAX_LEVEL)",
+        f"{ACMM_SELF_CHECK_TESTS}::test_every_level_is_a_valid_minimum",
+    ),
+    Mutant(
+        "a vendored criterion path matches Hive's list in docs/research/hive-acmm.md",
+        ACMM_SELF_CHECK,
+        '"tests/e2e/",',
+        '"tests/e2e",',
+        f"{ACMM_SELF_CHECK_TESTS}::test_the_criteria_match_the_research_report_table",
+    ),
+    Mutant(
+        "a vendored criterion name matches Hive's list in docs/research/hive-acmm.md",
+        ACMM_SELF_CHECK,
+        '"Reflection log",',
+        '"Reflection logs",',
+        f"{ACMM_SELF_CHECK_TESTS}::test_the_criteria_match_the_research_report_table",
+    ),
+    Mutant(
+        "a level name matches acmmLevelNames in docs/research/hive-acmm.md",
+        ACMM_SELF_CHECK,
+        '4: "Security-Aware",',
+        '4: "Security-aware",',
+        f"{ACMM_SELF_CHECK_TESTS}::test_the_level_names_match_the_research_report",
     ),
 ]
 
