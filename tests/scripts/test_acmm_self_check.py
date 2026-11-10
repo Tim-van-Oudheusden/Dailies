@@ -1,4 +1,5 @@
 import importlib.util
+import re
 from collections import Counter
 from pathlib import Path
 from types import ModuleType
@@ -86,6 +87,40 @@ def test_the_vendored_list_has_hives_50_criteria_per_level() -> None:
     assert len({criterion.key for criterion in acmm.CRITERIA}) == 50
     assert all(criterion.key.startswith(f"{criterion.source}:") for criterion in acmm.CRITERIA)
     assert all(criterion.patterns for criterion in acmm.CRITERIA)
+
+
+def research_section() -> str:
+    """Section 4 of docs/research/hive-acmm.md, up to its scoring rules: Hive's criteria list, verbatim."""
+    text = (ROOT / "docs" / "research" / "hive-acmm.md").read_text(encoding="utf-8")
+    return text.split("\n## 4. ", 1)[1].split("\n### 4.1 ", 1)[0]
+
+
+def research_table() -> list[tuple[str, int, str, str, tuple[str, ...]]]:
+    """The criteria rows of the research section, with the level of the heading each row is under."""
+    rows = []
+    level = -1
+    for line in research_section().splitlines():
+        if heading := re.match(r"### L(\d) ", line):
+            level = int(heading[1])
+        elif row := re.fullmatch(r"\| `((?:acmm|aef):[^`]+)` \| (.+?) \| (.+?) \| (.+) \|", line):
+            rows.append((row[1], level, row[3], row[2], tuple(re.findall(r"`([^`]+)`", row[4]))))
+    return rows
+
+
+def test_the_criteria_match_the_research_report_table() -> None:
+    """The report reproduces Hive's list verbatim, and the header says the script vendors the same file."""
+    vendored = [
+        (criterion.key, criterion.level, criterion.category, criterion.name, criterion.patterns)
+        for criterion in acmm.CRITERIA
+    ]
+    assert vendored == research_table()
+    assert all(criterion.source == criterion.key.split(":")[0] for criterion in acmm.CRITERIA)
+
+
+def test_the_level_names_match_the_research_report() -> None:
+    [names] = re.findall(r"Level names \(`acmmLevelNames`\): (.+?)\. ", research_section())
+    documented = {int(level): name for level, name in re.findall(r'(\d) "([^"]+)"', names)}
+    assert documented == acmm.LEVEL_NAMES
 
 
 def test_the_header_records_the_hive_commit_it_was_vendored_from() -> None:
@@ -186,6 +221,12 @@ def test_min_level_is_configurable(tmp_path: Path, capsys: pytest.CaptureFixture
     assert acmm.main(["--root", str(tmp_path), "--min-level", "2"]) == 1
     assert acmm.main(["--root", str(tmp_path), "--min-level", "0"]) == 0
     capsys.readouterr()
+
+
+@pytest.mark.parametrize("level", range(acmm.MAX_LEVEL + 1))
+def test_every_level_is_a_valid_minimum(level: int) -> None:
+    # scripts/nightly-compliance.sh passes --min-level explicitly (5 by default).
+    assert acmm.parse_args(["--min-level", str(level)]).min_level == level
 
 
 @pytest.mark.parametrize("argv", [["--min-level", "7"], ["--min-level", "x"], ["--root", "/nonexistent/acmm-root"]])
