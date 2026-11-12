@@ -9,14 +9,14 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-08. #438 on `ci/438-curl-retry`.
+2026-11-12. #446 on `architect/446-gi-broadway-helper`.
 
-- **Outcome:** the `Static checks` job's shellcheck and actionlint downloads retry (`curl --retry 5 --retry-all-errors
-  --retry-delay 5`), so one GitHub 504 on a release asset no longer turns the required check red. The SHA-256 lines
-  still verify the download.
-- **Open follow-ups:** the failed jobs of runs 42467761287 and 42467761288 on `main` (f94e7e5) and of release PR #437
-  need a manual re-run; the Flatpak `appid-url-not-reachable` 504 and the MSYS2 download are left as they are (#438).
+- **Outcome:** `tests/gi/broadway.py` now starts the private Broadway display and loads the build's `dailies.config`
+  for the five `tests/gi` modules that had their own copies. It serves the web client on a Unix socket rather than TCP
+  port 8080 + N, and it fails the module when no display socket appears within 10 s.
+- **Open follow-ups:** `tests/gi/test_dialogs.py` still has its own starter. It already does the right thing, and moving
+  it onto the helper is optional (#446).
 - **Gotchas:**
-  - Running the tooling tests needs Python 3.12+ (PEP 695 generics in `dailies/core`) and `ruamel.yaml`:
-    `uv run --no-project --python 3.13 --with-requirements scripts/requirements.txt --with pytest python -m pytest
-    tests/tooling`.
+  - Meson runs each `tests/gi` module as a script, so `import broadway` resolves from the script's directory. Plain
+    `pytest` never collects `tests/gi` (`--ignore=tests/gi`), so only `meson test --suite gi` (the `Flatpak (x86_64)`
+    job) exercises this change.

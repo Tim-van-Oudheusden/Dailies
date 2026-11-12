@@ -1,12 +1,10 @@
 """The custom open mode: the command runner and its Preferences rows; run by Meson (see tests/meson.build).
 
-Preferences is a widget, so the module starts a private Broadway server like tests/gi/test_tile.py.
+Preferences is a widget, so the module starts a private Broadway server (tests/gi/broadway.py).
 """
 
 import gettext
-import importlib.util
 import os
-import sys
 import tempfile
 import time
 import unittest
@@ -19,35 +17,11 @@ import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
+import broadway
 from gi.repository import Gio, GLib, GObject
 
-
-def _start_display() -> None:
-    # The build sandbox has no display; a Broadway server needs nothing but a socket in the runtime directory.
-    runtime = tempfile.mkdtemp()
-    os.environ["XDG_RUNTIME_DIR"] = runtime
-    display = str(510 + os.getpid() % 500)
-    server = Gio.Subprocess.new(
-        [os.environ["BROADWAYD"], f":{display}"],
-        Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_SILENCE,
-    )
-    deadline = time.monotonic() + 10
-    while not any(Path(runtime).glob("broadway*.socket")) and time.monotonic() < deadline:
-        time.sleep(0.05)
-    os.environ.update(GDK_BACKEND="broadway", BROADWAY_DISPLAY=f":{display}")
-    unittest.addModuleCleanup(server.force_exit)
-
-
-def _load_config() -> None:
-    # dailies/config.py exists only in the build directory.
-    spec = importlib.util.spec_from_file_location("dailies.config", os.environ["DAILIES_CONFIG"])
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    sys.modules["dailies.config"] = module
-
-
-_start_display()
-_load_config()
+broadway.start()
+broadway.load_config()
 gettext.install("dailies")
 
 from gi.repository import Adw

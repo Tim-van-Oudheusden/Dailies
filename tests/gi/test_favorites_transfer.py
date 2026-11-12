@@ -1,7 +1,7 @@
 """Export and import of favourites behind the primary menu; run by Meson (see tests/meson.build).
 
-The import asks Merge or Replace in an Adw.AlertDialog, so the module starts a private Broadway server like
-tests/gi/test_tile.py. The portal's file dialogs are not driven here: the tests start once a file is chosen.
+The import asks Merge or Replace in an Adw.AlertDialog, so the module starts a private Broadway server
+(tests/gi/broadway.py). The portal's file dialogs are not driven here: the tests start once a file is chosen.
 """
 
 import gettext
@@ -16,26 +16,10 @@ import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
+import broadway
 from gi.repository import Gio, GLib
 
-
-def _start_display() -> None:
-    # The build sandbox has no display; a Broadway server needs nothing but a socket in the runtime directory.
-    runtime = tempfile.mkdtemp()
-    os.environ["XDG_RUNTIME_DIR"] = runtime
-    display = str(510 + os.getpid() % 500)
-    server = Gio.Subprocess.new(
-        [os.environ["BROADWAYD"], f":{display}"],
-        Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_SILENCE,
-    )
-    deadline = time.monotonic() + 10
-    while not any(Path(runtime).glob("broadway*.socket")) and time.monotonic() < deadline:
-        time.sleep(0.05)
-    os.environ.update(GDK_BACKEND="broadway", BROADWAY_DISPLAY=f":{display}")
-    unittest.addModuleCleanup(server.force_exit)
-
-
-_start_display()
+broadway.start()
 gettext.install("dailies", names=["ngettext"])
 
 from gi.repository import Adw
