@@ -1,11 +1,10 @@
 """The built-in browser's network sessions and WebKit settings (#74); run by Meson (see tests/meson.build).
 
-WebKit needs a display, so the module starts a private Broadway server like tests/gi/test_opening.py, and points the
-XDG data and cache directories at a temporary directory before GLib reads them.
+WebKit needs a display, so the module starts a private Broadway server (tests/gi/broadway.py), and points the XDG
+data and cache directories at a temporary directory before GLib reads them.
 """
 
 import gettext
-import importlib.util
 import os
 import shutil
 import sys
@@ -26,33 +25,11 @@ gi.require_version("Adw", "1")
 gi.require_version("WebKit", "6.0")
 gi.require_version("Soup", "3.0")
 
+import broadway
 from gi.repository import Gio, GLib
 
-
-def _start_display() -> None:
-    runtime = tempfile.mkdtemp()
-    os.environ["XDG_RUNTIME_DIR"] = runtime
-    display = str(1010 + os.getpid() % 500)
-    server = Gio.Subprocess.new(
-        [os.environ["BROADWAYD"], f":{display}"],
-        Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_SILENCE,
-    )
-    deadline = time.monotonic() + 10
-    while not any(Path(runtime).glob("broadway*.socket")) and time.monotonic() < deadline:
-        time.sleep(0.05)
-    os.environ.update(GDK_BACKEND="broadway", BROADWAY_DISPLAY=f":{display}")
-    unittest.addModuleCleanup(server.force_exit)
-
-
-def _load_config() -> None:
-    spec = importlib.util.spec_from_file_location("dailies.config", os.environ["DAILIES_CONFIG"])
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    sys.modules["dailies.config"] = module
-
-
-_start_display()
-_load_config()
+broadway.start()
+broadway.load_config()
 gettext.install("dailies")
 unittest.addModuleCleanup(shutil.rmtree, HOME, ignore_errors=True)
 
