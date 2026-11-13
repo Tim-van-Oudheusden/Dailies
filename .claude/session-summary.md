@@ -9,14 +9,17 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-12. #446 on `architect/446-gi-broadway-helper`.
+2026-11-13. #451 on `ci/451-allow-squash-merge`.
 
-- **Outcome:** `tests/gi/broadway.py` now starts the private Broadway display and loads the build's `dailies.config`
-  for the five `tests/gi` modules that had their own copies. It serves the web client on a Unix socket rather than TCP
-  port 8080 + N, and it fails the module when no display socket appears within 10 s.
-- **Open follow-ups:** `tests/gi/test_dialogs.py` still has its own starter. It already does the right thing, and moving
-  it onto the helper is optional (#446).
+- **Outcome:** `.github/rulesets/main.json` allows `merge` and `squash` (no rebase) so Hive's merge sweep can
+  squash-merge; `tests/tooling/test_ruleset.py` pins it. `AGENTS.md`, `CONTRIBUTING.md` (protection, merge queue,
+  release steps), `docs/multi-agent.md` and `docs/agent-tasks/README.md` no longer say merge commits only. The merge
+  queue and the popularity auto-merge still use `--merge`.
+- **Open follow-ups:** after merge the maintainer must turn on "Allow squash merging"
+  (`gh api -X PATCH repos/Tim-van-Oudheusden/Dailies -F allow_squash_merge=true`) and PUT the ruleset to id
+  `25235943`; until both happen GitHub still refuses squash merges.
 - **Gotchas:**
-  - Meson runs each `tests/gi` module as a script, so `import broadway` resolves from the script's directory. Plain
-    `pytest` never collects `tests/gi` (`--ignore=tests/gi`), so only `meson test --suite gi` (the `Flatpak (x86_64)`
-    job) exercises this change.
+  - The ruleset's `allowed_merge_methods` only narrows the repository's own merge settings; it cannot enable a method
+    the repository has off.
+  - `docs/research/**` and `docs/proposals/**` still say "merge commits only": they record MinimalUI and the state at
+    the time of writing, so they were left as they are.

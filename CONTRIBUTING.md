@@ -102,10 +102,11 @@ We favour small, focused changes tied to a tracked issue.
 `main` is protected by the ruleset in [`.github/rulesets/main.json`](.github/rulesets/main.json): no direct pushes,
 force-pushes or deletion; changes land only through pull requests whose `PR review rubric`, `Build, lint, test`,
 `Unit-test coverage floors`, `Static checks` and `Flatpak (x86_64)` checks pass. Pull requests merge with a merge
-commit only (no squash or rebase), so each issue's single commit lands on `main` unchanged, and the head branch is
-deleted on merge. Repository admins can bypass the ruleset when merging a pull request (the release-manifest pin pull
-request, opened with `GITHUB_TOKEN`, runs no checks), never to push directly. The file is the source of truth: a
-change to it lands by PR, then a maintainer applies it with
+commit or a squash merge, never a rebase: the merge queue's merge commit lands each issue's single commit on `main`
+unchanged, and Hive's merge sweep squash-merges, which lands the pull request's change as one new commit. The head
+branch is deleted on merge. Repository admins can bypass the ruleset when merging a pull request (the release-manifest
+pin pull request, opened with `GITHUB_TOKEN`, runs no checks), never to push directly. The file is the source of
+truth: a change to it lands by PR, then a maintainer applies it with
 `gh api -X PUT repos/Tim-van-Oudheusden/Dailies/rulesets/<id> --input .github/rulesets/main.json` (the first time,
 when no ruleset exists yet:
 `gh api -X POST repos/Tim-van-Oudheusden/Dailies/rulesets --input .github/rulesets/main.json`).
@@ -113,8 +114,10 @@ when no ruleset exists yet:
 without updating the ruleset fails `pytest`.
 
 The merge queue (`.github/workflows/merge-queue.yml`) merges with `GITHUB_TOKEN`, whose scopes each job declares
-itself, so it needs no repository setting beyond "Allow merge commits" (already on, as the ruleset permits only merge
-commits). The ruleset applies to its merges like any other: the queue merges only pull requests whose required checks
+itself, and always with a merge commit. The ruleset's merge methods only narrow the repository's own, so under
+**Settings → General → Pull Requests** both "Allow merge commits" and "Allow squash merging" stay on
+(`gh api -X PATCH repos/Tim-van-Oudheusden/Dailies -F allow_merge_commit=true -F allow_squash_merge=true`). The
+ruleset applies to the queue's merges like any other: the queue merges only pull requests whose required checks
 pass and does not bypass the ruleset. A pull request merged by hand while the queue is verifying it is skipped. To stop
 the queue, disable the **Merge queue** workflow under Actions, or label every open pull request `hold`.
 
@@ -352,12 +355,12 @@ python3 scripts/release_check.py notes
    metainfo's screenshot URLs to the previous release's tag, the newest one that exists while it runs
    (`tests/data/test_screenshots.py` requires it). Merge it.
 2. Open a second pull request (`build(flatpak): pin release manifest to X.Y.Z (#N)`) that sets the `dailies` module's
-   `commit` in the release manifest to the merge commit from step 1, and merge it with nothing else merged in
-   between. The pin cannot go into the first pull request: a commit cannot name its own hash. It holds only a
+   `commit` in the release manifest to the commit that merging step 1 put on `main`, and merge it with nothing else
+   merged in between. The pin cannot go into the first pull request: a commit cannot name its own hash. It holds only a
    `commit`, so remove the `tag` that step 6 of the previous release added; a `tag` would have to point at that same
    commit, which the tag in step 4 does not.
-3. Run the manual checklist below on the Devel bundle that CI built from the merge commit.
-4. Tag the merge commit of step 2 and push the tag:
+3. Run the manual checklist below on the Devel bundle that CI built from that commit.
+4. Tag the commit that merging step 2 put on `main` and push the tag:
 
    ```sh
    git switch main && git pull

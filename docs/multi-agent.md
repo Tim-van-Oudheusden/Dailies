@@ -108,8 +108,8 @@ broken-links issue is labelled `data`. Whatever opens it, an issue goes into the
 
 Only pull requests change `main`. The ruleset in `.github/rulesets/main.json` requires the `PR review rubric`,
 `Build, lint, test`, `Unit-test coverage floors`, `Static checks` and `Flatpak (x86_64)` checks and allows merge commits
-only. The [merge queue](#merge-queue) merges ready pull requests with a merge commit, and Hive's merge sweep may
-merge low- and medium-risk ones; the maintainer merges the rest.
+and squash merges, not rebases. The [merge queue](#merge-queue) merges ready pull requests with a merge commit, and
+Hive's merge sweep may squash-merge low- and medium-risk ones; the maintainer merges the rest.
 The weekly popularity pull request merges itself (`AUTO_MERGE_JOBS` in `tests/tooling/test_workflows.py`); catalog and
 link-status pull requests carry the `automated` label, which keeps them out of the queue, so the maintainer merges
 them.
