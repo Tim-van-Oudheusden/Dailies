@@ -80,8 +80,7 @@ class Fetcher:
             try:
                 body = session.send_and_read_finish(result).get_data() or b""
             except GLib.Error as e:
-                log.info("%s: %s", request.url, e.message)
-                response = Response(None)
+                response = Response(None, error=e.message)
             else:
                 headers = message.get_response_headers()
                 response = Response(
