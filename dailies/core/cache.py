@@ -69,12 +69,16 @@ class Request:
 
 @dataclass(frozen=True)
 class Response:
-    """What came back: `status` is None when no HTTP response arrived (DNS, TLS, connection or timeout error)."""
+    """What came back: `status` is None when no HTTP response arrived (DNS, TLS, connection or timeout error).
+
+    `error` then says why, for the log.
+    """
 
     status: int | None
     body: bytes = b""
     etag: str | None = None
     retry_after: str | None = None
+    error: str | None = None
 
 
 class CacheDir:
@@ -238,7 +242,8 @@ class Refresh:
         if status == HTTPStatus.OK:
             return self._accept(url, response)
         if status is None or status == HTTPStatus.TOO_MANY_REQUESTS or status >= HTTPStatus.INTERNAL_SERVER_ERROR:
-            log.warning("%s: %s failed (%s), trying the next URL", self.name, url, status or "network error")
+            reason = status or response.error or "network error"
+            log.warning("%s: %s failed (%s), trying the next URL", self.name, url, reason)
             if until := parse_retry_after(response.retry_after, self._now, longest=MAX_AGE[self.name]):
                 self._backoff.defer(url, until)
             return self._next_request()

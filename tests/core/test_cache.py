@@ -1,3 +1,4 @@
+import logging
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -265,6 +266,18 @@ def test_a_server_error_or_network_failure_falls_through_to_the_next_url(cache_d
     plan.first_request()
 
     assert plan.handle(Response(status)) == Request("https://raw.example/v1/games.json", {"If-None-Match": '"abc"'})
+
+
+def test_a_network_failure_logs_its_reason_at_the_default_level(
+    cache_dir: CacheDir, caplog: pytest.LogCaptureFixture
+) -> None:
+    plan = refresh(cache_dir)
+    plan.first_request()
+
+    with caplog.at_level(logging.WARNING, logger="dailies.core.cache"):
+        plan.handle(Response(None, error="Error resolving “pages.example”: Name or service not known"))
+
+    assert "failed (Error resolving “pages.example”: Name or service not known)" in caplog.text
 
 
 @pytest.mark.parametrize("status", [301, 403, 404])
