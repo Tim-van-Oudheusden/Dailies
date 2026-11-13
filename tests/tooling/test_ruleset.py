@@ -41,10 +41,10 @@ def test_main_cannot_be_deleted_or_force_pushed() -> None:
     assert {"deletion", "non_fast_forward"} <= rules_by_type().keys()
 
 
-def test_changes_land_through_merge_commit_pull_requests_without_approvals() -> None:
+def test_changes_land_through_merge_or_squash_pull_requests_without_approvals() -> None:
     parameters = rules_by_type()["pull_request"]["parameters"]
     assert parameters["required_approving_review_count"] == 0
-    assert parameters["allowed_merge_methods"] == ["merge"]
+    assert sorted(parameters["allowed_merge_methods"]) == ["merge", "squash"]
 
 
 def test_required_checks_are_exactly_the_five_gates() -> None:

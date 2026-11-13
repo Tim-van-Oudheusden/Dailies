@@ -80,7 +80,7 @@ Never push to `main`, never force-push, and never say "ready to push when you ar
 ## Git and Version Management
 
 - Commits follow the Conventional Commits specification; one commit per issue, referencing the issue number.
-- Pull requests are merged with merge commits only; the branch is deleted on merge.
+- Pull requests are merged with a merge commit or a squash merge, never a rebase; the branch is deleted on merge.
 - A release is a pushed `vX.Y.Z` tag that matches the Meson project version and the newest metainfo release; only the
   maintainer pushes tags.
 - The ruleset in `.github/rulesets/main.json` is the source of truth for branch protection; change it by PR, then apply
