@@ -16,7 +16,7 @@ name: Merge queue
 #   reject - a PR that failed verification gets `hold` and a comment.
 #
 # Land and reject start the next run, so the queue drains one PR at a time.
-# Runs whenever a workflow holding a required check succeeds, a draft is marked
+# Runs whenever a workflow that checks pull requests succeeds, a draft is marked
 # ready, or a person removes one of those labels; workflow_dispatch drains it
 # on demand. See docs/multi-agent.md#merge-queue.
 #
@@ -28,10 +28,11 @@ name: Merge queue
 # already have. PR fields reach shell steps only through env.
 
 on:
-  # workflow_run matches workflows by name; tests/tooling/test_merge_queue_workflow.py fails when a workflow holding a
-  # required check is missing from the list.
+  # workflow_run matches workflows by name; tests/tooling/test_merge_queue_workflow.py fails when a workflow that runs
+  # on pull requests is missing from the list. Pick takes only a CLEAN pull request, so it runs again when the last
+  # check finishes, required or not: Windows (experimental) usually finishes after CI.
   workflow_run:
-    workflows: [CI, Coverage gate, PR review rubric]
+    workflows: [CI, Coverage gate, PR review rubric, Change classification, Labeler, Windows (experimental)]
     types: [completed]
   pull_request:
     types: [ready_for_review, unlabeled]
