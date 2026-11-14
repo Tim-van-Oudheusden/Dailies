@@ -154,6 +154,20 @@ class FetcherTest(unittest.TestCase):
 
         assert self.refresh_all([url, self.server.url])["games"] is Outcome.UPDATED
 
+    def test_a_network_error_names_its_cause_in_the_warning(self) -> None:
+        closed = Server()
+        url = closed.url
+        closed.shutdown()
+        closed.server_close()
+
+        with self.assertLogs("dailies.core.cache", "WARNING") as logs:
+            self.refresh_all([url, self.server.url])
+
+        # libsoup's own text is translated, so this checks only that the warning names a cause, not which one.
+        refused = [line for line in logs.output if f"{url}games.json failed (" in line]
+        assert refused, logs.output
+        assert all("(network error)" not in line for line in refused), refused
+
     def test_when_every_url_fails_the_saved_copy_is_kept(self) -> None:
         self.server.status = HTTPStatus.INTERNAL_SERVER_ERROR
         before = snapshot(self.cache.path)
