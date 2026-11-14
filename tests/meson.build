@@ -37,6 +37,17 @@ if glib_compile_schemas.found()
       )
     endforeach
 
+    # The hand mutants in tests/gi/mutants.py: each row reruns one of the tests above on a mutated copy of dailies/.
+    test(
+      'mutants',
+      py,
+      args: [files('gi' / 'test_mutants.py')],
+      env: tile_test_env,
+      depends: [compiled_schemas, resources],
+      suite: 'gi',
+      timeout: 180,
+    )
+
     # The built-in browser's sessions and WebKit settings, against a real WebKit network process.
     if webkit.found()
       test(

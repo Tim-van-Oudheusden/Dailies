@@ -9,14 +9,15 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-14. #434 on `chore/434-release-0.3.2` (step 1 of CONTRIBUTING "Cutting a release").
+2026-11-14. #454 on `test/454-gi-mutant-gate` (GI-only mutant gate).
 
-- **Outcome:** `meson.build` is at 0.3.2 and the metainfo has a 0.3.2 release covering #418 (a page the site closes),
-  80ae6d7 (Ctrl+F reaches the page), #423 (clear result after Preferences closes), #427 (local date in the stale
-  banner) and #429 (done/unavailable for screen readers). The screenshot URLs moved from `v0.3.0` to `v0.3.1`; the PNGs
-  are byte-identical at both tags (`git diff v0.3.0 v0.3.1 -- data/screenshots` is empty).
-- **Open follow-ups:** after this merges, `build(flatpak): pin release manifest to 0.3.2 (#434)` sets the `dailies`
-  `commit` to its merge commit, with nothing merged in between (no `tag` to drop: the 0.3.1 pin holds only a
-  `commit`); then the checklist and `v0.3.2` tag. #444 (pin to v0.3.1) is superseded by the 0.3.2 pin.
+- **Outcome:** `tests/gi/mutants.py` holds hand mutants of `dailies/` outside `dailies/core`, and
+  `tests/gi/test_mutants.py` (Meson test `mutants`, suite `gi`, broadwayd only) runs each row's GI test on a mutated
+  copy of `dailies/` with a control run. First rows: #449's `fetcher.py` error (new
+  `test_a_network_error_names_its_cause_in_the_warning`), #422's two `browser_page.py` dialog mutants, #431's
+  `tile.py` description and `game_object.py` handler-order mutants.
+- **Open follow-ups:** none filed. The `.blp` halves of #431 stay with hand sweeps (a rebuild per row).
 - **Gotchas:**
-  - `release_check.py verify` only rejects a future release date, so a tag after 2026-11-14 needs no change.
+  - No GI on the agent host: the harness was smoke-tested on a fake tree only; the rows themselves are verified by
+    CI's `Flatpak (x86_64)`.
+  - The runner exits 2 when the test module does not import and 3 when the test skips; only 1 counts as a kill.
