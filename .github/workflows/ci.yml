@@ -113,6 +113,13 @@ jobs:
       # together with --exceptions.
       - name: Lint manifest
         run: flatpak-builder-lint --gha-format --exceptions --user-exceptions build-aux/flatpak/lint-exceptions.json manifest "$MANIFEST"
+      # Runner facts for the EXDEV runtime-update failure, which has only hit AWS-hosted runners so far (#456).
+      - name: Show container filesystem
+        run: |
+          uname -r
+          grep -E '^overlay ' /proc/mounts || true
+          flatpak --installations
+          flatpak list --runtime --columns=application,branch,installation
       # The Devel manifest's dailies module sets run-tests, so flatpak-builder runs the Meson tests in the build
       # sandbox; the action runs flatpak-builder under xvfb-run. The action then exports repo/, writes the bundle and
       # uploads it as an artifact.
