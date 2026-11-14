@@ -51,13 +51,24 @@ def label_lists(expression: str) -> list[list[str]]:
     return [json.loads(raw) for raw in re.findall(r"fromJSON\('(\[[^']*\])'\)", expression)]
 
 
-def test_runs_when_any_workflow_holding_a_required_check_finishes() -> None:
-    # workflow_run matches workflows by name: a required check in a workflow the queue does not watch would leave a
-    # pull request whose last check came from there waiting for the next unrelated run.
+def workflows_checking_pull_requests() -> set[str]:
+    names = set()
+    for path in WORKFLOWS.glob("*.yml"):
+        workflow = load(path.name)
+        if {"pull_request", "pull_request_target"} & set(workflow["on"]):
+            names.add(workflow["name"])
+    return names - {QUEUE["name"]}
+
+
+def test_runs_when_any_workflow_checking_a_pull_request_finishes() -> None:
+    # workflow_run matches workflows by name. The queue picks only a CLEAN pull request, one with no check red or
+    # pending, required or not, so it has to run again when the last check finishes. A workflow it does not watch
+    # (Windows (experimental) usually finishes after CI) leaves the pull request waiting for the next unrelated run.
     workflow_run = QUEUE["on"]["workflow_run"]
 
     assert workflow_run["types"] == ["completed"]
-    assert set(workflow_run["workflows"]) == workflows_holding_a_required_check()
+    assert set(workflow_run["workflows"]) == workflows_checking_pull_requests()
+    assert workflows_holding_a_required_check() <= set(workflow_run["workflows"])
 
 
 def test_can_be_started_by_hand_and_when_a_draft_is_marked_ready_or_a_label_comes_off() -> None:

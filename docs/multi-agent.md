@@ -93,7 +93,7 @@ The other stages:
 | `nightly-compliance.yml` (link check) | Sundays, or a manual run with `force_links` | The `data: N broken links (week W)` issue, and the `data/link-status` pull request when a game's status should change |
 | `nightly-compliance.yml` (`checker-pin`) | Nightly, once a newer checker image has settled | The `ci/checker-pin` pull request |
 | `auto-issues.yml` | After each Nightly compliance run on `main` | Opens or updates the `ci: nightly compliance: N failing checks` issue, and closes it once every check passes ([`docs/testing.md`](testing.md#the-nightly-compliance-issue)) |
-| `merge-queue.yml` | Whenever a workflow holding a required check succeeds, a draft is marked ready, or a person removes `hold`, `blocked`, `sentinel-alert` or `automated`; or a manual run | Merges the oldest ready pull request (see [Merging](#merging)), closes the issues it links, and comments on and labels `hold` a pull request that fails verification |
+| `merge-queue.yml` | Whenever a workflow that checks pull requests succeeds, a draft is marked ready, or a person removes `hold`, `blocked`, `sentinel-alert` or `automated`; or a manual run | Merges the oldest ready pull request (see [Merging](#merging)), closes the issues it links, and comments on and labels `hold` a pull request that fails verification |
 | `popularity.yml` | Weekly (Mon 04:17 UTC), or a manual run | The `data/popularity` pull request, the only one that merges itself once the required checks pass |
 | `game-submission-check.yml`, `game-submission-approve.yml` | A game submission issue, then the maintainer's `approved` label | Labels and a comment on the submission, then the `data/add-<slug>` pull request |
 | `external-data-checker.yml` | Weekly (Mon 05:37 UTC), or a manual run | A pull request that moves the release manifest's source to a newer `v*` tag |
@@ -123,8 +123,9 @@ stages (`050` to `100`) describe its own lane; they do not replace the ruleset.
 ### Merge queue
 
 GitHub's own merge queue needs an organization-owned repository, so `.github/workflows/merge-queue.yml` runs one on
-Actions. Whenever CI, the coverage gate or the PR review rubric succeeds, a draft is marked ready, or a person removes
-`hold`, `blocked`, `sentinel-alert` or `automated` from a pull request, it takes the oldest open pull request that:
+Actions. Whenever a workflow that checks pull requests succeeds (CI, the coverage gate, the PR review rubric, change
+classification, the labeler or the Windows build), a draft is marked ready, or a person removes `hold`, `blocked`,
+`sentinel-alert` or `automated` from a pull request, it takes the oldest open pull request that:
 
 - comes from this repository, not a fork, and is not a draft;
 - has none of the labels `hold`, `blocked`, `sentinel-alert` or `automated`;
