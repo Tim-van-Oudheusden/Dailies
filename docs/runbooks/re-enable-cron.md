@@ -38,8 +38,8 @@ applies to the other scheduled workflows (`ai-audit.yml`, `external-data-checker
    ```
 
    Do the same for every other workflow `gh workflow list --all` shows as disabled.
-3. Catch up without waiting for Monday: start a run by hand (Actions tab, **Run workflow**, or the command below),
-   then review and merge the pull request it opens as usual.
+3. Catch up without waiting for Monday: start a run by hand (Actions tab, **Run workflow**, or the command below).
+   Like the Monday run, its `data(popularity)` pull request merges itself once the required checks pass.
 
    ```sh
    gh workflow run popularity.yml

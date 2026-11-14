@@ -42,7 +42,9 @@ FENCE = re.compile(r"```.*?```", re.DOTALL)
 MERMAID_NODE = re.compile(r"\b(?P<id>\w+)\[\"(?P<text>[^\"]*)\"\]")
 MERMAID_EDGE = re.compile(r"\b(?P<source>\w+)(?:\[\"[^\"]*\"\])?\s*-->\|\"(?P<label>[^\"]*)\"\|")
 HUMAN_MERGE = re.compile(
-    r"\bhuman[- ]merge[sd]?\b|\b(?:a|the) (?:human|person) merges\b|\bmerged by a (?:human|person)\b", re.IGNORECASE
+    r"\bhuman[- ]merge[sd]?\b|\b(?:a|the) (?:human|person) merges\b|\bmerged by a (?:human|person)\b"
+    r"|\breview and merge (?:the|this|it)\b",
+    re.IGNORECASE,
 )
 
 # The weekly shelves are the one pull request that merges itself; the catalog pull request is opened by this workflow.
@@ -282,6 +284,11 @@ def test_fixture_matching_edges_pass() -> None:
 @pytest.mark.parametrize("says", ["that a human merges", "a human-merged one", "a person merges", "merged by a person"])
 def test_fixture_prose_with_a_person_merging_the_popularity_pull_request_fails(says: str) -> None:
     text = f"The popularity job opens a pull request\n{says}.\n\nOther text."
+    assert len(merge_prose_violations("d.md", text, {"popularity.yml"})) == 1
+
+
+def test_fixture_prose_telling_the_reader_to_review_and_merge_the_popularity_pull_request_fails() -> None:
+    text = "The popularity run opens a pull request; review and merge the pull request.\n\nOther text."
     assert len(merge_prose_violations("d.md", text, {"popularity.yml"})) == 1
 
 
