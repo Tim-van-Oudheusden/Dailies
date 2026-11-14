@@ -63,24 +63,32 @@
 
   <screenshots>
     <screenshot type="default">
-      <image>https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/v0.3.0/data/screenshots/1.png</image>
+      <image>https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/v0.3.1/data/screenshots/1.png</image>
       <caption>Your favorite daily games together in one place</caption>
     </screenshot>
     <screenshot>
-      <image>https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/v0.3.0/data/screenshots/2.png</image>
+      <image>https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/v0.3.1/data/screenshots/2.png</image>
       <caption>The games that are popular this week</caption>
     </screenshot>
     <screenshot>
-      <image>https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/v0.3.0/data/screenshots/3.png</image>
+      <image>https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/v0.3.1/data/screenshots/3.png</image>
       <caption>Playing a game in the built-in browser</caption>
     </screenshot>
     <screenshot>
-      <image>https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/v0.3.0/data/screenshots/4.png</image>
+      <image>https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/v0.3.1/data/screenshots/4.png</image>
       <caption>Word games in the dark style</caption>
     </screenshot>
   </screenshots>
 
   <releases>
+    <release version="0.3.2" date="2026-11-14">
+      <description translate="no">
+        <p>A game page that closes itself now returns you to your games instead of leaving a blank page, and closed pages no longer keep running in the background.</p>
+        <p>Ctrl+F on a game page now goes to the page instead of opening the game search behind it.</p>
+        <p>Clearing website data reports its result even if you close Preferences first.</p>
+        <p>Screen readers now announce whether a game is done or unavailable, and the out-of-date notice shows your local date.</p>
+      </description>
+    </release>
     <release version="0.3.1" date="2026-11-05">
       <description translate="no">
         <p>Clearing website data now tells you when it fails, instead of saying it was cleared while the data stayed on disk.</p>
