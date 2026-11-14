@@ -164,6 +164,15 @@ ran, and mutmut cannot reach them without rewriting the test loaders that import
 only pins kills someone found by hand. It does not look for new ones, so it is no mutation report: only `dailies/core`
 has a Python mutation report, [below](#python-mutants).
 
+The code in `dailies/data`, `dailies/ui` and the rest of `dailies/` outside `dailies/core` that only the GI tests
+reach has rows in `tests/gi/mutants.py` (#454), since this table's pytest runs cannot run a `tests/gi` test.
+`tests/gi/test_mutants.py` runs them in `meson test --suite gi`, so in `Flatpak (x86_64)`; it needs `gtk4-broadwayd`, so
+the Windows job does not run it. A row names a `.py` file, `old`, `new` and the GI test as
+`<module>.<TestCase>.<test>`. For each row the test copies `dailies/` to a temporary directory, applies the replacement
+and runs that one test in a new interpreter with the copy first on `PYTHONPATH`, which needs no rebuild, and requires
+it to fail. A test module that does not import, a missing test and a skipped test are not kills, and the same `old` and
+control rules as above apply. Blueprint and other resource mutants need a rebuild per row and stay with hand sweeps.
+
 ## Python mutants
 
 A coverage floor shows that a line ran, not that a test would notice it changing: `dailies/core` is at 100 % branch
