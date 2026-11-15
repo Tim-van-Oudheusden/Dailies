@@ -9,13 +9,12 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-15. #462 on `fix/462-pages-check-retry` (nightly Pages row red on one dropped connection).
+2026-11-15. #464 on `fix/464-ctrl-d-browser-page` (Ctrl+D swallowed on the browser page).
 
-- **Outcome:** run 43707187348 failed "GitHub Pages serves this commit's data" on `games.json`:
-  `<urlopen error [Errno 104] Connection reset by peer>`; Pages served both files byte for byte as `main` when checked
-  the same day. `scripts/check_pages.py` now sends a request again (3 attempts, 10 s apart) when it fails the way the
-  app's `Refresh.handle` treats as transient (no answer, timeout, 429, 5xx); a 404 still fails at once.
-- **Open follow-ups:** none filed.
+- **Outcome:** `Application._on_visible_page` now also clears `win.toggle-favorite`'s accelerator while the browser
+  page is shown and restores `<Control>d` on the library, like Ctrl+F (#389). New `tests/gi/test_window.py` case runs
+  the real handler both ways; `docs/architecture.md` lists the library keys the web page gets.
+- **Open follow-ups:** none filed. Favouriting the shown game with Ctrl+D is a separate feature (out of scope per #464).
 - **Gotchas:**
-  - `http.client.IncompleteRead` from `response.read()` is not an `OSError`, so it still crashes the script (exit 1
-    with a traceback, which the row reports as a failure); not seen in a run yet.
+  - The agent host had no PyGObject/GNOME 51 libraries or podman, so the gi test ran only in CI's
+    `Build, lint, test`; the plain `pytest` suite and ruff ran locally under a uv-installed Python 3.13.

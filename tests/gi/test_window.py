@@ -182,6 +182,20 @@ class BrowserPageTest(WindowTest):
         assert run_until(lambda: self.view.props.visible_page.props.tag == "library")
         assert self.app.get_accels_for_action("win.search") == ["<Control>f"]
 
+    def test_ctrl_d_belongs_to_the_web_page_while_the_browser_is_shown(self) -> None:
+        # The real handler, which Application connects once it creates the window, on this harness's application.
+        handler = Application._on_visible_page  # noqa: SLF001 - the harness's application is not an Application
+        self.view.connect("notify::visible-page", lambda view, pspec: handler(self.app, view, pspec))
+        self.app.set_accels_for_action("win.toggle-favorite", ["<Control>d"])
+
+        self.window.open_game(self.games[0])
+        assert run_until(lambda: self.view.props.visible_page.props.tag == "browser")
+        assert self.app.get_accels_for_action("win.toggle-favorite") == []
+
+        self.view.pop()
+        assert run_until(lambda: self.view.props.visible_page.props.tag == "library")
+        assert self.app.get_accels_for_action("win.toggle-favorite") == ["<Control>d"]
+
     def test_search_shows_the_content_of_a_collapsed_window(self) -> None:
         split_view = self.window.split_view
         split_view.props.collapsed = True

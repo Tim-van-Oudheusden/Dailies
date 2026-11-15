@@ -284,7 +284,10 @@ else:
   stay). A `beforeunload` handler cannot keep a closing view alive: its confirmation is answered "leave", since Back
   already chose to leave and a popped page has nowhere to ask. A site that closes itself (`window.close()`) pops its
   page, back to the library, like a closed browser tab. Ctrl+R reloads while the page is shown and refreshes the game
-  list on the library.
+  list on the library. Application accelerators win over page shortcuts, so while the page is shown
+  `Application._on_visible_page` removes the other library keys and the web page gets them: Ctrl+F (search), Ctrl+D
+  (favourite the focused tile), and Shift+F10 and Menu (tile menu), which open the page's own context menu. Back on
+  the library they are bound again.
 - Preferences → Built-in browser has a **Privacy and compatibility** expander row with the six browser keys; the
   website-data row says that switching moves no data and games will need to sign in again. **Clear website data…**
   clears every session: the shared one and every `web/games/<id>` directory on disk, opened in this run or not.
