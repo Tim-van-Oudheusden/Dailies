@@ -168,19 +168,23 @@ class BrowserPageTest(WindowTest):
         sessions = _HOME / "data" / "dailies" / "web" / "games"
         assert sorted(p.name for p in sessions.iterdir()) == ["first", "second"]
 
-    def test_ctrl_f_belongs_to_the_web_page_while_the_browser_is_shown(self) -> None:
+    def test_the_library_keys_belong_to_the_web_page_while_the_browser_is_shown(self) -> None:
+        # Ctrl+F searches and Ctrl+D favourites the focused tile, both on the library behind the browser page.
         # The real handler, which Application connects once it creates the window, on this harness's application.
         handler = Application._on_visible_page  # noqa: SLF001 - the harness's application is not an Application
         self.view.connect("notify::visible-page", lambda view, pspec: handler(self.app, view, pspec))
         self.app.set_accels_for_action("win.search", _SEARCH_ACCELS)
+        self.app.set_accels_for_action("win.toggle-favorite", ["<Control>d"])
 
         self.window.open_game(self.games[0])
         assert run_until(lambda: self.view.props.visible_page.props.tag == "browser")
         assert self.app.get_accels_for_action("win.search") == []
+        assert self.app.get_accels_for_action("win.toggle-favorite") == []
 
         self.view.pop()
         assert run_until(lambda: self.view.props.visible_page.props.tag == "library")
         assert self.app.get_accels_for_action("win.search") == ["<Control>f"]
+        assert self.app.get_accels_for_action("win.toggle-favorite") == ["<Control>d"]
 
     def test_search_shows_the_content_of_a_collapsed_window(self) -> None:
         split_view = self.window.split_view

@@ -9,13 +9,13 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-15. #462 on `fix/462-pages-check-retry` (nightly Pages row red on one dropped connection).
+2026-11-15. #464 on `fix/464-release-ctrl-d-on-browser-page` (Ctrl+D swallowed on the browser page; #399's option A).
 
-- **Outcome:** run 43707187348 failed "GitHub Pages serves this commit's data" on `games.json`:
-  `<urlopen error [Errno 104] Connection reset by peer>`; Pages served both files byte for byte as `main` when checked
-  the same day. `scripts/check_pages.py` now sends a request again (3 attempts, 10 s apart) when it fails the way the
-  app's `Refresh.handle` treats as transient (no answer, timeout, 429, 5xx); a 404 still fails at once.
-- **Open follow-ups:** none filed.
+- **Outcome:** `Application._on_visible_page` now releases `win.toggle-favorite` (Ctrl+D, `_TOGGLE_FAVORITE_ACCELS`)
+  while the browser page is shown, like Ctrl+F (#389). `tests/gi/test_window.py`'s Ctrl+F test became
+  `test_the_library_keys_belong_to_the_web_page_while_the_browser_is_shown`, covering both keys.
+- **Open follow-ups:** #399's other rows (reopen #410; the "loop would never end" and `_on_close` comment fixes).
 - **Gotchas:**
-  - `http.client.IncompleteRead` from `response.read()` is not an `OSError`, so it still crashes the script (exit 1
-    with a traceback, which the row reports as a failure); not seen in a run yet.
+  - The GI tests run on this host inside the SDK: `flatpak run --filesystem=$PWD --command=sh org.gnome.Sdk//51 -c
+    'meson setup /tmp/dbuild -Dprofile=development && meson test -C /tmp/dbuild window'`.
+  - A full `/tmp` (tmpfs quota) makes `pytest` fail by the hundreds with `Disk quota exceeded`; point `TMPDIR` at disk.
