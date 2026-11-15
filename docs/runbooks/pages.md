@@ -128,5 +128,7 @@ back a hijack or takedown fix, reply on that issue once Pages serves it, as
 - Every night the [nightly compliance](../testing.md#nightly-compliance) row "GitHub Pages serves this commit's data"
   compares `games.json` and `popularity.json` on Pages with `main`, as Diagnose step 1 does, and opens the
   `ci: nightly compliance` issue when they differ an hour after the change, or when Pages does not serve them (#435).
+  A dropped connection, a timeout, a 429 or a 5xx is retried twice, 10 seconds apart, before it fails the row (#462),
+  so a failure that names one of them means Pages stayed unreachable for the whole check: run Diagnose step 1.
 - Not covered: the nightly row can take up to a day to notice, and it does not compare `icons/`. After merging a data
   fix that has to reach users soon, check it as Diagnose step 1 describes.

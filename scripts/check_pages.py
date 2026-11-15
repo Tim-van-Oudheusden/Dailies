@@ -12,11 +12,17 @@ and serves with `max-age=600`. In the workflow's shallow checkout the last commi
 the hour before the run puts a real mismatch off by one night. A file Pages does not serve fails whatever its age. The
 icons are not compared: they follow the catalog, and a stale games.json is the signal. The standard library is enough.
 
+A request that fails the way the app treats as transient (no answer, a timeout, a 429 or a 5xx: Refresh.handle in
+dailies/core/cache.py tries the next data URL on those) is sent again, ATTEMPTS times in all and RETRY_DELAY seconds
+apart, before it fails the row: one dropped connection says nothing about what Pages serves (#462). Any other answer, a
+404 included, fails at once.
+
 Usage:
     python3 -I scripts/check_pages.py [--repo DIR]
 
 Exits 0 when Pages serves both files as the checkout holds them (or a mismatch is younger than GRACE), 1 when a file
-differs or Pages does not serve it, and 2 when the checkout or its commit time could not be read.
+differs or Pages does not serve it (after the retries, if it failed transiently), and 2 when the checkout or its commit
+time could not be read.
 """
 
 import argparse
@@ -24,9 +30,12 @@ import datetime as dt
 import hashlib
 import subprocess
 import sys
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from collections.abc import Callable, Sequence
+from http import HTTPStatus
 from pathlib import Path
 
 BASE_URL = "https://tim-van-oudheusden.github.io/Dailies/v1/"
@@ -34,6 +43,8 @@ DATA = "data/v1/"
 FILES = ("games.json", "popularity.json")
 GRACE = dt.timedelta(hours=1)
 TIMEOUT = 30
+ATTEMPTS = 3
+RETRY_DELAY = 10
 RUNBOOK = "docs/runbooks/pages.md"
 
 # url -> body. Raises OSError when the request fails or is not answered 2xx (urllib's HTTPError is one).
@@ -41,6 +52,33 @@ Fetch = Callable[[str], bytes]
 # (checkout, path in it) -> committer time of the last commit that touched the path.
 Committed = Callable[[Path, str], dt.datetime]
 Clock = Callable[[], dt.datetime]
+Sleep = Callable[[float], None]
+
+
+def transient(error: OSError) -> bool:
+    """Whether `error` is a failure the app passes over to its next data URL rather than an answer from Pages."""
+    if isinstance(error, urllib.error.HTTPError):
+        return error.code == HTTPStatus.TOO_MANY_REQUESTS or error.code >= HTTPStatus.INTERNAL_SERVER_ERROR
+    return isinstance(error, (urllib.error.URLError, TimeoutError, ConnectionError))
+
+
+def fetch_retrying(fetch: Fetch, url: str, sleep: Sleep) -> bytes:
+    """`fetch(url)`, sent again after RETRY_DELAY seconds while it fails transiently, up to ATTEMPTS times in all.
+
+    Raises the first error that is not transient, or one naming the attempts when the last of them fails too.
+    """
+    attempt = 1
+    while True:
+        try:
+            return fetch(url)
+        except OSError as error:
+            if not transient(error):
+                raise
+            if attempt == ATTEMPTS:
+                msg = f"{error} ({ATTEMPTS} attempts, {RETRY_DELAY} s apart)"
+                raise OSError(msg) from error
+        attempt += 1
+        sleep(RETRY_DELAY)
 
 
 def https_get(url: str) -> bytes:
@@ -83,6 +121,7 @@ def main(
     fetch: Fetch = https_get,
     committed: Committed = last_commit,
     now: Clock = lambda: dt.datetime.now(dt.UTC),
+    sleep: Sleep = time.sleep,
 ) -> int:
     """Compare each file on Pages with the checkout; return the exit code."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -97,7 +136,7 @@ def main(
             sys.stderr.write(f"check_pages: could not read {path}: {error}\n")
             return 2
         try:
-            served = fetch(BASE_URL + name)
+            served = fetch_retrying(fetch, BASE_URL + name, sleep)
         except OSError as error:
             sys.stdout.write(f"{name}: Pages did not serve it: {error}\n")
             failed = True

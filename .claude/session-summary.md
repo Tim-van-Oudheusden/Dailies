@@ -9,15 +9,13 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-14. #454 on `test/454-gi-mutant-gate` (GI-only mutant gate).
+2026-11-15. #462 on `fix/462-pages-check-retry` (nightly Pages row red on one dropped connection).
 
-- **Outcome:** `tests/gi/mutants.py` holds hand mutants of `dailies/` outside `dailies/core`, and
-  `tests/gi/test_mutants.py` (Meson test `mutants`, suite `gi`, broadwayd only) runs each row's GI test on a mutated
-  copy of `dailies/` with a control run. First rows: #449's `fetcher.py` error (new
-  `test_a_network_error_names_its_cause_in_the_warning`), #422's two `browser_page.py` dialog mutants, #431's
-  `tile.py` description and `game_object.py` handler-order mutants.
-- **Open follow-ups:** none filed. The `.blp` halves of #431 stay with hand sweeps (a rebuild per row).
+- **Outcome:** run 43707187348 failed "GitHub Pages serves this commit's data" on `games.json`:
+  `<urlopen error [Errno 104] Connection reset by peer>`; Pages served both files byte for byte as `main` when checked
+  the same day. `scripts/check_pages.py` now sends a request again (3 attempts, 10 s apart) when it fails the way the
+  app's `Refresh.handle` treats as transient (no answer, timeout, 429, 5xx); a 404 still fails at once.
+- **Open follow-ups:** none filed.
 - **Gotchas:**
-  - No GI on the agent host: the harness was smoke-tested on a fake tree only; the rows themselves are verified by
-    CI's `Flatpak (x86_64)`.
-  - The runner exits 2 when the test module does not import and 3 when the test skips; only 1 counts as a kill.
+  - `http.client.IncompleteRead` from `response.read()` is not an `OSError`, so it still crashes the script (exit 1
+    with a traceback, which the row reports as a failure); not seen in a run yet.

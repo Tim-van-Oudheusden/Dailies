@@ -41,14 +41,20 @@ def checkout(tmp_path: Path, games: bytes = GAMES, popularity: bytes = POPULARIT
 
 
 class FakePages:
-    """Serves `files` by URL; any other URL answers like a Pages 404."""
+    """Serves `files` by URL; any other URL answers like a Pages 404.
 
-    def __init__(self, files: dict[str, bytes]) -> None:
+    `failures` maps a URL to the errors its first requests raise, in order, before it is served.
+    """
+
+    def __init__(self, files: dict[str, bytes], failures: dict[str, list[OSError]] | None = None) -> None:
         self.files = files
+        self.failures = failures or {}
         self.requests: list[str] = []
 
     def __call__(self, url: str) -> bytes:
         self.requests.append(url)
+        if self.failures.get(url):
+            raise self.failures[url].pop(0)
         if url not in self.files:
             raise urllib.error.HTTPError(url, 404, "Not Found", {}, None)  # type: ignore[arg-type]
         return self.files[url]
@@ -65,8 +71,22 @@ def committed_ago(age: dt.timedelta):  # noqa: ANN201 - a test double
     return committed
 
 
-def run(repo: Path, fetch: FakePages, age: dt.timedelta = dt.timedelta(days=2)) -> int:
-    return cp.main(["--repo", str(repo)], fetch=fetch, committed=committed_ago(age), now=lambda: NOW)
+def run(
+    repo: Path, fetch: FakePages, age: dt.timedelta = dt.timedelta(days=2), sleeps: list[float] | None = None
+) -> int:
+    pauses = [] if sleeps is None else sleeps
+    return cp.main(
+        ["--repo", str(repo)], fetch=fetch, committed=committed_ago(age), now=lambda: NOW, sleep=pauses.append
+    )
+
+
+def reset() -> OSError:
+    """What urlopen raised on the night of #462: the connection dropped before Pages answered."""
+    return urllib.error.URLError(ConnectionResetError(104, "Connection reset by peer"))
+
+
+def http_error(code: int) -> OSError:
+    return urllib.error.HTTPError(BASE + "games.json", code, "Error", {}, None)  # type: ignore[arg-type]
 
 
 def test_matching_files_pass_and_both_are_fetched_from_pages(
@@ -122,6 +142,65 @@ def test_a_file_pages_does_not_serve_fails_at_once_whatever_its_age(
     out = capsys.readouterr().out
     assert "games.json: Pages did not serve it: HTTP Error 404: Not Found" in out
     assert "docs/runbooks/pages.md" in out
+
+
+# A dropped connection, a timeout, a 429 and a 5xx are what the app itself treats as transient (it tries the next
+# data URL), so one of them on a single request says nothing about what Pages serves (#462).
+@pytest.mark.parametrize(
+    "error",
+    [
+        reset(),
+        urllib.error.URLError(TimeoutError("timed out")),
+        TimeoutError("timed out"),
+        http_error(500),
+        http_error(429),
+    ],
+    ids=["reset", "urlopen-timeout", "read-timeout", "500", "429"],
+)
+def test_a_transient_failure_is_retried_and_passes_when_pages_then_serves_the_file(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], error: OSError
+) -> None:
+    pages = FakePages(
+        {BASE + "games.json": GAMES, BASE + "popularity.json": POPULARITY}, {BASE + "games.json": [error]}
+    )
+    sleeps: list[float] = []
+    assert run(checkout(tmp_path), pages, sleeps=sleeps) == 0
+    assert pages.requests == [BASE + "games.json", BASE + "games.json", BASE + "popularity.json"]
+    assert sleeps == [cp.RETRY_DELAY]
+    assert "games.json: Pages serves this checkout's copy" in capsys.readouterr().out
+
+
+def test_a_connection_that_keeps_failing_fails_after_the_last_attempt(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    pages = FakePages(
+        {BASE + "games.json": GAMES, BASE + "popularity.json": POPULARITY},
+        {BASE + "games.json": [reset() for _ in range(cp.ATTEMPTS)]},
+    )
+    sleeps: list[float] = []
+    assert run(checkout(tmp_path), pages, sleeps=sleeps) == 1
+    assert pages.requests.count(BASE + "games.json") == cp.ATTEMPTS
+    assert sleeps == [cp.RETRY_DELAY] * (cp.ATTEMPTS - 1)
+    out = capsys.readouterr().out
+    assert (
+        f"games.json: Pages did not serve it: <urlopen error [Errno 104] Connection reset by peer>"
+        f" ({cp.ATTEMPTS} attempts, {cp.RETRY_DELAY} s apart)"
+    ) in out
+    assert "docs/runbooks/pages.md" in out
+
+
+def test_a_404_is_not_retried(tmp_path: Path) -> None:
+    # A 404 does not fall back in the app (docs/runbooks/pages.md), so it is an answer, not a transient failure.
+    pages = FakePages({BASE + "popularity.json": POPULARITY})
+    sleeps: list[float] = []
+    assert run(checkout(tmp_path), pages, sleeps=sleeps) == 1
+    assert pages.requests.count(BASE + "games.json") == 1
+    assert sleeps == []
+
+
+def test_the_retries_fit_the_nightly_job() -> None:
+    # Two files, each waiting out every delay and every attempt's timeout, stay well inside the job's 15 minutes.
+    assert len(cp.FILES) * (cp.ATTEMPTS * cp.TIMEOUT + (cp.ATTEMPTS - 1) * cp.RETRY_DELAY) <= 5 * 60
 
 
 def test_an_unreadable_checkout_is_an_error(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
