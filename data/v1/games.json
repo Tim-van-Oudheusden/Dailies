@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-10-16T18:33:54Z",
+  "generated_at": "2026-11-15T19:18:47Z",
   "games": [
     {
       "id": "absurdle",
@@ -1445,6 +1445,34 @@
           "date": "2026-10-15",
           "event": "added",
           "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "mapcade",
+      "name": "Mapcade",
+      "url": "https://mapcade.app/",
+      "category": "geography",
+      "difficulty": "medium",
+      "description": "Draw erased borders, identify country outlines, and test map intuition across 24 modes with 5 daily rounds per mode.",
+      "tags": [
+        "geography",
+        "maps",
+        "borders",
+        "trivia"
+      ],
+      "language": "en",
+      "added": "2026-11-15",
+      "status": "active",
+      "domain": "mapcade.app",
+      "icon": "icons/mapcade.png",
+      "icon_source": "site",
+      "source_issue": 469,
+      "history": [
+        {
+          "date": "2026-11-15",
+          "event": "added",
+          "note": "issue #469"
         }
       ]
     },
