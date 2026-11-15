@@ -26,6 +26,7 @@ from dailies.ui.favorites_transfer import Transfer
 
 _REFRESH_ACCELS = ["<Control>r"]
 _SEARCH_ACCELS = ["<Control>f"]
+_TOGGLE_FAVORITE_ACCELS = ["<Control>d"]
 _GAME_MENU_ACCELS = ["<Shift>F10", "Menu"]
 
 
@@ -87,12 +88,13 @@ class Application(Adw.Application):
     def _on_visible_page(self, view: Adw.NavigationView, _pspec: GObject.ParamSpec) -> None:
         # Ctrl+R refreshes the game list on the library and reloads the page in the built-in browser; application
         # accelerators win over page shortcuts, so the browser page borrows it while it is shown. Shift+F10 and Menu
-        # are left to the web page's own context menu there, and Ctrl+F to the web page, since the library's search
-        # bar is not on screen.
+        # are left to the web page's own context menu there, and Ctrl+F and Ctrl+D to the web page, since the library's
+        # search bar and tiles are not on screen.
         browser = view.props.visible_page.props.tag == "browser"
         self.set_accels_for_action("app.refresh", [] if browser else _REFRESH_ACCELS)
         self.set_accels_for_action("win.show-game-menu", [] if browser else _GAME_MENU_ACCELS)
         self.set_accels_for_action("win.search", [] if browser else _SEARCH_ACCELS)
+        self.set_accels_for_action("win.toggle-favorite", [] if browser else _TOGGLE_FAVORITE_ACCELS)
 
     def _on_preferences(self) -> None:
         # Imported here: its Gtk.Template needs the gresource that main() registers.
@@ -147,7 +149,7 @@ class Application(Adw.Application):
             self.add_action(action)
             self.set_accels_for_action(f"app.{name}", accels)
         # The window adds these actions (dailies/window.py).
-        self.set_accels_for_action("win.toggle-favorite", ["<Control>d"])
+        self.set_accels_for_action("win.toggle-favorite", _TOGGLE_FAVORITE_ACCELS)
         self.set_accels_for_action("win.search", _SEARCH_ACCELS)
         self.set_accels_for_action("win.show-game-menu", _GAME_MENU_ACCELS)
 
