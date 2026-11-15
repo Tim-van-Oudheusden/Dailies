@@ -35,8 +35,9 @@
 #      accepts, so a merged data fix would reach nobody without this row
 #      (docs/runbooks/pages.md). A difference is not failed while the change
 #      is younger than an hour, the time a deploy takes to show; a file Pages
-#      does not serve fails at once. PAGES_CHECK replaces the script; the
-#      tests use it.
+#      does not serve fails whatever its age, once two retries of a transient
+#      failure (no answer, timeout, 429, 5xx) failed too (#462). PAGES_CHECK
+#      replaces the script; the tests use it.
 #   7. Catalog links, Sundays (UTC) only, or any day with --force-links or
 #      DAILIES_FORCE_LINKS=1: scripts/check_links.py checks every active
 #      entry of data/v1/games.json with the submission validator's rules. A
