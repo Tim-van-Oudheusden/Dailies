@@ -113,11 +113,14 @@ jobs:
       # together with --exceptions.
       - name: Lint manifest
         run: flatpak-builder-lint --gha-format --exceptions --user-exceptions build-aux/flatpak/lint-exceptions.json manifest "$MANIFEST"
-      # Runner facts for the EXDEV runtime-update failure, which has only hit AWS-hosted runners so far (#456).
+      # Runner facts for the EXDEV runtime-update failure, which has only hit AWS-hosted runners so far (#456, #467).
+      # The overlay mount options match on AWS and Azure, and redirect_dir and index are not among them, so the
+      # overlay module parameters (path:value, one per line) give their kernel defaults.
       - name: Show container filesystem
         run: |
           uname -r
           grep -E '^overlay ' /proc/mounts || true
+          grep -r . /sys/module/overlay/parameters || true
           flatpak --installations
           flatpak list --runtime --columns=application,branch,installation
       # The Devel manifest's dailies module sets run-tests, so flatpak-builder runs the Meson tests in the build

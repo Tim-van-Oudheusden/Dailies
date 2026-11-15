@@ -9,13 +9,15 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-15. #464 on `fix/464-release-ctrl-d-on-browser-page` (Ctrl+D swallowed on the browser page; #399's option A).
+2026-11-15. #467 on `ci/467-overlay-redirect-dir` (EXDEV on AWS runners; #456 step 2).
 
-- **Outcome:** `Application._on_visible_page` now releases `win.toggle-favorite` (Ctrl+D, `_TOGGLE_FAVORITE_ACCELS`)
-  while the browser page is shown, like Ctrl+F (#389). `tests/gi/test_window.py`'s Ctrl+F test became
-  `test_the_library_keys_belong_to_the_web_page_while_the_browser_is_shown`, covering both keys.
-- **Open follow-ups:** #399's other rows (reopen #410; the "loop would never end" and `_on_close` comment fixes).
+- **Outcome:** `ci.yml`'s `Show container filesystem` step also prints every overlay module parameter
+  (`/sys/module/overlay/parameters/*`, as `path:value`), so `redirect_dir` and `index` show up next to the mount
+  options. Diagnostics only; the job still fails on EXDEV.
+- **Open follow-ups:** #467 stays open. On the next AWS-hosted `Flatpak (x86_64)` job, compare those lines with an
+  Azure job; if `redirect_dir` is `N` on AWS only, move the runtime installation onto the bind-mounted workspace as
+  #456 describes, otherwise re-triage. #399's other rows.
 - **Gotchas:**
-  - The GI tests run on this host inside the SDK: `flatpak run --filesystem=$PWD --command=sh org.gnome.Sdk//51 -c
-    'meson setup /tmp/dbuild -Dprofile=development && meson test -C /tmp/dbuild window'`.
+  - The runner's cloud is in the `Set up job` log group (`Cloud: AWS`/`Azure`); the kernel suffix (`-aws`/`-azure`)
+    in `uname -r` says the same.
   - A full `/tmp` (tmpfs quota) makes `pytest` fail by the hundreds with `Disk quota exceeded`; point `TMPDIR` at disk.
