@@ -9,15 +9,15 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-15. #467 on `ci/467-overlay-redirect-dir` (EXDEV on AWS runners; #456 step 2).
+2026-11-16. #471 on `test/471-check-pages-retry-mutants` (hand mutants for #462's retry in `scripts/check_pages.py`).
 
-- **Outcome:** `ci.yml`'s `Show container filesystem` step also prints every overlay module parameter
-  (`/sys/module/overlay/parameters/*`, as `path:value`), so `redirect_dir` and `index` show up next to the mount
-  options. Diagnostics only; the job still fails on EXDEV.
-- **Open follow-ups:** #467 stays open. On the next AWS-hosted `Flatpak (x86_64)` job, compare those lines with an
-  Azure job; if `redirect_dir` is `N` on AWS only, move the runtime installation onto the bind-mounted workspace as
-  #456 describes, otherwise re-triage. #399's other rows.
+- **Outcome:** `test_check_pages.py` retries a bare `http.client.RemoteDisconnected` and checks that `main`'s default
+  `sleep` waits `RETRY_DELAY`. `test_shell_mutants.py` has a row for each. Those were the two behavioural survivors of a
+  16-mutant pass over `transient()`, `fetch_retrying()` and `main`.
+- **Open follow-ups:** none from #471. `ATTEMPTS` and `RETRY_DELAY` values survive mutation by design: the tests use
+  them symbolically, and they are tuning values, not branches.
 - **Gotchas:**
-  - The runner's cloud is in the `Set up job` log group (`Cloud: AWS`/`Azure`); the kernel suffix (`-aws`/`-azure`)
-    in `uname -r` says the same.
-  - A full `/tmp` (tmpfs quota) makes `pytest` fail by the hundreds with `Disk quota exceeded`; point `TMPDIR` at disk.
+  - `urlopen` wraps only `h.request()` failures in `URLError`. `getresponse()` and `response.read()` raise
+    `ConnectionResetError` (and `RemoteDisconnected`) bare, so `transient()`'s `ConnectionError` arm is what retries them.
+  - A hand mutant of the same length, run within the same second, can load a stale `__pycache__` and look like a
+    survivor. Set `PYTHONDONTWRITEBYTECODE=1` (the table's runner copies the tree, so it is not affected).

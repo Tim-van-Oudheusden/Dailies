@@ -1,10 +1,12 @@
 import datetime as dt
 import hashlib
+import http.client
 import importlib.util
 import io
 import os
 import shutil
 import subprocess
+import time
 import urllib.error
 from pathlib import Path
 from types import ModuleType
@@ -145,17 +147,20 @@ def test_a_file_pages_does_not_serve_fails_at_once_whatever_its_age(
 
 
 # A dropped connection, a timeout, a 429 and a 5xx are what the app itself treats as transient (it tries the next
-# data URL), so one of them on a single request says nothing about what Pages serves (#462).
+# data URL), so one of them on a single request says nothing about what Pages serves (#462). urlopen wraps a failure
+# to send the request in URLError, but not one while it waits for the answer: a connection Pages closes before
+# answering raises a bare RemoteDisconnected, a ConnectionResetError.
 @pytest.mark.parametrize(
     "error",
     [
         reset(),
+        http.client.RemoteDisconnected("Remote end closed connection without response"),
         urllib.error.URLError(TimeoutError("timed out")),
         TimeoutError("timed out"),
         http_error(500),
         http_error(429),
     ],
-    ids=["reset", "urlopen-timeout", "read-timeout", "500", "429"],
+    ids=["reset", "remote-disconnected", "urlopen-timeout", "read-timeout", "500", "429"],
 )
 def test_a_transient_failure_is_retried_and_passes_when_pages_then_serves_the_file(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], error: OSError
@@ -187,6 +192,19 @@ def test_a_connection_that_keeps_failing_fails_after_the_last_attempt(
         f" ({cp.ATTEMPTS} attempts, {cp.RETRY_DELAY} s apart)"
     ) in out
     assert "docs/runbooks/pages.md" in out
+
+
+def test_by_default_a_retry_waits_the_retry_delay(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # nightly-compliance.sh passes no sleep, so the wait between attempts comes from the default (#462).
+    waits: list[float] = []
+    monkeypatch.setattr(time, "sleep", waits.append)
+    script = load_script()
+    pages = FakePages(
+        {BASE + "games.json": GAMES, BASE + "popularity.json": POPULARITY}, {BASE + "games.json": [reset()]}
+    )
+    args = ["--repo", str(checkout(tmp_path))]
+    assert script.main(args, fetch=pages, committed=committed_ago(dt.timedelta(days=2)), now=lambda: NOW) == 0
+    assert waits == [script.RETRY_DELAY]
 
 
 def test_a_404_is_not_retried(tmp_path: Path) -> None:

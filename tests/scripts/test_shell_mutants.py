@@ -1542,6 +1542,20 @@ MUTANTS = [
         f"{CHECK_PAGES_TESTS}::test_the_defaults_compare_this_repository_against_the_clock_in_utc",
     ),
     Mutant(
+        "a connection Pages closes before answering, which urlopen does not wrap in URLError, is retried (#462)",
+        CHECK_PAGES,
+        "(urllib.error.URLError, TimeoutError, ConnectionError)",
+        "(urllib.error.URLError, TimeoutError)",
+        f"{CHECK_PAGES_TESTS}::test_a_transient_failure_is_retried_and_passes_when_pages_then_serves_the_file",
+    ),
+    Mutant(
+        "with no sleep passed, as nightly-compliance.sh runs it, a retry waits the retry delay (#462)",
+        CHECK_PAGES,
+        "sleep: Sleep = time.sleep,",
+        "sleep: Sleep = lambda _seconds: None,",
+        f"{CHECK_PAGES_TESTS}::test_by_default_a_retry_waits_the_retry_delay",
+    ),
+    Mutant(
         "a passed validator result without an entry object is refused (exit 1), not an input error",
         ADD_GAME,
         'if result.get("ok") is not True or not isinstance(entry, dict):',
