@@ -290,6 +290,12 @@ repository's bot GitHub App token (#79), so the required checks run on it: revie
 `icon` and `icon_source`, `generated_at`, and `data/v1/icons/<slug>.png`, or only `icon_source: "none"` when the site
 has no usable icon) and merge it once they pass. Catalog pull requests never merge themselves.
 
+Both stages act only on an issue that carries the `game-submission` label. The form adds it, but an issue can
+arrive without it (#469 did): then stage A posts no check, and adding `approved` starts nothing, with no comment and
+no failed run. Add `game-submission` first. Adding it runs neither stage, so then either edit the issue's title or
+body to get stage A's check, or add `approved` straight away (remove and re-add it if it is already there), since
+stage B validates the submission itself.
+
 Submissions alone do not grow the catalog. Once a month, `scripts/catalog_candidates.py` lists the games The Dles has
 added that the catalog lacks; [Growing the catalog](docs/runbooks/catalog-link.md#growing-the-catalog) says how to run
 it and how to pick from the list, and each pick goes through the same form.
