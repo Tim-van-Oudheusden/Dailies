@@ -123,6 +123,21 @@ jobs:
           grep -r . /sys/module/overlay/parameters || true
           flatpak --installations
           flatpak list --runtime --columns=application,branch,installation
+      # The image ships the runtimes in /var/lib/flatpak, on the container's overlayfs root. Updating one renames
+      # directories that come from the image layer, and with the overlay module's redirect_dir off that rename fails
+      # with EXDEV ("Invalid cross-device link") and the build segfaults. AWS-hosted runners have redirect_dir off and
+      # Azure-hosted ones have it on (#456, #467, the "Show container filesystem" output above). On a runner with it
+      # off, copy the installation to the workspace, which is a bind mount and not overlayfs, and mount the copy over
+      # /var/lib/flatpak; the container is --privileged, and the mount stays for the later steps.
+      - name: Move flatpak installation off overlayfs
+        run: |
+          if [ "$(cat /sys/module/overlay/parameters/redirect_dir 2>/dev/null)" = Y ]; then
+            echo "overlay redirect_dir is on; /var/lib/flatpak stays on the image layer"
+            exit 0
+          fi
+          cp -a /var/lib/flatpak "$RUNNER_TEMP/flatpak-system"
+          mount --bind "$RUNNER_TEMP/flatpak-system" /var/lib/flatpak
+          flatpak list --runtime --columns=application,branch,installation
       # The Devel manifest's dailies module sets run-tests, so flatpak-builder runs the Meson tests in the build
       # sandbox; the action runs flatpak-builder under xvfb-run. The action then exports repo/, writes the bundle and
       # uploads it as an artifact.
