@@ -11,5 +11,6 @@
 | [`multi-agent.md`](multi-agent.md) | How Hive's agents, Claude Code, CLI agents and the workflows share the issue queue: who does what, claim and stage labels, hand-offs, merging | current |
 | [`agent-tasks/`](agent-tasks/README.md) | How an agent's change links back to its issue and the issue forward to the change: branch, commit, PR, merge, close | current |
 | [`ai-ops-runbook.md`](ai-ops-runbook.md) | How to watch the agents and workflows, debug them when they stall or misbehave, and pause or stop each one | current |
+| [`roadmap.md`](roadmap.md) | Where the project goes after M5: current position, the next milestone (M6 Launch and catalog), where effort goes between milestone items, and what is deliberately left off | current |
 
 How the design went: Research → the MVP-first proposal → `architecture.md`, trimmed to the design that shipped. The other two proposals and the Judge phase never ran.
