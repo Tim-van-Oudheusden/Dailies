@@ -211,6 +211,27 @@ MUTANTS = [
         f"{MERGE_QUEUE_TESTS}::test_next_rates_only_the_pull_requests_own_changes_when_main_moved_since_it_branched",
     ),
     Mutant(
+        "a merge gh reported as failed carries on only if GitHub shows it merged",
+        MERGE_QUEUE,
+        '--jq ".state == \\"MERGED\\" and .headRefOid',
+        '--jq "true and .headRefOid',
+        f"{MERGE_QUEUE_TESTS}::test_land_fails_and_closes_nothing_starts_nothing_when_the_merge_is_refused",
+    ),
+    Mutant(
+        "a merge gh reported as failed carries on only if GitHub shows it at the verified head",
+        MERGE_QUEUE,
+        '.headRefOid == \\"${head}\\""',
+        '.headRefOid != \\"\\""',
+        f"{MERGE_QUEUE_TESTS}::test_land_fails_when_gh_fails_and_github_shows_a_merge_of_another_head",
+    ),
+    Mutant(
+        "a merge gh reported as failed that GitHub does not show stops land",
+        MERGE_QUEUE,
+        'does not show it merged at ${head}; not landed"\n      return 1',
+        'does not show it merged at ${head}; not landed"\n      return 0',
+        f"{MERGE_QUEUE_TESTS}::test_land_fails_and_closes_nothing_starts_nothing_when_the_merge_is_refused",
+    ),
+    Mutant(
         "a linked issue the queue could not close is named in a warning",
         MERGE_QUEUE,
         '|| echo "::warning title=Merge queue::could not close',

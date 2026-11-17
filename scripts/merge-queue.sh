@@ -140,7 +140,7 @@ next() {
 }
 
 land() {
-  local number="$1" head="$2" verified_main="$3" main ready workflow failed=0
+  local number="$1" head="$2" verified_main="$3" main ready merged workflow failed=0
   main="$(git ls-remote origin refs/heads/main | cut -f1)"
   if [ "$main" != "$verified_main" ]; then
     echo "::notice title=Merge queue::main moved since #${number} was verified; verifying again"
@@ -156,7 +156,17 @@ land() {
   fi
 
   # --match-head-commit refuses the merge if the branch moved past what was verified.
-  gh pr merge "$number" --merge --match-head-commit "$head"
+  # gh can also fail after GitHub merged (its answer lost, `EOF`); only a merge
+  # GitHub does not show at the verified head stops land here.
+  if ! gh pr merge "$number" --merge --match-head-commit "$head"; then
+    merged="$(gh pr view "$number" --json state,headRefOid \
+      --jq ".state == \"MERGED\" and .headRefOid == \"${head}\"")" || merged=false
+    if [ "$merged" != true ]; then
+      echo "::error title=Merge queue::gh failed merging #${number} and GitHub does not show it merged at ${head}; not landed"
+      return 1
+    fi
+    echo "::warning title=Merge queue::gh failed merging #${number}, but GitHub shows it merged; carrying on"
+  fi
   close_linked_issues "$number"
   # The merge has landed, so a workflow that will not start must not stop the
   # others or the next run. The run still fails: a gate that never ran on main
