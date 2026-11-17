@@ -133,6 +133,7 @@ class Queue:
                 "isCrossRepository": pull_request.get("isCrossRepository", False),
                 "labels": [{"name": name} for name in pull_request.get("labels", [])],
                 "mergeStateStatus": pull_request.get("mergeStateStatus", "CLEAN"),
+                "state": pull_request.get("state", "OPEN"),
                 "closingIssuesReferences": [
                     {"number": issue, "url": f"https://github.com/owner/dailies/issues/{issue}"}
                     for issue in pull_request.get("closingIssues", [])
@@ -423,6 +424,36 @@ def test_land_fails_and_closes_nothing_starts_nothing_when_the_merge_is_refused(
 
     assert result.status != 0
     assert result.calls == [merge_command(7, queue.heads[7])]
+
+
+def test_land_carries_on_when_gh_fails_after_github_merged_the_verified_head(tmp_path: Path) -> None:
+    # gh can lose GitHub's answer after the merge landed (`EOF`). Stopping there leaves the linked issues open, main
+    # with no gate run and the queue idle, so land checks whether the pull request is merged at the verified head.
+    queue = queue_of(tmp_path, [{"number": 7, "closingIssues": [12], "state": "MERGED"}])
+    queue.fail_calls_starting_with("pr merge")
+
+    result = queue.run("land", "7", queue.heads[7], queue.main)
+
+    assert result.status == 0, result.stderr
+    assert "GitHub shows it merged" in result.stdout
+    assert result.calls[0] == merge_command(7, queue.heads[7])
+    assert any(call.startswith("issue close https://github.com/owner/dailies/issues/12 ") for call in result.calls)
+    assert result.calls[-1] == "workflow run merge-queue.yml --ref main"
+    assert sorted(c for c in result.calls if c.startswith("workflow run ") and "merge-queue" not in c) == [
+        f"workflow run {name} --ref main" for name in main_push_workflows()
+    ]
+
+
+def test_land_fails_when_gh_fails_and_github_shows_a_merge_of_another_head(tmp_path: Path) -> None:
+    # Only the head the queue verified may land; a merge GitHub shows at any other head is not the queue's to finish.
+    queue = queue_of(tmp_path, [{"number": 7, "closingIssues": [12], "state": "MERGED"}])
+    queue.fail_calls_starting_with("pr merge")
+    unverified = queue.main
+
+    result = queue.run("land", "7", unverified, queue.main)
+
+    assert result.status != 0
+    assert result.calls == [merge_command(7, unverified)]
 
 
 def test_land_closes_every_issue_the_merged_pull_request_links_after_merging_it(tmp_path: Path) -> None:
