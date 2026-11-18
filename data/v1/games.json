@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-11-18T22:48:07Z",
+  "generated_at": "2026-11-18T23:15:09Z",
   "games": [
     {
       "id": "absurdle",
@@ -664,6 +664,32 @@
           "date": "2026-10-15",
           "event": "added",
           "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "disorderly",
+      "name": "Disorderly",
+      "url": "https://playdisorderly.com/",
+      "category": "trivia",
+      "difficulty": "easy",
+      "description": "A game wherein the player has to rank a randomly chosen trivia subject from highest to lowest, most to least etc.",
+      "tags": [
+        "ranking",
+        "trivia"
+      ],
+      "language": "en",
+      "added": "2026-11-18",
+      "status": "active",
+      "domain": "playdisorderly.com",
+      "icon": "icons/disorderly.png",
+      "icon_source": "site",
+      "source_issue": 499,
+      "history": [
+        {
+          "date": "2026-11-18",
+          "event": "added",
+          "note": "issue #499"
         }
       ]
     },
