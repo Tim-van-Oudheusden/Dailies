@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-11-18T22:48:07Z",
+  "generated_at": "2026-11-18T23:14:43Z",
   "games": [
     {
       "id": "absurdle",
@@ -2523,6 +2523,31 @@
           "date": "2026-10-15",
           "event": "added",
           "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "spellcheck",
+      "name": "Spellcheck",
+      "url": "https://spellcheckgame.com/",
+      "category": "words",
+      "difficulty": "medium",
+      "description": "A spelling check game where users hear an audio sample of a word and have to properly spell it out. Multiple rounds with one chance per word.",
+      "tags": [
+        "spelling"
+      ],
+      "language": "en",
+      "added": "2026-11-18",
+      "status": "active",
+      "domain": "spellcheckgame.com",
+      "icon": "icons/spellcheck.png",
+      "icon_source": "site",
+      "source_issue": 496,
+      "history": [
+        {
+          "date": "2026-11-18",
+          "event": "added",
+          "note": "issue #496"
         }
       ]
     },
