@@ -1394,6 +1394,28 @@
       ]
     },
     {
+      "id": "kinda-hard-golf",
+      "name": "Kinda Hard Golf",
+      "url": "https://kindahardgolf.com/",
+      "category": "video-games",
+      "difficulty": "easy",
+      "description": "A 2dimensional vertically challenging golf game where the goal is to get the golf ball to the finish in the least amount of tries. New level daily.",
+      "language": "en",
+      "added": "2026-11-18",
+      "status": "active",
+      "domain": "kindahardgolf.com",
+      "icon": "icons/kinda-hard-golf.png",
+      "icon_source": "site",
+      "source_issue": 509,
+      "history": [
+        {
+          "date": "2026-11-18",
+          "event": "added",
+          "note": "issue #509"
+        }
+      ]
+    },
+    {
       "id": "krillion",
       "name": "Krillion",
       "url": "https://krillion.io/",
