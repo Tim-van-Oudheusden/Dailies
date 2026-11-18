@@ -1086,6 +1086,31 @@
       ]
     },
     {
+      "id": "halfsies",
+      "name": "Halfsies",
+      "url": "https://halfsies.dev/",
+      "category": "numbers-logic",
+      "difficulty": "easy",
+      "description": "Cut an object (e.g. a fruit, vegetable, coffee cup)  in half by its weight",
+      "tags": [
+        "geometry"
+      ],
+      "language": "en",
+      "added": "2026-11-18",
+      "status": "active",
+      "domain": "halfsies.dev",
+      "icon": "icons/halfsies.png",
+      "icon_source": "site",
+      "source_issue": 513,
+      "history": [
+        {
+          "date": "2026-11-18",
+          "event": "added",
+          "note": "issue #513"
+        }
+      ]
+    },
+    {
       "id": "harmonies",
       "name": "Harmonies",
       "url": "https://harmonies.io/",
