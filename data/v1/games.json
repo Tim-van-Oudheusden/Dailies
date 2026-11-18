@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-11-18T23:15:03Z",
+  "generated_at": "2026-11-18T23:38:25Z",
   "games": [
     {
       "id": "absurdle",
@@ -1639,6 +1639,32 @@
           "date": "2026-10-15",
           "event": "added",
           "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "movie-to-movie",
+      "name": "Movie to Movie",
+      "url": "https://movietomovie.com/",
+      "category": "movies-tv",
+      "difficulty": "hard",
+      "description": "Connect two movies through their actors.",
+      "tags": [
+        "movies",
+        "actors"
+      ],
+      "language": "en",
+      "added": "2026-11-18",
+      "status": "active",
+      "domain": "movietomovie.com",
+      "icon": "icons/movie-to-movie.png",
+      "icon_source": "site",
+      "source_issue": 495,
+      "history": [
+        {
+          "date": "2026-11-18",
+          "event": "added",
+          "note": "issue #495"
         }
       ]
     },
