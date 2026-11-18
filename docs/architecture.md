@@ -238,12 +238,17 @@ escape to the user.
 mode = game["open-mode-override"] or settings["open-mode"]
 if mode == custom and host access granted and command != "":
     flatpak-spawn --host -- <argv…> <url>    # only after the user ran `flatpak override --talk-name=...`
-elif mode in (in-app, custom) and HAVE_WEBKIT:
+elif mode in (in-app, custom) and HAVE_WEBKIT and not game.external_only:
     push BrowserPage(url)                    # built-in browser
 else:
     Gtk.UriLauncher(url).launch(window)      # OpenURI portal, host default browser
     on error: Gio.AppInfo.launch_default_for_uri_async(url)
 ```
+
+A catalog entry with `external_only: true` (the site asked not to be embedded, e.g. Mapcade in [#469][issue-469]) opens
+as if WebKit were missing (`core/opening.py: built_in_browser`): in the default browser, or with the custom command
+when that runs; its tile menu offers neither **Built-in Browser** nor **Isolated Session**, and its toast no
+**Open Here**.
 
 - Host access is probed once per session, the first time the custom mode, Preferences or a tile menu needs it
   (`ui/opener.py`): a call to `org.freedesktop.Flatpak.Development.HostCommand` on the session bus with no arguments,
@@ -610,3 +615,4 @@ approximate cold start that left shared libraries in memory; re-measure on a lap
 [issue-136]: https://github.com/Tim-van-Oudheusden/Dailies/issues/136
 [issue-195]: https://github.com/Tim-van-Oudheusden/Dailies/issues/195
 [issue-209]: https://github.com/Tim-van-Oudheusden/Dailies/issues/209
+[issue-469]: https://github.com/Tim-van-Oudheusden/Dailies/issues/469

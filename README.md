@@ -45,7 +45,8 @@ A GNOME app that lists daily guessing games ("-dles") such as Wordle, Connection
   computed every Monday from the [Tranco](https://tranco-list.eu) rank of each game's site.
 - **Favorites.** Star the games you play every day (or press Ctrl+D) to keep them together at the top of the sidebar.
 - **A built-in browser that remembers you.** Games open in a WebKitGTK page that keeps logins and streaks between
-  sessions, or in your default browser, or through a command of your choice.
+  sessions, or in your default browser, or through a command of your choice. A game whose site asks not to be
+  embedded always opens in your browser.
 - **No account, no tracking.** Favorites stay on your device. Dailies downloads only the game list, this week's shelves
   and the games' icons, all from GitHub, and the game pages you open; a bundled copy of the list means it works offline
   from the first start.

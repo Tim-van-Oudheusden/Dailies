@@ -117,28 +117,38 @@ class Window(Adw.ApplicationWindow):
         self.sidebar.connect("notify::selected-item", lambda sidebar, _pspec: self._show(sidebar.props.selected_item))
 
     def open_game(self, game: Game) -> None:
-        """Open `game` as its `open-mode-override` or `open-mode` says: custom command, built-in or default browser."""
+        """Open `game` as its `open-mode-override` or `open-mode` says: custom command, built-in or default browser.
+
+        A game whose site asks not to be embedded (`external_only`) never opens in the built-in browser.
+        """
         game_settings = opener.game_settings(game.id)
-        how = opener.resolve(self._settings, game_settings)
+        have_webkit = opening.built_in_browser(game, have_webkit=opener.have_webkit())
+        how = opener.resolve(self._settings, game_settings, have_webkit=have_webkit)
         if how is OpenMode.CUSTOM:
             if opener.launch_custom(self._settings.get_string("external-browser-command"), game.url):
                 return
-            how = opener.resolve(self._settings, game_settings, custom_failed=True)
+            how = opener.resolve(self._settings, game_settings, have_webkit=have_webkit, custom_failed=True)
         if how is OpenMode.IN_APP:
             self._open_in_app(game.url, game.id)
         else:
             self.open_external(game.url)
-        self._notify_opened(opener.open_mode(self._settings, game_settings), how, game.url, game.id)
+        mode = opener.open_mode(self._settings, game_settings)
+        self._notify_opened(mode, how, game.url, game.id, have_webkit=have_webkit)
 
-    def _notify_opened(self, mode: OpenMode, how: OpenMode, url: str, game_id: str | None) -> None:
-        """Toast where a game set to open with `mode` went (`how`); after an external open, offer "Open Here"."""
+    def _notify_opened(
+        self, mode: OpenMode, how: OpenMode, url: str, game_id: str | None, *, have_webkit: bool
+    ) -> None:
+        """Toast where a game set to open with `mode` went (`how`); after an external open, offer "Open Here".
+
+        `have_webkit` is whether `url` may open in the built-in browser, which "Open Here" needs.
+        """
         notice = opening.notice(mode, how, custom_notice_shown=self._custom_notice_shown)
         if notice is None:
             return
         if notice is opening.Notice.CUSTOM_UNAVAILABLE:
             self._custom_notice_shown = True
         open_here = None
-        if opening.offers_open_here(how, have_webkit=opener.have_webkit()):
+        if opening.offers_open_here(how, have_webkit=have_webkit):
             open_here = functools.partial(self._open_in_app, url, game_id)
         self.toast_overlay.add_toast(opener.opened_toast(notice, how, open_here=open_here))
 
@@ -155,7 +165,7 @@ class Window(Adw.ApplicationWindow):
             log.warning("Not opening the pop-up %r: only http and https links go to the browser", url)
             return
         self.open_external(url)
-        self._notify_opened(OpenMode.EXTERNAL, OpenMode.EXTERNAL, url, None)
+        self._notify_opened(OpenMode.EXTERNAL, OpenMode.EXTERNAL, url, None, have_webkit=opener.have_webkit())
 
     def _open_in_app(self, url: str, game_id: str | None) -> None:
         """Show `url` in the built-in browser; `game_id` is the game it is, None for a pop-up handed back in-app.

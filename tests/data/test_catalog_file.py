@@ -278,6 +278,7 @@ def test_structural_checks_understand_every_schema_keyword(schema_path: Path) ->
         ("added", "15-10-2026"),
         ("free_no_account", "yes"),
         ("tags", ["Not Kebab"]),
+        ("external_only", "yes"),
     ],
 )
 def test_structural_checks_reject_a_bad_entry(field: str, bad_value: object) -> None:

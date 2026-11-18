@@ -129,9 +129,6 @@ class GameSettingsTest(unittest.TestCase):
         self.settings = Gio.Settings.new(os.environ["DAILIES_SCHEMA_ID"])
         self.settings.set_string("open-mode", "in-app")
         self.addCleanup(self.settings.reset, "open-mode")
-        patcher = mock.patch.object(opener, "have_webkit", return_value=True)
-        patcher.start()
-        self.addCleanup(patcher.stop)
 
     def test_a_game_has_its_own_relocatable_settings_under_games(self) -> None:
         game = opener.game_settings("wordle")
@@ -150,9 +147,9 @@ class GameSettingsTest(unittest.TestCase):
         self.addCleanup(game.reset, "open-mode-override")
 
         assert opener.open_mode(self.settings, game) is OpenMode.EXTERNAL
-        assert opener.resolve(self.settings, game) is OpenMode.EXTERNAL
-        assert opener.resolve(self.settings, opener.game_settings("wordle")) is OpenMode.IN_APP
-        assert opener.resolve(self.settings, None) is OpenMode.IN_APP
+        assert opener.resolve(self.settings, game, have_webkit=True) is OpenMode.EXTERNAL
+        assert opener.resolve(self.settings, opener.game_settings("wordle"), have_webkit=True) is OpenMode.IN_APP
+        assert opener.resolve(self.settings, None, have_webkit=True) is OpenMode.IN_APP
 
 
 class PreferencesTest(unittest.TestCase):

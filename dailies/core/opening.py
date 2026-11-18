@@ -1,12 +1,15 @@
 """How a game opens: the `open-mode` setting resolved against what this installation can do.
 
 Inside a Flatpak a specific host browser is only reachable with host access the user grants themselves, and the
-built-in browser needs WebKitGTK. `ui/opener.py` probes both and acts on the mode `resolve` returns.
+built-in browser needs WebKitGTK and a site that allows embedding (`built_in_browser`). `ui/opener.py` probes both and
+acts on the mode `resolve` returns.
 """
 
 from collections.abc import Sequence
 from enum import Enum
 from typing import Self
+
+from dailies.core.models import Game
 
 # The error flatpak-session-helper answers a HostCommand call with no arguments with. Only the helper itself can send
 # it, so the sandbox's D-Bus proxy let the call through: the user granted `--talk-name=org.freedesktop.Flatpak`.
@@ -45,6 +48,15 @@ def game_mode(mode: OpenMode, override: str) -> OpenMode:
         return OpenMode(override)
     except ValueError:
         return mode
+
+
+def built_in_browser(game: Game, *, have_webkit: bool) -> bool:
+    """Whether `game` can open in the built-in browser: WebKit runs and its site does not ask to stay external.
+
+    Pass the result as `have_webkit` to the per-game functions below: an `external_only` game opens, and offers its
+    choices, as if this installation had no built-in browser.
+    """
+    return have_webkit and not game.external_only
 
 
 def resolve(mode: OpenMode, *, have_webkit: bool, host_access: bool, command: str) -> OpenMode:

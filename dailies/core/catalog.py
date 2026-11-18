@@ -79,6 +79,7 @@ def _parse_game(record: Fields) -> Game:
         wikipedia=record.optional("wikipedia", str, None),
         source_issue=record.optional("source_issue", int, None),
         icon=_icon(record.optional("icon", str, None)),
+        external_only=record.optional("external_only", bool, False),
     )
 
 

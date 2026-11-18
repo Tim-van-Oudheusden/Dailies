@@ -105,12 +105,17 @@ def open_mode(settings: Gio.Settings, game: Gio.Settings | None) -> OpenMode:
     return mode if game is None else opening.game_mode(mode, game.get_string("open-mode-override"))
 
 
-def resolve(settings: Gio.Settings, game: Gio.Settings | None, *, custom_failed: bool = False) -> OpenMode:
-    """Return how the game with settings `game` opens now; `custom_failed` when the custom command just failed."""
+def resolve(
+    settings: Gio.Settings, game: Gio.Settings | None, *, have_webkit: bool, custom_failed: bool = False
+) -> OpenMode:
+    """Return how the game with settings `game` opens now; `custom_failed` when the custom command just failed.
+
+    `have_webkit` is whether this game can use the built-in browser (`dailies.core.opening.built_in_browser`).
+    """
     mode = open_mode(settings, game)
     return opening.resolve(
         mode,
-        have_webkit=have_webkit(),
+        have_webkit=have_webkit,
         # Probed only for the custom mode, which is the only one that needs it.
         host_access=mode is OpenMode.CUSTOM and not custom_failed and host_access(),
         command=settings.get_string("external-browser-command"),
