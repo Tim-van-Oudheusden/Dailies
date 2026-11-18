@@ -9,15 +9,12 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-16. #471 on `test/471-check-pages-retry-mutants` (hand mutants for #462's retry in `scripts/check_pages.py`).
+2026-11-18. #484 on `ci/484-release-overlayfs` (release.yml's flatpak build lacked #477's EXDEV step).
 
-- **Outcome:** `test_check_pages.py` retries a bare `http.client.RemoteDisconnected` and checks that `main`'s default
-  `sleep` waits `RETRY_DELAY`. `test_shell_mutants.py` has a row for each. Those were the two behavioural survivors of a
-  16-mutant pass over `transient()`, `fetch_retrying()` and `main`.
-- **Open follow-ups:** none from #471. `ATTEMPTS` and `RETRY_DELAY` values survive mutation by design: the tests use
-  them symbolically, and they are tuning values, not branches.
+- **Outcome:** `release.yml`'s `build` job runs ci.yml's "Move flatpak installation off overlayfs" step before "Build
+  Flatpak". `test_workflows.py`'s `off_overlayfs_violations` fails any flatpak-builder job that lacks the step, runs it
+  after the build, or runs text that differs from ci.yml's `flatpak` job.
+- **Open follow-ups:** none from #484. The step only proves itself on a `v*` tag that lands on an AWS-hosted runner.
 - **Gotchas:**
-  - `urlopen` wraps only `h.request()` failures in `URLError`. `getresponse()` and `response.read()` raise
-    `ConnectionResetError` (and `RemoteDisconnected`) bare, so `transient()`'s `ConnectionError` arm is what retries them.
-  - A hand mutant of the same length, run within the same second, can load a stale `__pycache__` and look like a
-    survivor. Set `PYTHONDONTWRITEBYTECODE=1` (the table's runner copies the tree, so it is not affected).
+  - The tests need Python 3.13 (PEP 695 generics in `dailies/core`); a 3.11 interpreter fails collection, not tests.
+  - Edits under `.github/workflows/` need a token with the `workflows` permission; the contributor App token has none.

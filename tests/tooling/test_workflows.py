@@ -494,6 +494,32 @@ def screenshot_mirror_violations(name: str, workflow: dict) -> list[str]:
     return violations
 
 
+OFF_OVERLAYFS_STEP = "Move flatpak installation off overlayfs"
+
+
+def off_overlayfs_violations(name: str, workflow: dict, reference: str) -> list[str]:
+    """A job that builds with flatpak-builder must first run ci.yml's step that moves /var/lib/flatpak off overlayfs.
+
+    On a runner whose overlay module has redirect_dir off (AWS-hosted so far), updating a runtime that came from the
+    image layer fails with EXDEV and the build segfaults (#456, #467, #477). Every job that builds in the
+    flatpak-github-actions image runs the same step, with `reference` (ci.yml's run text), before the build.
+    """
+    violations = []
+    for job_id, job in jobs_of(workflow).items():
+        steps = job.get("steps") or []
+        builds = [i for i, step in enumerate(steps) if str(step.get("uses", "")).startswith(FLATPAK_BUILDER_ACTION)]
+        if not builds:
+            continue
+        moves = [i for i, step in enumerate(steps) if step.get("name") == OFF_OVERLAYFS_STEP]
+        if not moves or moves[0] > builds[0]:
+            violations.append(
+                f"{name}: job {job_id} builds with flatpak-builder without first running {OFF_OVERLAYFS_STEP!r}"
+            )
+        elif str(steps[moves[0]].get("run", "")) != reference:
+            violations.append(f"{name}: job {job_id}'s {OFF_OVERLAYFS_STEP!r} step differs from ci.yml's")
+    return violations
+
+
 ADD_GAME = "scripts/add_game.py"
 FETCH_ICON = "scripts/icons/fetch_icon.py"
 CREATE_PULL_REQUEST = "peter-evans/create-pull-request@"
@@ -1599,3 +1625,51 @@ def test_fixture_pr_source_report_with_every_field_on_main_passes() -> None:
 def test_fixture_query_for_a_step_without_a_pr_source_reader_passes() -> None:
     workflow = load_yaml(PR_SOURCE_REPORT.format(base="", fields="commits"))
     assert pr_source_query_violations("x.yml", workflow, readers=["other-report.sh"]) == []
+
+
+def ci_off_overlayfs_run() -> str:
+    steps = jobs_of(load(WORKFLOWS / "ci.yml"))["flatpak"]["steps"]
+    return next(str(step["run"]) for step in steps if step.get("name") == OFF_OVERLAYFS_STEP)
+
+
+@pytest.mark.parametrize("path", FILES, ids=IDS)
+def test_every_flatpak_build_moves_the_installation_off_overlayfs(path: Path) -> None:
+    assert off_overlayfs_violations(path.name, load(path), ci_off_overlayfs_run()) == []
+
+
+def off_overlayfs_fixture(move: str | None, *, after: bool = False) -> dict:
+    move_step = (
+        f"""
+      - name: {OFF_OVERLAYFS_STEP}
+        run: {move}"""
+        if move is not None
+        else ""
+    )
+    build_step = f"""
+      - uses: {FLATPAK_BUILDER_ACTION}79327416609af08178ad73b352877e51450790b3 # v6.8"""
+    body = build_step + move_step if after else move_step + build_step
+    return load_yaml(f"""
+jobs:
+  build:
+    steps:{body}
+""")
+
+
+def test_fixture_flatpak_build_without_the_off_overlayfs_step_fails() -> None:
+    assert off_overlayfs_violations("release.yml", off_overlayfs_fixture(None), "echo same") == [
+        f"release.yml: job build builds with flatpak-builder without first running {OFF_OVERLAYFS_STEP!r}"
+    ]
+
+
+def test_fixture_off_overlayfs_step_after_the_build_fails() -> None:
+    assert off_overlayfs_violations("release.yml", off_overlayfs_fixture("echo same", after=True), "echo same")
+
+
+def test_fixture_off_overlayfs_step_that_differs_from_ci_fails() -> None:
+    assert off_overlayfs_violations("release.yml", off_overlayfs_fixture("echo other"), "echo same") == [
+        f"release.yml: job build's {OFF_OVERLAYFS_STEP!r} step differs from ci.yml's"
+    ]
+
+
+def test_fixture_off_overlayfs_step_before_the_build_passes() -> None:
+    assert off_overlayfs_violations("release.yml", off_overlayfs_fixture("echo same"), "echo same") == []
