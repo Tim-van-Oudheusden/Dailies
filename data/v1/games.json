@@ -1615,6 +1615,34 @@
       ]
     },
     {
+      "id": "more-less",
+      "name": "More/less",
+      "url": "https://lessgames.com/moreless",
+      "category": "trivia",
+      "difficulty": "easy",
+      "description": "A game featuring multiple rounds of varying subject where players have to guess which one is/has/costs more than the other.",
+      "tags": [
+        "guessing",
+        "charts",
+        "numbers",
+        "pricing"
+      ],
+      "language": "en",
+      "added": "2026-11-18",
+      "status": "active",
+      "domain": "lessgames.com",
+      "icon": "icons/more-less.png",
+      "icon_source": "site",
+      "source_issue": 498,
+      "history": [
+        {
+          "date": "2026-11-18",
+          "event": "added",
+          "note": "issue #498"
+        }
+      ]
+    },
+    {
       "id": "movie-grid",
       "name": "Movie Grid",
       "url": "https://moviegrid.io/",
