@@ -7,8 +7,7 @@
 Play your daily guessing games in one place
 
 [Download](https://github.com/Tim-van-Oudheusden/Dailies/releases/latest) ·
-[Add a game](https://github.com/Tim-van-Oudheusden/Dailies/issues/new?template=new-game.yml) ·
-[buildwithtim.dev](https://buildwithtim.dev)
+[Add a game](https://github.com/Tim-van-Oudheusden/Dailies/issues/new?template=new-game.yml)
 
 [![CI](https://github.com/Tim-van-Oudheusden/Dailies/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Tim-van-Oudheusden/Dailies/actions/workflows/ci.yml)
 [![Coverage gate](https://github.com/Tim-van-Oudheusden/Dailies/actions/workflows/coverage-gate.yml/badge.svg?branch=main)](https://github.com/Tim-van-Oudheusden/Dailies/actions/workflows/coverage-gate.yml)
