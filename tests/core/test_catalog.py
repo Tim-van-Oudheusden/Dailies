@@ -99,6 +99,11 @@ def test_optional_fields_are_read_when_present() -> None:
     assert game.icon == "icons/testle.png"
 
 
+def test_a_game_opens_in_the_built_in_browser_unless_its_site_asks_otherwise() -> None:
+    assert parse_one().external_only is False
+    assert parse_one(external_only=True).external_only is True
+
+
 @pytest.mark.parametrize(
     "icon",
     [
@@ -172,6 +177,7 @@ def test_a_structurally_wrong_catalog_is_rejected(data: bytes) -> None:
         ("source_issue", "12"),
         ("source_issue", True),
         ("icon", 3),
+        ("external_only", "yes"),
     ],
 )
 def test_a_game_with_a_mistyped_field_is_rejected(key: str, value: object) -> None:

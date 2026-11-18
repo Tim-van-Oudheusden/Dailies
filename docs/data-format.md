@@ -50,6 +50,7 @@ Unknown fields are allowed here too and must be ignored.
 | `tags` | array of strings matching `^[a-z0-9-]+$`, unique, at most 10 | no | Lower-kebab-case tags from the [tag vocabulary](#tags) |
 | `language` | string matching `^[a-z]{2,3}(-[A-Za-z0-9]+)*$` | no | BCP 47 language of the game, e.g. `en`, `nl`, `pt-BR`. Treated as `en` when absent |
 | `free_no_account` | boolean | no | `true` when the daily puzzle can be played in full without an account or subscription |
+| `external_only` | boolean, default `false` | no | `true` when the site asks not to be embedded: Dailies (0.3.3 and later) opens the game in the user's browser, never in its built-in one. Set by a maintainer at the site's request, with an `external-only` history event |
 | `added` | string, `date` (`YYYY-MM-DD`) | yes | The day the entry was added to the catalog |
 | `status` | `active`, `broken` or `retired` | yes | `active` games are shown. `broken` (the link fails or leads elsewhere) and `retired` (the game ended) are hidden, but the entry stays so favourites still resolve |
 | `domain` | string, a lower-case host name | yes | The registrable domain (eTLD+1) of `url`, e.g. `teuteuf.fr` for `https://worldle.teuteuf.fr/`. Used for redirect checks and popularity lookups |

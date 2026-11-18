@@ -109,6 +109,8 @@ class Game:
     source_issue: int | None = None
     #: The game's icon relative to the data URLs, always `icons/<name>.png`; None when it has none.
     icon: str | None = None
+    #: The site asks not to be embedded: the game opens in the user's browser, never in the built-in one.
+    external_only: bool = False
 
 
 def _lookup[E: Enum](enum: type[E], value: str, fallback: E) -> E:

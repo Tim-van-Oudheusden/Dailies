@@ -55,6 +55,11 @@
           "type": "boolean",
           "description": "True when the daily puzzle can be played in full without an account or subscription."
         },
+        "external_only": {
+          "type": "boolean",
+          "default": false,
+          "description": "True when the site asks not to be embedded: apps open it in the user's browser, never in a built-in one."
+        },
         "added": { "type": "string", "format": "date" },
         "status": {
           "enum": ["active", "broken", "retired"],

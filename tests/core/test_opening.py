@@ -1,8 +1,12 @@
+from datetime import date
+
 import pytest
 
+from dailies.core.models import Category, Difficulty, Game, Status
 from dailies.core.opening import (
     Notice,
     OpenMode,
+    built_in_browser,
     choices,
     custom_command_argv,
     game_choices,
@@ -228,3 +232,31 @@ def test_a_games_open_with_choices_are_default_then_what_this_installation_can_d
 )
 def test_shown_game_choice(override: str, have_webkit: bool, host_access: bool, expected: str) -> None:
     assert shown_game_choice(override, have_webkit=have_webkit, host_access=host_access) == expected
+
+
+@pytest.mark.parametrize(
+    ("have_webkit", "external_only", "expected"),
+    [
+        (True, False, True),
+        (False, False, False),
+        # A site that asks not to be embedded opens as if this installation had no built-in browser.
+        (True, True, False),
+        (False, True, False),
+    ],
+)
+def test_a_game_has_the_built_in_browser_only_with_webkit_and_when_its_site_allows_it(
+    have_webkit: bool, external_only: bool, expected: bool
+) -> None:
+    game = Game(
+        id="testle",
+        name="Testle",
+        url="https://testle.example/",
+        category=Category.WORDS,
+        difficulty=Difficulty.EASY,
+        description="Guess the test word in six tries, one puzzle a day.",
+        added=date(2026, 10, 15),
+        status=Status.ACTIVE,
+        domain="testle.example",
+        external_only=external_only,
+    )
+    assert built_in_browser(game, have_webkit=have_webkit) is expected

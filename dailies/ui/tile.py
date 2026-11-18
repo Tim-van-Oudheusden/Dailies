@@ -192,8 +192,11 @@ class GameTile(Gtk.Overlay):
         """Show the game's menu at (`x`, `y`) in the tile, or under the whole tile when no point is given."""
         if self._item is None:
             return
-        have_webkit, host_access = opener.have_webkit(), opener.host_access()
-        self._sync_game_options(opener.game_settings(self._item.props.game.id), have_webkit, host_access)
+        game = self._item.props.game
+        # A game whose site asks not to be embedded offers what an installation without the built-in browser does.
+        have_webkit = opening.built_in_browser(game, have_webkit=opener.have_webkit())
+        host_access = opener.host_access()
+        self._sync_game_options(opener.game_settings(game.id), have_webkit, host_access)
         self.menu.props.menu_model = game_menu(self._item, have_webkit=have_webkit, host_access=host_access)
         if x is None or y is None:
             self.menu.set_pointing_to(None)

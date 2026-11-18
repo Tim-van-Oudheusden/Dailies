@@ -361,6 +361,36 @@ class PageDecisionsTest(WindowTest):
         assert self.web_view.get_uri() == f"{self.site}/"
 
 
+class ExternalOnlyTest(WindowTest):
+    """A game whose site asks not to be embedded (#487) opens in the default browser, never in the built-in one."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        for name, value in (("launch_external", None), ("host_access", False)):
+            patcher = mock.patch.object(opener, name, return_value=value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        toast = mock.patch.object(self.window.toast_overlay, "add_toast")
+        self.toast = toast.start()
+        self.addCleanup(toast.stop)
+        self.game = dataclasses.replace(self.games[0], external_only=True)
+        self.game_settings = opener.game_settings(self.game.id)
+        self.addCleanup(self.game_settings.reset, "open-mode-override")
+
+    def test_it_opens_in_the_default_browser_whatever_the_settings_say(self) -> None:
+        # `open-mode` is in-app (see WindowTest); the custom command cannot run here and must not fall back in-app.
+        for override in ("", "in-app", "custom"):
+            with self.subTest(override=override):
+                self.game_settings.set_string("open-mode-override", override)
+                opener.launch_external.reset_mock()
+
+                self.window.open_game(self.game)
+
+                opener.launch_external.assert_called_once_with(self.window, self.game.url)
+                assert self.view.props.navigation_stack.get_n_items() == 1
+                assert self.toast.call_args.args[0].props.button_label is None, "no Open Here"
+
+
 class GridItemTest(WindowTest):
     def test_screen_readers_get_the_games_name_and_description(self) -> None:
         # GTK hands out no grid item's Gtk.ListItem, so this reads the template the grid's factory builds each one from.

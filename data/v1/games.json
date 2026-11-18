@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-11-15T19:18:47Z",
+  "generated_at": "2026-11-18T22:30:00Z",
   "games": [
     {
       "id": "absurdle",
@@ -1468,11 +1468,17 @@
       "icon": "icons/mapcade.png",
       "icon_source": "site",
       "source_issue": 469,
+      "external_only": true,
       "history": [
         {
           "date": "2026-11-15",
           "event": "added",
           "note": "issue #469"
+        },
+        {
+          "date": "2026-11-18",
+          "event": "external-only",
+          "note": "the site asked to open in the user's browser, not embedded (#469, #487)"
         }
       ]
     },

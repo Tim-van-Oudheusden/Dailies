@@ -291,6 +291,19 @@ class GameTileTest(unittest.TestCase):
             ("Default B_rowser", "tile.open-with", "external"),
         ]
 
+    def test_a_game_whose_site_asks_not_to_be_embedded_offers_neither_the_built_in_browser_nor_a_session(self) -> None:
+        # This installation has the built-in browser (see setUp); the game's site asks to open outside it (#487).
+        self.tile.props.game = GameObject(worldle(external_only=True))
+        self.window.present()
+        self.tile.popup_menu()
+        menu = self.tile.menu.props.menu_model
+        self.tile.menu.popdown()
+        assert menu_entries(menu)[1] == [("_Open With", None)]
+        assert menu_items(open_with(menu)) == [
+            ("_Default", "tile.open-with", ""),
+            ("Default B_rowser", "tile.open-with", "external"),
+        ]
+
     def game_settings(self) -> Gio.Settings:
         game = opener.game_settings("worldle")
         for key in ("open-mode-override", "isolated-session"):
