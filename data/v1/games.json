@@ -1284,6 +1284,31 @@
       ]
     },
     {
+      "id": "krillion",
+      "name": "Krillion",
+      "url": "https://krillion.io/",
+      "category": "trivia",
+      "difficulty": "easy",
+      "description": "In this game you try to guess unpopular/rare answers to various questions, the rarer the guess the deeper the dive (score).",
+      "tags": [
+        "trivia"
+      ],
+      "language": "en",
+      "added": "2026-11-18",
+      "status": "active",
+      "domain": "krillion.io",
+      "icon": "icons/krillion.png",
+      "icon_source": "site",
+      "source_issue": 512,
+      "history": [
+        {
+          "date": "2026-11-18",
+          "event": "added",
+          "note": "issue #512"
+        }
+      ]
+    },
+    {
       "id": "la-palabra-del-dia",
       "name": "La palabra del día",
       "url": "https://lapalabradeldia.com/",
