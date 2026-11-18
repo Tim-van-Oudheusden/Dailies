@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-11-18T22:48:07Z",
+  "generated_at": "2026-11-18T23:30:26Z",
   "games": [
     {
       "id": "absurdle",
@@ -264,6 +264,36 @@
           "date": "2026-10-15",
           "event": "added",
           "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "catfishing",
+      "name": "Catfishing",
+      "url": "https://catfishing.net/",
+      "category": "trivia",
+      "difficulty": "medium",
+      "description": "A wikipedia centered game wherein the player has to guess the wikipedia subject from words and strings related to the subject.",
+      "tags": [
+        "trivia",
+        "wikipedia",
+        "history",
+        "knowledge",
+        "geography",
+        "people"
+      ],
+      "language": "en",
+      "added": "2026-11-18",
+      "status": "active",
+      "domain": "catfishing.net",
+      "icon": "icons/catfishing.png",
+      "icon_source": "site",
+      "source_issue": 507,
+      "history": [
+        {
+          "date": "2026-11-18",
+          "event": "added",
+          "note": "issue #507"
         }
       ]
     },
