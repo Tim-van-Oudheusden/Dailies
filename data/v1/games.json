@@ -1615,6 +1615,32 @@
       ]
     },
     {
+      "id": "movie-to-movie",
+      "name": "Movie to Movie",
+      "url": "https://movietomovie.com/",
+      "category": "movies-tv",
+      "difficulty": "hard",
+      "description": "Connect two movies through their actors.",
+      "tags": [
+        "movies",
+        "actors"
+      ],
+      "language": "en",
+      "added": "2026-11-18",
+      "status": "active",
+      "domain": "movietomovie.com",
+      "icon": "icons/movie-to-movie.png",
+      "icon_source": "site",
+      "source_issue": 495,
+      "history": [
+        {
+          "date": "2026-11-18",
+          "event": "added",
+          "note": "issue #495"
+        }
+      ]
+    },
+    {
       "id": "moviedle",
       "name": "Moviedle",
       "url": "https://moviedle.xyz/",
