@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-11-18T22:48:07Z",
+  "generated_at": "2026-11-18T23:29:38Z",
   "games": [
     {
       "id": "absurdle",
@@ -664,6 +664,31 @@
           "date": "2026-10-15",
           "event": "added",
           "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "daily-orbs",
+      "name": "Daily orbs",
+      "url": "https://dailyorbs.com/",
+      "category": "trivia",
+      "difficulty": "medium",
+      "description": "Trivia matching games where you score \"orbs\" (points) based on how many trivia matches you can make on various subjects.",
+      "tags": [
+        "trivia"
+      ],
+      "language": "en",
+      "added": "2026-11-18",
+      "status": "active",
+      "domain": "dailyorbs.com",
+      "icon": "icons/daily-orbs.png",
+      "icon_source": "google",
+      "source_issue": 511,
+      "history": [
+        {
+          "date": "2026-11-18",
+          "event": "added",
+          "note": "issue #511"
         }
       ]
     },
