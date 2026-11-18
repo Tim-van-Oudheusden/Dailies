@@ -78,6 +78,19 @@ jobs:
       # Flathub's rules with no exceptions: lint-exceptions.json covers the Devel ID only.
       - name: Lint release manifest
         run: flatpak-builder-lint --gha-format manifest "$MANIFEST"
+      # The same step as ci.yml's flatpak job, for the same image (#477): with the overlay module's redirect_dir off,
+      # updating a runtime from the image layer fails with EXDEV and the build segfaults. ci.yml says why it works;
+      # tests/tooling/test_workflows.py keeps the two copies identical.
+      - name: Move flatpak installation off overlayfs
+        run: |
+          if [ "$(cat /sys/module/overlay/parameters/redirect_dir 2>/dev/null)" = Y ]; then
+            echo "overlay redirect_dir is on; /var/lib/flatpak stays on the image layer"
+            exit 0
+          fi
+          cp -a /var/lib/flatpak "$RUNNER_TEMP/flatpak-system"
+          rm -rf /var/lib/flatpak
+          ln -s "$RUNNER_TEMP/flatpak-system" /var/lib/flatpak
+          flatpak list --runtime --columns=application,branch,installation
       # Builds the commit pinned in the manifest, exports repo/, writes the bundle and uploads it as an artifact.
       # No cache: a cache saved on a tag can only be restored by runs on that same tag.
       # Screenshots are mirrored as on Flathub's builders: compose downloads the metainfo's tag URLs (so the tag must
