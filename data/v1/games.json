@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-11-18T23:14:31Z",
+  "generated_at": "2026-11-18T23:38:25Z",
   "games": [
     {
       "id": "absurdle",
@@ -638,6 +638,31 @@
           "date": "2026-10-15",
           "event": "added",
           "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "cutle",
+      "name": "Cutle",
+      "url": "https://pfiffel.com/cutle/",
+      "category": "numbers-logic",
+      "difficulty": "easy",
+      "description": "A game with a very simple goal: cut the shape perfectly in half.",
+      "tags": [
+        "geometry"
+      ],
+      "language": "en",
+      "added": "2026-11-18",
+      "status": "active",
+      "domain": "pfiffel.com",
+      "icon": "icons/cutle.png",
+      "icon_source": "google",
+      "source_issue": 508,
+      "history": [
+        {
+          "date": "2026-11-18",
+          "event": "added",
+          "note": "issue #508"
         }
       ]
     },
