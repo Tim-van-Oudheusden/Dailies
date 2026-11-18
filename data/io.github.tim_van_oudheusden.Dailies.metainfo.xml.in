@@ -63,24 +63,30 @@
 
   <screenshots>
     <screenshot type="default">
-      <image>https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/v0.3.1/data/screenshots/1.png</image>
+      <image>https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/v0.3.2/data/screenshots/1.png</image>
       <caption>Your favorite daily games together in one place</caption>
     </screenshot>
     <screenshot>
-      <image>https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/v0.3.1/data/screenshots/2.png</image>
+      <image>https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/v0.3.2/data/screenshots/2.png</image>
       <caption>The games that are popular this week</caption>
     </screenshot>
     <screenshot>
-      <image>https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/v0.3.1/data/screenshots/3.png</image>
+      <image>https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/v0.3.2/data/screenshots/3.png</image>
       <caption>Playing a game in the built-in browser</caption>
     </screenshot>
     <screenshot>
-      <image>https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/v0.3.1/data/screenshots/4.png</image>
+      <image>https://raw.githubusercontent.com/Tim-van-Oudheusden/Dailies/v0.3.2/data/screenshots/4.png</image>
       <caption>Word games in the dark style</caption>
     </screenshot>
   </screenshots>
 
   <releases>
+    <release version="0.3.3" date="2026-11-18">
+      <description translate="no">
+        <p>Games whose site asks not to be shown inside Dailies, such as Mapcade, now always open in your browser.</p>
+        <p>Ctrl+D on a game page now goes to the page instead of favoriting a game in the list behind it.</p>
+      </description>
+    </release>
     <release version="0.3.2" date="2026-11-14">
       <description translate="no">
         <p>A game page that closes itself now returns you to your games instead of leaving a blank page, and closed pages no longer keep running in the background.</p>
