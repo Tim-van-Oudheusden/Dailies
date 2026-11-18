@@ -35,15 +35,14 @@
         {
           "type": "git",
           "url": "https://github.com/Tim-van-Oudheusden/Dailies.git",
-          "commit": "012f096f903256aad3669ea779ca9f0d0bca6445",
+          "commit": "de98765c591e7c742d34ab7cf283521bb61de7ef",
           "x-checker-data": {
             "type": "git",
             "tag-pattern": "^v([\\d.]+)$",
             "version-scheme": "semantic",
             "is-main-source": true,
             "is-important": true
-          },
-          "tag": "v0.3.2"
+          }
         }
       ]
     }
