@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-11-18T22:30:00Z",
+  "generated_at": "2026-11-18T22:48:07Z",
   "games": [
     {
       "id": "absurdle",
@@ -2095,6 +2095,34 @@
           "date": "2026-10-15",
           "event": "added",
           "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "pips-hints",
+      "name": "Pips Hints",
+      "url": "https://pipshints.org/",
+      "category": "numbers-logic",
+      "difficulty": "medium",
+      "description": "Daily NYT Pips hints and answers, plus free unlimited Pips domino puzzles to play in the browser.",
+      "tags": [
+        "pips",
+        "dominoes",
+        "nyt-pips",
+        "hints"
+      ],
+      "language": "en",
+      "added": "2026-11-18",
+      "status": "active",
+      "domain": "pipshints.org",
+      "icon": "icons/pips-hints.png",
+      "icon_source": "google",
+      "source_issue": 486,
+      "history": [
+        {
+          "date": "2026-11-18",
+          "event": "added",
+          "note": "issue #486"
         }
       ]
     },
