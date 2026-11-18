@@ -1229,6 +1229,32 @@
       ]
     },
     {
+      "id": "juxtastat",
+      "name": "Juxtastat",
+      "url": "https://urbanstats.org/quiz.html",
+      "category": "geography",
+      "difficulty": "hard",
+      "description": "A guessing game wherein the player needs to assign a random statistic to a geographical area where it is higher/lower (etc.) than the other geographical area. Features multiple rounds.",
+      "tags": [
+        "geography",
+        "statistics"
+      ],
+      "language": "en",
+      "added": "2026-11-18",
+      "status": "active",
+      "domain": "urbanstats.org",
+      "icon": "icons/juxtastat.png",
+      "icon_source": "site",
+      "source_issue": 500,
+      "history": [
+        {
+          "date": "2026-11-18",
+          "event": "added",
+          "note": "issue #500"
+        }
+      ]
+    },
+    {
       "id": "keyword",
       "name": "Keyword",
       "url": "https://www.washingtonpost.com/games/keyword/",
