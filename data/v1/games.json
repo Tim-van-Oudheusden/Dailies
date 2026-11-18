@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-11-18T23:14:31Z",
+  "generated_at": "2026-11-18T23:38:25Z",
   "games": [
     {
       "id": "absurdle",
@@ -2281,6 +2281,31 @@
           "date": "2026-10-15",
           "event": "added",
           "note": "seed"
+        }
+      ]
+    },
+    {
+      "id": "puckdoku",
+      "name": "Puckdoku",
+      "url": "https://www.puckdoku.com/",
+      "category": "sports",
+      "difficulty": "medium",
+      "description": "A classic 3x3 DLE grid game where players have to match hockey players to a certain set of criteria.",
+      "tags": [
+        "icehockey"
+      ],
+      "language": "en",
+      "added": "2026-11-18",
+      "status": "active",
+      "domain": "puckdoku.com",
+      "icon": "icons/puckdoku.png",
+      "icon_source": "site",
+      "source_issue": 497,
+      "history": [
+        {
+          "date": "2026-11-18",
+          "event": "added",
+          "note": "issue #497"
         }
       ]
     },
