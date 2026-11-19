@@ -391,6 +391,45 @@ class ExternalOnlyTest(WindowTest):
                 assert self.toast.call_args.args[0].props.button_label is None, "no Open Here"
 
 
+class FailedCustomCommandTest(WindowTest):
+    """A game set to open with a custom command that runs but cannot start opens as if no custom command were set."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        for name, value in (("launch_custom", False), ("launch_external", None), ("host_access", True)):
+            patcher = mock.patch.object(opener, name, return_value=value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        toast = mock.patch.object(self.window.toast_overlay, "add_toast")
+        self.toast = toast.start()
+        self.addCleanup(toast.stop)
+        self.app.settings.set_string("external-browser-command", "dailies-no-such-command")
+        self.addCleanup(self.app.settings.reset, "external-browser-command")
+        game_settings = opener.game_settings(self.games[0].id)
+        game_settings.set_string("open-mode-override", "custom")
+        self.addCleanup(game_settings.reset, "open-mode-override")
+
+    def test_it_opens_in_the_built_in_browser(self) -> None:
+        game = self.games[0]
+
+        self.window.open_game(game)
+
+        opener.launch_custom.assert_called_once_with("dailies-no-such-command", game.url)
+        opener.launch_external.assert_not_called()
+        assert run_until(lambda: self.view.props.navigation_stack.get_n_items() == 2)
+
+    def test_a_game_whose_site_asks_not_to_be_embedded_opens_in_the_default_browser(self) -> None:
+        # #487: the fallback after the failed command must not put the site in the built-in browser either.
+        game = dataclasses.replace(self.games[0], external_only=True)
+
+        self.window.open_game(game)
+
+        opener.launch_custom.assert_called_once_with("dailies-no-such-command", game.url)
+        opener.launch_external.assert_called_once_with(self.window, game.url)
+        assert self.view.props.navigation_stack.get_n_items() == 1
+        assert self.toast.call_args.args[0].props.button_label is None, "no Open Here"
+
+
 class GridItemTest(WindowTest):
     def test_screen_readers_get_the_games_name_and_description(self) -> None:
         # GTK hands out no grid item's Gtk.ListItem, so this reads the template the grid's factory builds each one from.
