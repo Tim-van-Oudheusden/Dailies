@@ -29,6 +29,7 @@ FETCHER = "dailies/data/fetcher.py"
 BROWSER_PAGE = "dailies/ui/browser_page.py"
 TILE = "dailies/ui/tile.py"
 GAME_OBJECT = "dailies/ui/game_object.py"
+WINDOW = "dailies/window.py"
 
 MUTANTS = [
     Mutant(
@@ -65,5 +66,19 @@ MUTANTS = [
         'self.connect("notify::done"',
         'self.connect_after("notify::done"',
         "test_tile.GameTileTest.test_the_card_description_says_when_the_game_is_unavailable_or_done",
+    ),
+    Mutant(
+        "a custom command that cannot start falls back without trying it again",
+        WINDOW,
+        "have_webkit=have_webkit, custom_failed=True)",
+        "have_webkit=have_webkit)",
+        "test_window.FailedCustomCommandTest.test_it_opens_in_the_built_in_browser",
+    ),
+    Mutant(
+        "the fallback after a failed custom command keeps an external-only game out of the built-in browser (#487)",
+        WINDOW,
+        "have_webkit=have_webkit, custom_failed=True)",
+        "have_webkit=opener.have_webkit(), custom_failed=True)",
+        "test_window.FailedCustomCommandTest.test_a_game_whose_site_asks_not_to_be_embedded_opens_in_the_default_browser",
     ),
 ]
