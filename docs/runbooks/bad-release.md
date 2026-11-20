@@ -17,9 +17,10 @@ or delete the tag as [Releasing](../../CONTRIBUTING.md#releasing) describes.
 
 ## Why this app is different
 
-- **Bundles do not update themselves.** There is no update channel to push a fix through: everyone who installed the
-  broken bundle keeps it until they install another one by hand. The fix reaches them only through the Releases page,
-  the README and the issue tracker.
+- **Bundles do not update themselves; FlatPark installs do.** Everyone who installed the broken bundle keeps it until
+  they install another one by hand, so the fix reaches them only through the Releases page, the README and the issue
+  tracker. A [FlatPark](https://flatpark.org/apps/io.github.tim_van_oudheusden.Dailies/) install follows the release
+  GitHub marks **Latest**: FlatPark checks it twice a day, and `flatpak update` brings what it pinned.
 - **A published version is never reused.** A tag and its version name one build; replacing the assets under the same
   tag would leave two different bundles called the same version. A bad `vX.Y.Z` is fixed forward with `vX.Y.(Z+1)`.
 - **The data path still reaches the broken version.** Installed apps keep fetching `games.json` every 6 hours and
@@ -83,15 +84,18 @@ or delete the tag as [Releasing](../../CONTRIBUTING.md#releasing) describes.
    gh release delete-asset vX.Y.Z SHA256SUMS
    ```
 
-   A [FlatPark](https://flatpark.org) package pins `Dailies-flatpark.tar.xz` from the release as extra-data
-   ([Releasing](../../CONTRIBUTING.md#releasing)), so removing that asset also stops FlatPark from installing the
-   broken version.
+   [FlatPark](https://flatpark.org/apps/io.github.tim_van_oudheusden.Dailies/) pins `Dailies-flatpark.tar.xz` from
+   the **Latest** release as extra-data ([Releasing](../../CONTRIBUTING.md#releasing)), and re-pins whenever that
+   release's version differs from its pin, lower ones included. Within about 12 hours of the pre-release flag it pins
+   the previous release again, and FlatPark users go back to it with their next `flatpak update`. Removing
+   `Dailies-flatpark.tar.xz` makes a FlatPark install fail until then, instead of installing the broken version.
 
    Do not delete the tag: the version stays used. (With immutable releases turned on for the repository, the assets
    cannot be deleted; the pre-release flag and the notes remain editable.)
 2. Tell users. Open an issue (`vX.Y.Z: <what breaks>`), pin it with `gh issue pin <number>`, and put a notice on the
    [README Status line](../../README.md#status) in a pull request (`docs(readme): warn about vX.Y.Z (#N)`): what
-   breaks, and that the previous release can be installed over it:
+   breaks, and that the previous release can be installed over it (FlatPark users only run `flatpak update` once
+   FlatPark has pinned it again):
 
    ```sh
    flatpak install --user --reinstall ./Dailies-x86_64.flatpak   # the previous release's bundle
@@ -99,9 +103,9 @@ or delete the tag as [Releasing](../../CONTRIBUTING.md#releasing) describes.
 
    `--reinstall` uninstalls first without deleting the app's data, so favourites, settings and logins stay.
 3. Fix forward: fix the bug test-first in a pull request that says `Fixes #<number>`, then cut `vX.Y.(Z+1)` as
-   [Cutting a release](../../CONTRIBUTING.md#cutting-a-release) describes. Its metainfo release note says what it
-   fixes; `scripts/release_check.py notes` puts that note at the top of the GitHub Release, and the About dialog shows
-   it:
+   [Cutting a release](../../CONTRIBUTING.md#cutting-a-release) describes. FlatPark pins it within about 12 hours of
+   publication, with no step here. Its metainfo release note says what it fixes; `scripts/release_check.py notes` puts
+   that note at the top of the GitHub Release, and the About dialog shows it:
 
    ```xml
    <release version="X.Y.Z+1" date="YYYY-MM-DD">

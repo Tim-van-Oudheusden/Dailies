@@ -6,7 +6,7 @@
 
 Play your daily guessing games in one place
 
-[Download](https://github.com/Tim-van-Oudheusden/Dailies/releases/latest) ·
+[Install from FlatPark](https://flatpark.org/apps/io.github.tim_van_oudheusden.Dailies/) ·
 [Add a game](https://github.com/Tim-van-Oudheusden/Dailies/issues/new?template=new-game.yml)
 
 [![CI](https://github.com/Tim-van-Oudheusden/Dailies/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Tim-van-Oudheusden/Dailies/actions/workflows/ci.yml)
@@ -31,8 +31,9 @@ Play your daily guessing games in one place
 ## Status
 
 Early: releases are still 0.x, and the newest is on the
-[Releases](https://github.com/Tim-van-Oudheusden/Dailies/releases/latest) page. Linux only, as a Flatpak; not on
-Flathub yet.
+[Releases](https://github.com/Tim-van-Oudheusden/Dailies/releases/latest) page. Linux only, as a Flatpak:
+[on FlatPark](https://flatpark.org/apps/io.github.tim_van_oudheusden.Dailies/) with automatic updates, and as release
+bundles. Not on Flathub.
 
 ## About
 
@@ -54,6 +55,19 @@ A GNOME app that lists daily guessing games ("-dles") such as Wordle, Connection
 
 Pick one:
 
+- **Install from FlatPark** (recommended).
+  [FlatPark](https://flatpark.org/apps/io.github.tim_van_oudheusden.Dailies/) picks up each new release within a day of
+  its publication, and `flatpak update` brings it to you. The runtime comes from Flathub, so add both remotes:
+
+  ```sh
+  flatpak --user remote-add --if-not-exists flatpark https://dl.flatpark.org/flatpark.flatpakrepo
+  flatpak --user remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+  flatpak --user install flatpark io.github.tim_van_oudheusden.Dailies
+  ```
+
+  [![Get it on FlatPark](https://flatpark.org/badges/get-it-on-flatpark.svg)](https://flatpark.org/apps/io.github.tim_van_oudheusden.Dailies/)
+
+  Installed a release bundle before? Add `--reinstall` to the last command; your favourites and settings stay.
 - **Download a release.** Each release on the [Releases](https://github.com/Tim-van-Oudheusden/Dailies/releases) page
   attaches `Dailies-x86_64.flatpak`, `Dailies-aarch64.flatpak` and `SHA256SUMS`. The bundle needs the GNOME 51 runtime,
   which Flatpak installs from Flathub, so add the Flathub remote first:
@@ -194,6 +208,7 @@ flowchart TD
   subgraph release["Releases"]
     TAG["git push tag vX.Y.Z"] --> REL["release.yml<br/>verify, build x86_64 and aarch64, publish"]
     REL --> ASSETS["GitHub Release<br/>Dailies-x86_64.flatpak, Dailies-aarch64.flatpak,<br/>Dailies-flatpark.tar.xz, SHA256SUMS"]
+    ASSETS -.->|"resolve-update.sh, twice a day"| FP["FlatPark<br/>re-pins Dailies-flatpark.tar.xz,<br/>users get it with flatpak update"]
   end
 ```
 
