@@ -219,6 +219,8 @@ flatpak --user remote-add --if-not-exists flathub https://dl.flathub.org/repo/fl
 flatpak --user install flatpark {APP_ID}
 ```
 
+Installed a release bundle before? Add `--reinstall` to the last command; your favourites and settings stay.
+
 Or this release's bundle:
 
 ```sh

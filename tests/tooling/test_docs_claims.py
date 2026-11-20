@@ -5,14 +5,17 @@ repository's docs, the tests at the bottom feed each one an inline fixture that 
 the `release.yml` publish step (release assets), `AUTO_MERGE_JOBS` in `test_workflows.py` (who merges a bot pull
 request), the data files `dailies/data/fetcher.py` requests, and the permissions and environments of every workflow.
 
-Not covered, because prose cannot be checked mechanically: status and history sentences, and runbook error text. The
-README "Installing" list is left out on purpose (it lists only the user-installable bundles), and the metainfo copy of
-the download list is translatable and stays a manual check.
+Not covered, because prose cannot be checked mechanically: status and history sentences, and runbook error text. Of the
+README "Installing" list only the "Install from FlatPark" bullet is checked, against the release body (the bundle
+bullet lists only the user-installable bundles and is left out), and the metainfo copy of the download list is
+translatable and stays a manual check.
 """
 
+import importlib.util
 import re
 from collections.abc import Iterator
 from pathlib import Path
+from types import ModuleType
 
 import pytest
 
@@ -33,6 +36,7 @@ BAD_RELEASE = ROOT / "docs" / "runbooks" / "bad-release.md"
 MULTI_AGENT = ROOT / "docs" / "multi-agent.md"
 DATA_README = ROOT / "data" / "v1" / "README.md"
 FETCHER = ROOT / "dailies" / "data" / "fetcher.py"
+RELEASE_CHECK = ROOT / "scripts" / "release_check.py"
 
 # Docs that describe the project today. Proposals and research notes record what was decided or found at the time.
 HISTORICAL_DOCS = ("docs/proposals/", "docs/research/")
@@ -188,6 +192,44 @@ def work_table_violations(workflows: dict[str, dict], markdown: str) -> list[str
     ]
 
 
+# --- 5. the FlatPark install ------------------------------------------------------------------------------------------
+
+
+def load_release_check() -> ModuleType:
+    spec = importlib.util.spec_from_file_location("release_check", RELEASE_CHECK)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def readme_flatpark_install(readme: str) -> str:
+    match = re.search(r"^- \*\*Install from FlatPark\*\*.*?(?=^- \*\*|^\S|\Z)", readme, re.DOTALL | re.MULTILINE)
+    return match.group(0) if match else ""
+
+
+def body_flatpark_install(body: str) -> str:
+    return body.split("Or this release's bundle", 1)[0]
+
+
+def flatpark_install_facts(text: str) -> list[str]:
+    """The `flatpak` commands (remotes and install) and the `--reinstall` sentence of a FlatPark install section."""
+    commands = [line.strip() for line in text.splitlines() if line.strip().startswith("flatpak ")]
+    note = re.findall(r"Installed a release bundle before\?[^.]*\.", squash(text))
+    return [*commands, *note]
+
+
+def flatpark_install_violations(readme: str, body: str) -> list[str]:
+    in_readme = flatpark_install_facts(readme_flatpark_install(readme))
+    in_body = flatpark_install_facts(body_flatpark_install(body))
+    if not in_readme:
+        return ["README.md has no 'Install from FlatPark' commands"]
+    return [f"the release body's FlatPark install differs from the README's: {in_body} != {in_readme}"] * (
+        in_readme != in_body
+    )
+
+
 # --- the repository's files -------------------------------------------------------------------------------------------
 
 
@@ -238,6 +280,12 @@ def test_every_downloaded_file_is_named_in_the_readme_and_the_data_readme() -> N
 
 def test_every_generating_workflow_has_a_row_in_the_work_table() -> None:
     assert work_table_violations(workflows(), text_of(MULTI_AGENT)) == []
+
+
+def test_release_body_flatpark_install_matches_the_readme() -> None:
+    body = load_release_check().release_body(ROOT)
+    assert flatpark_install_facts(readme_flatpark_install(text_of(README))), "README lost its FlatPark commands"
+    assert flatpark_install_violations(text_of(README), body) == []
 
 
 # --- fixtures: each check fails when its claim drifts -----------------------------------------------------------------
@@ -346,3 +394,44 @@ def test_fixture_workflow_named_only_in_another_rows_second_column_needs_a_row()
 def test_fixture_table_rows_are_checked_one_by_one() -> None:
     text = "| popularity.yml | merges itself |\n| other.yml | a human merges |\n"
     assert merge_prose_violations("d.md", text, {"popularity.yml"}) == []
+
+
+FLATPARK_README = """- **Install from FlatPark** (recommended).
+
+  ```sh
+  flatpak --user remote-add --if-not-exists flatpark https://dl.flatpark.org/flatpark.flatpakrepo
+  flatpak --user install flatpark app.Id
+  ```
+
+  Installed a release bundle before? Add `--reinstall` to the last command; your favourites and settings stay.
+- **Download a release.**
+"""
+FLATPARK_BODY = """## Install
+
+```sh
+flatpak --user remote-add --if-not-exists flatpark https://dl.flatpark.org/flatpark.flatpakrepo
+flatpak --user install flatpark app.Id
+```
+
+Installed a release bundle before? Add `--reinstall` to the last command; your favourites and settings stay.
+
+Or this release's bundle:
+
+```sh
+flatpak install --user ./Dailies-x86_64.flatpak
+```
+"""
+
+
+def test_fixture_matching_flatpark_installs_pass() -> None:
+    assert flatpark_install_violations(FLATPARK_README, FLATPARK_BODY) == []
+
+
+def test_fixture_flatpark_install_command_drift_fails() -> None:
+    body = FLATPARK_BODY.replace("flatpak --user install flatpark app.Id", "flatpak --user install flatpark other.Id")
+    assert len(flatpark_install_violations(FLATPARK_README, body)) == 1
+
+
+def test_fixture_release_body_without_the_reinstall_note_fails() -> None:
+    body = FLATPARK_BODY.replace("Installed a release bundle before? Add `--reinstall` to the last command;", "")
+    assert len(flatpark_install_violations(FLATPARK_README, body)) == 1
