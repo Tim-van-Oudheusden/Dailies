@@ -25,8 +25,8 @@ Report it privately through GitHub: the repository's **Security** tab → **Repo
 
 Include what you can of:
 
-- the Dailies version (Main Menu → About Dailies), how you installed it (release bundle, built from source), and your
-  distribution and `flatpak --version`
+- the Dailies version (Main Menu → About Dailies), how you installed it (FlatPark, release bundle, built from
+  source), and your distribution and `flatpak --version`
 - what an attacker can do, and what they need first (a crafted catalog entry, a malicious web page, a local account, …)
 - steps or a proof of concept that reproduce it
 - for a leaked secret: where you found it
@@ -50,8 +50,13 @@ Please keep the details private until the fix is released or 90 days have passed
 In scope:
 
 - the app (`dailies/`, `data/`): the built-in browser's settings and how links are opened, the catalog and popularity
-  fetcher and cache, stored settings and favourites, and the released `.flatpak` bundles
+  fetcher and cache, stored settings and favourites, the released `.flatpak` bundles and the FlatPark payload
+  `Dailies-flatpark.tar.xz`
 - the Flatpak manifests in `build-aux/flatpak/`, including the sandbox permissions they request
+- the [FlatPark](https://flatpark.org/apps/io.github.tim_van_oudheusden.Dailies/) package, which keeps its own copies
+  of the finish-args, desktop entry, D-Bus service and metainfo in `flatpark/flatpark`
+  ([Cutting a release](CONTRIBUTING.md#cutting-a-release)). The same maintainer keeps it, so report a flaw in it
+  privately here, not in a public issue there
 - the catalog data in `data/v1/` and the pipeline that changes it: the game submission workflows, the submission
   validator and link checker, and the popularity workflow
 - the build and release pipeline in this repository (`.github/workflows/`, `meson.build`, `scripts/`), including
