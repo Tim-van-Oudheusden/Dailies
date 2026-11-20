@@ -329,11 +329,19 @@ Pushing the tag runs `.github/workflows/release.yml`:
 
 A tag with a `-` suffix (`v0.2.0-beta.1`) publishes a pre-release; `meson.build` and the metainfo then carry the same
 `0.2.0-beta.1`. Bundles do not update themselves: users install the next bundle over the old one, and their
-favourites and settings stay.
+favourites and settings stay. FlatPark installs update themselves: see below.
 
-The FlatPark payload is what [FlatPark](https://flatpark.org) installs. FlatPark builds nothing from source: its
-package pins this asset as Flatpak extra-data and unpacks it into `/app/extra/dailies` on the user's machine, offline,
-inside `org.gnome.Platform`, which has no tool that unpacks a `.flatpak` bundle. The script runs a release-profile
+The FlatPark payload is what [FlatPark](https://flatpark.org/apps/io.github.tim_van_oudheusden.Dailies/) installs.
+Its package is `registry/io.github.tim_van_oudheusden.Dailies/` in
+[`flatpark/flatpark`](https://github.com/flatpark/flatpark), maintained by this project's owner. Twice a day its
+`resolve-update.sh` reads the release GitHub marks **Latest** (so never a pre-release), and FlatPark re-pins the
+payload, checks that it unpacks and publishes, with no step in this repository; a payload that does not unpack keeps
+the old pin and opens a `ci-alert` issue there. Only the pin and a `<release>` entry update that way: the package
+keeps its own copies of the desktop entry, D-Bus service, icon, metainfo (description, screenshots) and finish-args,
+so a release that changes one of those needs a `fix(dailies): …` pull request on `flatpark/flatpark` as well.
+FlatPark builds nothing from source: its package pins this asset as Flatpak extra-data and unpacks it into
+`/app/extra/dailies` on the user's machine, offline, inside `org.gnome.Platform`, which has no tool that unpacks a
+`.flatpak` bundle. The script runs a release-profile
 `meson install` of the checkout with prefix `/app/extra/dailies` inside `org.gnome.Sdk//51` (`flatpak build`), so the
 launcher and `config.py` name the paths the runtime and FlatPark use, and writes the tree as a reproducible tar.xz:
 sorted members owned by root, every mtime the commit time (or `$SOURCE_DATE_EPOCH`). It holds no compiled code, so one
@@ -544,6 +552,8 @@ the maintainer and has not been done yet; until then, send translations as ordin
   `scripts/flatpark_payload.py`, the `flatpak build-init … org.gnome.Platform <branch>` line of `ci.yml`'s `flatpak`
   job and the default `RUNTIME_REF` of `scripts/nightly-compliance.sh` repeat it, so a runtime bump changes them in
   the same pull request: `tests/tooling/test_runtime_branch.py` fails while any of them differs from the manifests.
+  The FlatPark package's `runtime-version` is FlatPark's: it moves its whole catalog to a new GNOME major at once, so
+  do not tag a release on a new branch until that package is on it, or FlatPark runs the payload on the old Platform.
 
 ## Agent safety layers
 

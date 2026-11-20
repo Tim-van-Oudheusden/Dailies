@@ -249,6 +249,15 @@ def test_body_has_notes_then_install_instructions(tmp_path: Path) -> None:
     assert body.index("First release.") < body.index("flatpak install")
 
 
+def test_body_offers_flatpark_before_the_bundle(tmp_path: Path) -> None:
+    root = make_repo(tmp_path, releases=release("0.1.0", description="<p>First release.</p>"))
+    body = rc.release_body(root)
+    assert "flatpak --user remote-add --if-not-exists flatpark https://dl.flatpark.org/flatpark.flatpakrepo" in body
+    assert "flatpak --user install flatpark io.github.tim_van_oudheusden.Dailies" in body
+    assert "https://flatpark.org/apps/io.github.tim_van_oudheusden.Dailies/" in body
+    assert body.index("install flatpark") < body.index("./Dailies-x86_64.flatpak")
+
+
 def test_body_without_notes_starts_with_install(tmp_path: Path) -> None:
     root = make_repo(tmp_path, releases='    <release version="0.1.0" date="2026-10-15"/>')
     assert rc.release_body(root).startswith("## Install")

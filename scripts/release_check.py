@@ -205,10 +205,21 @@ def verify(root: Path, tag: str, today: date) -> Verified:
 
 
 def release_body(root: Path) -> str:
-    """Return the GitHub Release body: the newest release's notes, then how to install a bundle."""
+    """Return the GitHub Release body: the newest release's notes, then how to install from FlatPark or a bundle."""
     notes = newest_release(_read(root, METAINFO)).notes
     runtime = _manifest(root).get("runtime-version", "")
     install = f"""## Install
+
+From [FlatPark](https://flatpark.org/apps/{APP_ID}/), which picks up each release within a day and updates Dailies
+with `flatpak update`:
+
+```sh
+flatpak --user remote-add --if-not-exists flatpark https://dl.flatpark.org/flatpark.flatpakrepo
+flatpak --user remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+flatpak --user install flatpark {APP_ID}
+```
+
+Or this release's bundle:
 
 ```sh
 # Prerequisite: the Flathub remote, for the GNOME {runtime} runtime

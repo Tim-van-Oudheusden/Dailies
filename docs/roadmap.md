@@ -4,7 +4,7 @@ Where Dailies goes after the MVP. The original plan, M0 to M5, is §16 of the
 [MVP-first proposal](proposals/mvp-first.md#16-roadmap), tracked by #1; it stays there as the record. This page picks
 up from it: where the project stands, the next milestone, where effort goes when nothing on that milestone is ready,
 and what is deliberately left off. Every number below comes from `main`, the GitHub releases or the issues named next
-to it, as of 2026-11-17.
+to it, as of 2026-11-17; the M4 state is as of 2026-11-20.
 
 ## Where things stand
 
@@ -14,14 +14,13 @@ to it, as of 2026-11-17.
 | M1 Usable launcher → v0.1.0 | #3 | done |
 | M2 Data pipeline → v0.2.0 | #4 | done |
 | M3 Agentic report and hygiene → v0.3.0 | #5 | done |
-| M4 Distribution | #6 | open: waits on the FlatPark pull request (#206) |
+| M4 Distribution | #6 | done: on FlatPark since 2026-11-20 (#206) |
 | M5 Growth | #7 | done (12 of 12 sub-issues) |
 
-**M4 waits on one step, and it is the owner's.** Everything #206 depended on has landed: the FlatPark payload
-(#205, #208), v0.3.0, and since then v0.3.1 and v0.3.2. The package drafted on 2026-10-21 still pins v0.3.0. Before
-the pull request is opened on `flatpark/flatpark`, re-run `resolve-update.sh | update-pins.mjs` as #206 describes, so
-the listing starts at the newest release. Under FlatPark's playbook (rule 2) the developer opens that pull
-request, so nothing in this repository can finish M4.
+**M4 is done.** Dailies is [on FlatPark](https://flatpark.org/apps/io.github.tim_van_oudheusden.Dailies/), listed by
+its developer in [flatpark/flatpark#1397](https://github.com/flatpark/flatpark/pull/1397) (merged 2026-11-20) with the
+developer-approved shield, pinned to v0.3.3 for x86_64 and aarch64. FlatPark re-pins `Dailies-flatpark.tar.xz` from
+each new release by itself, so a release needs no step for it.
 
 **Baseline**, to measure the launch against:
 
@@ -44,14 +43,14 @@ are being played now.
 
 | Track | Work | Who |
 | --- | --- | --- |
-| Launch | Open the FlatPark pull request, pinned to the newest release (#206); then the launch checklist in #259: README Status, the website's Dailies page, the repository homepage, the announcement | Owner opens and posts; an agent drafts the README, website and announcement text once the listing is live |
+| Launch | Dailies is on FlatPark (#206). Next, the launch checklist in #259: the website's Dailies page, the repository homepage, the announcement | Owner posts; an agent drafts the website and announcement text |
 | Catalog | Each month, run `scripts/catalog_candidates.py` with `--since` the previous run's day ([Growing the catalog](runbooks/catalog-link.md#growing-the-catalog)), pick the games that meet the [submission rules](data-format.md#submission-rules), and file each through the **Add a game** form, with a description and tags written fresh. Stage A and B and the maintainer's `approved` label stay as they are | Run and file: an agent or the owner. Approve and merge: the maintainer |
 | Releases | Cut a patch release once user-visible fixes are waiting on `main` that no release carries, following the contributing guide's "Releasing" section. A catalog change needs no release: the app picks it up from Pages | Owner tags |
 
 **Exit criteria**
 
-- [ ] `flatpak install flatpark io.github.tim_van_oudheusden.Dailies` installs the newest release. This is also M4's
-  exit criterion, so meeting it closes M4.
+- [x] `flatpak install flatpark io.github.tim_van_oudheusden.Dailies` installs the newest release (v0.3.3 on
+  2026-11-20). This was also M4's exit criterion, and meeting it closed M4.
 - [ ] The catalog has grown by at least 20 active games since 2026-11-17, across at least two monthly candidate runs.
 - [ ] Two weeks after the announcement, the stars, release downloads and any FlatPark install count are recorded on
   #259, next to the baseline above.

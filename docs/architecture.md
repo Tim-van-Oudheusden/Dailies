@@ -335,6 +335,7 @@ flowchart TD
   subgraph release["Releases"]
     TAG["git push tag vX.Y.Z"] --> REL["release.yml<br/>verify, build x86_64 and aarch64, publish"]
     REL --> ASSETS["GitHub Release<br/>Dailies-x86_64.flatpak, Dailies-aarch64.flatpak,<br/>Dailies-flatpark.tar.xz, SHA256SUMS"]
+    ASSETS -.->|"resolve-update.sh, twice a day"| FP["FlatPark<br/>re-pins Dailies-flatpark.tar.xz,<br/>users get it with flatpak update"]
   end
 ```
 
@@ -393,7 +394,10 @@ the numbers-only pull request ([`docs/popularity/`](popularity/README.md),
 
 **Releases.** See [Releasing in `CONTRIBUTING.md`](../CONTRIBUTING.md#releasing). The tag, `version:` in `meson.build`
 and the newest metainfo `<release>` must agree, which the `verify` job checks before anything is built. Bundles do not
-update themselves; a Flathub submission comes after at least three releases.
+update themselves; [FlatPark](https://flatpark.org/apps/io.github.tim_van_oudheusden.Dailies/) installs do. Its package
+(`registry/io.github.tim_van_oudheusden.Dailies/` in `flatpark/flatpark`) checks the latest GitHub Release twice a
+day, pins its `Dailies-flatpark.tar.xz` as extra-data and publishes, so a FlatPark install gets each release through
+`flatpak update` with no change in this repository. A Flathub submission is the owner's to write (#207).
 
 ## Decisions
 
