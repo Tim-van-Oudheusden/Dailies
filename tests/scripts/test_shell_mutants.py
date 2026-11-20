@@ -183,6 +183,20 @@ MUTANTS = [
         f"{MERGE_QUEUE_TESTS}::test_next_asks_again_while_github_is_still_computing_the_merge_state",
     ),
     Mutant(
+        "a merge state the queue cannot read fails the run",
+        MERGE_QUEUE,
+        '--jq .mergeStateStatus)" || return 1',
+        '--jq .mergeStateStatus)" || true',
+        f"{MERGE_QUEUE_TESTS}::test_next_fails_instead_of_skipping_a_pull_request_whose_merge_state_cannot_be_read",
+    ),
+    Mutant(
+        "land reads the merge state of the pull request before it merges",
+        MERGE_QUEUE,
+        '  state="$(merge_state "$number")"\n  if [ "$ready"',
+        '  state=CLEAN\n  if [ "$ready"',
+        f"{MERGE_QUEUE_TESTS}::test_land_fails_instead_of_calling_a_pull_request_not_ready_when_its_merge_state_cannot_be_read",
+    ),
+    Mutant(
         "the queue stops asking for the merge state after three answers",
         MERGE_QUEUE,
         "for attempt in 1 2 3; do\n    state=",
