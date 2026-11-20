@@ -258,6 +258,12 @@ def test_body_offers_flatpark_before_the_bundle(tmp_path: Path) -> None:
     assert body.index("install flatpark") < body.index("./Dailies-x86_64.flatpak")
 
 
+def test_body_tells_bundle_users_to_reinstall_from_flatpark(tmp_path: Path) -> None:
+    root = make_repo(tmp_path, releases=release("0.1.0", description="<p>First release.</p>"))
+    body = rc.release_body(root)
+    assert "--reinstall" in body[: body.index("./Dailies-x86_64.flatpak")]
+
+
 def test_body_without_notes_starts_with_install(tmp_path: Path) -> None:
     root = make_repo(tmp_path, releases='    <release version="0.1.0" date="2026-10-15"/>')
     assert rc.release_body(root).startswith("## Install")
