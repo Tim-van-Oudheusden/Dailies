@@ -38,7 +38,7 @@ jobs:
         with:
           ref: main
           persist-credentials: false
-      # Pinned by digest: ghcr.io/flathub/flatpak-external-data-checker:latest as of 2026-10-29.
+      # Pinned by digest: ghcr.io/flathub/flatpak-external-data-checker:latest as of 2026-11-20.
       # Dependabot does not update docker:// references. The checker-pin job of
       # nightly-compliance.yml moves this pin and its date once a newer :latest
       # is 3 days old and opens the ci/checker-pin pull request (#269);
@@ -47,7 +47,7 @@ jobs:
       # GITHUB_TOKEN; create-pull-request pushes the branch and opens the pull request (#200).
       # Images before 2026-10-29 pushed to https://TOKEN:x-oauth-basic@github.com/...,
       # which GitHub refuses for the GITHUB_TOKEN installation token.
-      - uses: docker://ghcr.io/flathub/flatpak-external-data-checker@sha256:f362ad088473d2c791e8b51185d30b806b962a98a4ee1bbf5b59cf242130728a
+      - uses: docker://ghcr.io/flathub/flatpak-external-data-checker@sha256:00dfeed0d69e7c2e72a4921787fda011e5e251a9c60d40a1d1d113f60ecdabb7
         with:
           args: --edit-only --require-important-update build-aux/flatpak/io.github.tim_van_oudheusden.Dailies.json
       - name: Read the proposed tag
