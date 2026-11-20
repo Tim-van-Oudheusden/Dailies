@@ -64,10 +64,12 @@ queue_next_run() {
 }
 
 # GitHub computes the merge state lazily and answers UNKNOWN until it has.
+# A failed gh call fails the function, not a retry. Callers assign the result to
+# a variable: set -e does not reach a substitution inside `[ ... ]`.
 merge_state() {
   local state attempt
   for attempt in 1 2 3; do
-    state="$(gh pr view "$1" --json mergeStateStatus --jq .mergeStateStatus)"
+    state="$(gh pr view "$1" --json mergeStateStatus --jq .mergeStateStatus)" || return 1
     [ "$state" != UNKNOWN ] && break
     [ "$attempt" -lt 3 ] && sleep 5
   done
@@ -140,7 +142,7 @@ next() {
 }
 
 land() {
-  local number="$1" head="$2" verified_main="$3" main ready merged workflow failed=0
+  local number="$1" head="$2" verified_main="$3" main ready state merged workflow failed=0
   main="$(git ls-remote origin refs/heads/main | cut -f1)"
   if [ "$main" != "$verified_main" ]; then
     echo "::notice title=Merge queue::main moved since #${number} was verified; verifying again"
@@ -149,7 +151,8 @@ land() {
   fi
 
   ready="$(gh pr view "$number" --json isDraft,labels --jq "(.isDraft | not) and ${UNHELD}")"
-  if [ "$ready" != true ] || [ "$(merge_state "$number")" != CLEAN ]; then
+  state="$(merge_state "$number")"
+  if [ "$ready" != true ] || [ "$state" != CLEAN ]; then
     echo "::notice title=Merge queue::#${number} stopped being ready during verification; skipped"
     queue_next_run
     return 0
