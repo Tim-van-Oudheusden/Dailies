@@ -15,6 +15,7 @@ import importlib.util
 import re
 from collections.abc import Iterator
 from pathlib import Path
+from types import ModuleType
 
 import pytest
 
@@ -194,7 +195,7 @@ def work_table_violations(workflows: dict[str, dict], markdown: str) -> list[str
 # --- 5. the FlatPark install ------------------------------------------------------------------------------------------
 
 
-def load_release_check():
+def load_release_check() -> ModuleType:
     spec = importlib.util.spec_from_file_location("release_check", RELEASE_CHECK)
     assert spec is not None
     assert spec.loader is not None
