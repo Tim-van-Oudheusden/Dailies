@@ -185,8 +185,8 @@ MUTANTS = [
     Mutant(
         "a merge state the queue cannot read fails the run",
         MERGE_QUEUE,
-        "--jq .mergeStateStatus)\" || return 1",
-        "--jq .mergeStateStatus)\" || true",
+        '--jq .mergeStateStatus)" || return 1',
+        '--jq .mergeStateStatus)" || true',
         f"{MERGE_QUEUE_TESTS}::test_next_fails_instead_of_skipping_a_pull_request_whose_merge_state_cannot_be_read",
     ),
     Mutant(
