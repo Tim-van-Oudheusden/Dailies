@@ -9,12 +9,15 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-18. #484 on `ci/484-release-overlayfs` (release.yml's flatpak build lacked #477's EXDEV step).
+2026-11-21. #532 on `fix/532-pages-incomplete-read` (check_pages' default fetch let `http.client` errors escape).
 
-- **Outcome:** `release.yml`'s `build` job runs ci.yml's "Move flatpak installation off overlayfs" step before "Build
-  Flatpak". `test_workflows.py`'s `off_overlayfs_violations` fails any flatpak-builder job that lacks the step, runs it
-  after the build, or runs text that differs from ci.yml's `flatpak` job.
-- **Open follow-ups:** none from #484. The step only proves itself on a `v*` tag that lands on an AWS-hosted runner.
+- **Outcome:** `scripts/check_pages.py`'s `https_get` raises `http.client.HTTPException` (`IncompleteRead`,
+  `BadStatusLine`, `RemoteDisconnected`) as `OSError ... from error`, as the `Fetch` comment promises, and `transient()`
+  counts such a wrapped error as transient, the way the app's fetcher treats a libsoup failure as no answer. A body cut
+  short is retried (#462) and, if it persists, fails the row with the "Pages did not serve it" line, not a traceback.
+- **Open follow-ups:** none from #532.
 - **Gotchas:**
+  - `urlopen` wraps only send failures in `URLError`; anything `getresponse()` or `read()` raises comes out bare, so
+    test the default fetch by patching `urllib.request.urlopen`, not only through `FakePages`.
   - The tests need Python 3.13 (PEP 695 generics in `dailies/core`); a 3.11 interpreter fails collection, not tests.
   - Edits under `.github/workflows/` need a token with the `workflows` permission; the contributor App token has none.

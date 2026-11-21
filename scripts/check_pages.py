@@ -12,10 +12,10 @@ and serves with `max-age=600`. In the workflow's shallow checkout the last commi
 the hour before the run puts a real mismatch off by one night. A file Pages does not serve fails whatever its age. The
 icons are not compared: they follow the catalog, and a stale games.json is the signal. The standard library is enough.
 
-A request that fails the way the app treats as transient (no answer, a timeout, a 429 or a 5xx: Refresh.handle in
-dailies/core/cache.py tries the next data URL on those) is sent again, ATTEMPTS times in all and RETRY_DELAY seconds
-apart, before it fails the row: one dropped connection says nothing about what Pages serves (#462). Any other answer, a
-404 included, fails at once.
+A request that fails the way the app treats as transient (no answer, or one that breaks off or cannot be parsed, a
+timeout, a 429 or a 5xx: Refresh.handle in dailies/core/cache.py tries the next data URL on those) is sent again,
+ATTEMPTS times in all and RETRY_DELAY seconds apart, before it fails the row: one dropped connection says nothing about
+what Pages serves (#462, #532). Any other answer, a 404 included, fails at once.
 
 Usage:
     python3 -I scripts/check_pages.py [--repo DIR]
@@ -28,6 +28,7 @@ time could not be read.
 import argparse
 import datetime as dt
 import hashlib
+import http.client
 import subprocess
 import sys
 import time
@@ -56,10 +57,16 @@ Sleep = Callable[[float], None]
 
 
 def transient(error: OSError) -> bool:
-    """Whether `error` is a failure the app passes over to its next data URL rather than an answer from Pages."""
+    """Whether `error` is a failure the app passes over to its next data URL rather than an answer from Pages.
+
+    In the app, libsoup fails a body cut short or an answer it cannot parse, and dailies/data/fetcher.py hands that on
+    as no answer (status None); so the http.client errors https_get wraps (#532) are transient too.
+    """
     if isinstance(error, urllib.error.HTTPError):
         return error.code == HTTPStatus.TOO_MANY_REQUESTS or error.code >= HTTPStatus.INTERNAL_SERVER_ERROR
-    return isinstance(error, (urllib.error.URLError, TimeoutError, ConnectionError))
+    return isinstance(error, (urllib.error.URLError, TimeoutError, ConnectionError)) or isinstance(
+        error.__cause__, http.client.HTTPException
+    )
 
 
 def fetch_retrying(fetch: Fetch, url: str, sleep: Sleep) -> bytes:
@@ -82,12 +89,20 @@ def fetch_retrying(fetch: Fetch, url: str, sleep: Sleep) -> bytes:
 
 
 def https_get(url: str) -> bytes:
-    """GET `url`, following redirects as the app does; the default Fetch."""
+    """GET `url`, following redirects as the app does; the default Fetch.
+
+    urlopen does not wrap what http.client raises while it reads the answer: a body cut short (IncompleteRead) or a
+    garbled status line (BadStatusLine) is no OSError, so it is raised as one, as Fetch promises.
+    """
     if urllib.parse.urlsplit(url).scheme != "https":
         msg = f"{url} is not https"
         raise OSError(msg)
-    with urllib.request.urlopen(url, timeout=TIMEOUT) as response:  # noqa: S310 - https only, checked above
-        return response.read()
+    try:
+        with urllib.request.urlopen(url, timeout=TIMEOUT) as response:  # noqa: S310 - https only, checked above
+            return response.read()
+    except http.client.HTTPException as error:
+        msg = f"GET {url}: {error!r}"
+        raise OSError(msg) from error
 
 
 def last_commit(repo: Path, path: str) -> dt.datetime:
