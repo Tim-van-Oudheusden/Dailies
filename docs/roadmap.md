@@ -55,6 +55,20 @@ are being played now.
 - [ ] Two weeks after the announcement, the stars, release downloads and any FlatPark install count are recorded on
   #259, next to the baseline above.
 
+### Catalog runs
+
+One row per monthly run of the [candidate script](runbooks/catalog-link.md#growing-the-catalog), added in the same
+pull request as the run or right after it. The next run passes the newest row's day as `--since`.
+
+| Run | Day | Games filed and merged | Submissions | Pull requests |
+| --- | --- | --- | --- | --- |
+| 1 | 2026-11-18 | 12, by the owner: Movie to Movie, Spellcheck, Puckdoku, More/less, Disorderly, Juxtastat, Catfishing, Cutle, Kinda Hard Golf, Daily orbs, Krillion, Halfsies | #495-#500, #507-#509, #511-#513 | #501-#506, #514-#519 |
+
+Outside the runs, the form brought in Pips Hints (#486, #493) from an outside contributor on the same day.
+
+**Toward the exit criterion:** 13 of 20 games since 2026-11-17 (130 active games in `data/v1/games.json`), 1 of 2
+runs. **Next run:** from 2026-12-18, with `--since 2026-11-18`.
+
 ## Where effort goes between milestone items
 
 When nothing on M6 can move, for example while the launch waits on the owner, effort goes to these, in order:

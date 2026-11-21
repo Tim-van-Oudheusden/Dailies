@@ -154,9 +154,10 @@ commit=$(git ls-remote https://github.com/aukspot/dles refs/heads/main | cut -f1
 `scripts/catalog_candidates.py` downloads that one commit of The Dles and prints a Markdown table of its `active`
 games whose registrable domain no catalog entry has, newest first: the day The Dles added (or readded) the game, its
 name, The Dles' category and its URL. It changes nothing. `--since` keeps the games added on or after that day; give
-the day of the previous run, so a skipped month only makes the next list longer. Without it the script lists the whole
-backlog (about 650 games in October 2026). A game on a site the catalog already has is never listed: another New York
-Times or Merriam-Webster game, or another mode of a listed game, has to be found by hand. It exits 2, printing why,
+the day of the previous run, which the [catalog run log](../roadmap.md#catalog-runs) records, so a skipped month only
+makes the next list longer. Without it the script lists the whole backlog (about 650 games in October 2026). A game on
+a site the catalog already has is never listed: another New York Times or Merriam-Webster game, or another mode of a
+listed game, has to be found by hand. It exits 2, printing why,
 when the download fails or a record is not in the shape it expects.
 
 Not every candidate belongs in the catalog, which is curated on purpose. Pick by the
