@@ -1591,6 +1591,20 @@ MUTANTS = [
         f"{CHECK_PAGES_TESTS}::test_by_default_a_retry_waits_the_retry_delay",
     ),
     Mutant(
+        "a body cut short or a garbled answer through the default fetch is an OSError, not a traceback (#532)",
+        CHECK_PAGES,
+        "except http.client.HTTPException as error:",
+        "except http.client.RemoteDisconnected as error:",
+        f"{CHECK_PAGES_TESTS}::test_a_body_cut_short_on_every_attempt_fails_the_row_with_the_error",
+    ),
+    Mutant(
+        "an http.client error the default fetch wraps is transient, as libsoup's is in the app (#532)",
+        CHECK_PAGES,
+        "error.__cause__, http.client.HTTPException",
+        "error.__cause__, http.client.RemoteDisconnected",
+        f"{CHECK_PAGES_TESTS}::test_an_http_client_error_through_the_default_fetch_is_retried",
+    ),
+    Mutant(
         "a passed validator result without an entry object is refused (exit 1), not an input error",
         ADD_GAME,
         'if result.get("ok") is not True or not isinstance(entry, dict):',

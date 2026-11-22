@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import time
 import urllib.error
+import urllib.request
 from pathlib import Path
 from types import ModuleType
 
@@ -173,6 +174,78 @@ def test_a_transient_failure_is_retried_and_passes_when_pages_then_serves_the_fi
     assert pages.requests == [BASE + "games.json", BASE + "games.json", BASE + "popularity.json"]
     assert sleeps == [cp.RETRY_DELAY]
     assert "games.json: Pages serves this checkout's copy" in capsys.readouterr().out
+
+
+class Answer(io.BytesIO):
+    """What the fake urlopen returns: `body`, or `error` raised by read() as HTTPResponse.read() raises it."""
+
+    def __init__(self, body: bytes = b"", error: Exception | None = None) -> None:
+        super().__init__(body)
+        self.error = error
+
+    def read(self, size: int | None = -1) -> bytes:
+        if self.error is not None:
+            raise self.error
+        return super().read(size)
+
+
+def cut_short() -> http.client.IncompleteRead:
+    """What read() raises when the connection drops part way through the body."""
+    return http.client.IncompleteRead(b'{"schema', 100)
+
+
+# urlopen wraps none of these in URLError. A body cut short and a garbled status line are no OSError, so before #532
+# they escaped main as a traceback; RemoteDisconnected is a ConnectionResetError too and must stay transient once
+# https_get wraps it.
+@pytest.mark.parametrize(
+    ("when", "error"),
+    [
+        ("read", cut_short()),
+        ("open", http.client.BadStatusLine("HTTP/1.1 2OO OK")),
+        ("open", http.client.RemoteDisconnected("Remote end closed connection without response")),
+    ],
+    ids=["incomplete-read", "bad-status-line", "remote-disconnected"],
+)
+def test_an_http_client_error_through_the_default_fetch_is_retried(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    when: str,
+    error: Exception,
+) -> None:
+    files = {BASE + "games.json": GAMES, BASE + "popularity.json": POPULARITY}
+    requests: list[str] = []
+
+    def urlopen(url: str, timeout: float) -> Answer:
+        assert timeout == cp.TIMEOUT
+        requests.append(url)
+        if requests != [BASE + "games.json"]:
+            return Answer(files[url])
+        if when == "open":
+            raise error
+        return Answer(error=error)
+
+    monkeypatch.setattr(urllib.request, "urlopen", urlopen)
+    sleeps: list[float] = []
+    args = ["--repo", str(checkout(tmp_path))]
+    assert cp.main(args, committed=committed_ago(dt.timedelta(days=2)), now=lambda: NOW, sleep=sleeps.append) == 0
+    assert requests == [BASE + "games.json", BASE + "games.json", BASE + "popularity.json"]
+    assert sleeps == [cp.RETRY_DELAY]
+    assert "games.json: Pages serves this checkout's copy" in capsys.readouterr().out
+
+
+def test_a_body_cut_short_on_every_attempt_fails_the_row_with_the_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(urllib.request, "urlopen", lambda _url, timeout: Answer(error=cut_short()))  # noqa: ARG005
+    args = ["--repo", str(checkout(tmp_path))]
+    assert cp.main(args, committed=committed_ago(dt.timedelta(days=2)), now=lambda: NOW, sleep=lambda _: None) == 1
+    out = capsys.readouterr().out
+    assert (
+        f"games.json: Pages did not serve it: GET {BASE}games.json: IncompleteRead(8 bytes read, 100 more expected)"
+        f" ({cp.ATTEMPTS} attempts, {cp.RETRY_DELAY} s apart)"
+    ) in out
+    assert "docs/runbooks/pages.md" in out
 
 
 def test_a_connection_that_keeps_failing_fails_after_the_last_attempt(
