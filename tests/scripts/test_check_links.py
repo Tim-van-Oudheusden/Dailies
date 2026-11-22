@@ -550,6 +550,14 @@ def test_cli_exits_2_on_an_unreadable_catalog(tmp_path: Path) -> None:
     assert cl.main(["--catalog", str(bad), "--out", str(tmp_path / "links.md")], session=FakeSession()) == 2
 
 
+def test_cli_exits_2_on_an_internal_error(tmp_path: Path) -> None:
+    # An uncaught exception would exit 1, which scripts/nightly-compliance.sh reads as "some links failed" and, once
+    # the report is written, downgrades to a warning: a crash must exit 2 so the nightly run turns red.
+    code, _ = run_cli(tmp_path, [WORLDLE], {("HEAD", WORLDLE["url"]): RuntimeError("bug")})
+
+    assert code == 2
+
+
 def casino_landing(url: str) -> dict[tuple[str, str], FakeResponse | Exception]:
     return {**hijacked(url), ("GET", LANDING): FakeResponse(200, body="<title>Lucky Spin Casino - Slots</title>")}
 
