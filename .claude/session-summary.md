@@ -9,15 +9,14 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-21. #532 on `fix/532-pages-incomplete-read` (check_pages' default fetch let `http.client` errors escape).
+2026-11-23. #536 on `fix/536-pr-body-optional-sources` (the weekly popularity PR body hid an optional source's state).
 
-- **Outcome:** `scripts/check_pages.py`'s `https_get` raises `http.client.HTTPException` (`IncompleteRead`,
-  `BadStatusLine`, `RemoteDisconnected`) as `OSError ... from error`, as the `Fetch` comment promises, and `transient()`
-  counts such a wrapped error as transient, the way the app's fetcher treats a libsoup failure as no answer. A body cut
-  short is retried (#462) and, if it persists, fails the row with the "Pages did not serve it" line, not a traceback.
-- **Open follow-ups:** none from #532.
+- **Outcome:** `scripts/popularity/pr_body.py` reads the `used`, `error` and `failed_games` fields `compute.py` writes
+  for Wikipedia, HN and Radar. The source table has a "Used" column (Tranco, which has no `used` field, shows "yes"),
+  "Domains" became "Asked", and an unused source gets a `Not used (<source>): <error>` line plus its failed games.
+- **Open follow-ups:** none from #536.
 - **Gotchas:**
-  - `urlopen` wraps only send failures in `URLError`; anything `getresponse()` or `read()` raises comes out bare, so
-    test the default fetch by patching `urllib.request.urlopen`, not only through `FakePages`.
-  - The tests need Python 3.13 (PEP 695 generics in `dailies/core`); a 3.11 interpreter fails collection, not tests.
-  - Edits under `.github/workflows/` need a token with the `workflows` permission; the contributor App token has none.
+  - Only the Radar summary names its failures `failed_domains`; Wikipedia and HN use `failed_games`
+    (`Signal.health`). A consumer of `summary.json` reads both.
+  - The full suite needs Python 3.13 (PEP 695 generics in `dailies/core`); on 3.11 only scripts tests like
+    `tests/scripts/test_pr_body.py` and `test_compute.py` collect.
