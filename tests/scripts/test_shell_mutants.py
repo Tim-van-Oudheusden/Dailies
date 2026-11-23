@@ -344,6 +344,13 @@ MUTANTS = [
         f"{AI_AUDIT_REPORT_TESTS}::test_usage_errors",
     ),
     Mutant(
+        "a strategy report --since date with trailing text is a usage error",
+        STRATEGY_REPORT,
+        "[0-9]{2}$ ]]",
+        "[0-9]{2} ]]",
+        f"{STRATEGY_REPORT_TESTS}::test_rejects_missing_or_valueless_flags_with_a_usage_line",
+    ),
+    Mutant(
         "a --since date with leading text is a usage error",
         AI_AUDIT_REPORT,
         "=~ ^[0-9]{4}",
