@@ -309,13 +309,6 @@ MUTANTS = [
         f"{STRATEGY_REPORT_TESTS}::test_rejects_missing_or_valueless_flags_with_a_usage_line",
     ),
     Mutant(
-        "--since is required",
-        STRATEGY_REPORT,
-        '[ -z "$since" ] || ',
-        "",
-        f"{STRATEGY_REPORT_TESTS}::test_rejects_missing_or_valueless_flags_with_a_usage_line",
-    ),
-    Mutant(
         "--issues is required",
         STRATEGY_REPORT,
         '[ -z "$issues" ] || ',

@@ -28,10 +28,11 @@ while [ "$#" -gt 0 ]; do
     *) usage ;;
   esac
 done
-if [ -z "$since" ] || [ -z "$issues" ] || [ -z "$prs" ]; then
+if [ -z "$issues" ] || [ -z "$prs" ]; then
   usage
 fi
 # createdAt and closedAt are compared as text, which orders correctly only against a YYYY-MM-DD date.
+# An unset --since is empty and fails this match too, so it needs no check of its own above.
 [[ "$since" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || usage
 for input in "$issues" "$prs"; do
   if [ ! -r "$input" ]; then
