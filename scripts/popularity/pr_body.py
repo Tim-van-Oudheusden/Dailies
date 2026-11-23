@@ -71,7 +71,7 @@ def render(summary: dict[str, Any], run_url: str | None = None) -> str:
     lines.append("")
     for name, health in sorted(sources.items()):
         if not health.get("used", True):
-            lines += [f"Not used ({name}): {health['error']}", ""]
+            lines += [f"Not used ({name}): {_cell(health['error'])}", ""]
         lines += _listing(f"Failed domains ({name})", health.get("failed_domains", []))
         lines += _listing(f"Failed games ({name})", health.get("failed_games", []))
         lines += _listing(f"Unranked domains ({name})", health.get("unranked_domains", []))

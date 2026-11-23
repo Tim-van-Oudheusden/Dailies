@@ -141,6 +141,21 @@ def test_unused_optional_source_shows_its_error_and_failed_games() -> None:
     assert "Failed games (wikipedia): `game-a`, `game-b`, `game-c`" in health
 
 
+def test_multi_line_error_stays_on_its_not_used_line() -> None:
+    data = summary()
+    data["sources"]["hn"] = {
+        "ok": 0,
+        "failed": 10,
+        "count": 10,
+        "fetched_at": "2026-10-19T04:19:00Z",
+        "used": False,
+        "error": "hn failed\nTraceback follows",
+        "failed_games": [],
+    }
+
+    assert "Not used (hn): hn failed Traceback follows\n" in pr_body.render(data)
+
+
 def test_run_url_is_linked_for_the_raw_signals() -> None:
     url = "https://github.com/Tim-van-Oudheusden/Dailies/actions/runs/123"
 
