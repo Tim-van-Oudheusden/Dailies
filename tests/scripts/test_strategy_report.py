@@ -181,6 +181,7 @@ def test_fails_on_input_that_is_not_a_list(tmp_path: Path) -> None:
         ["--since", "2026-10-01", "--issues"],
         ["--since"],
         ["--since", "2026-10-1", "--issues", "a.json", "--prs", "b.json"],
+        ["--since", "2026-10-01x", "--issues", "a.json", "--prs", "b.json"],
         ["--bogus"],
         # Usage is checked before the inputs are read, so an unknown flag is not skipped over.
         ["--since", "2026-10-01", "--issues", "a.json", "--prs", "b.json", "--bogus"],
