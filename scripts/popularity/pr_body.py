@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Write the body of the weekly popularity pull request from compute.py's summary.json.
 
-The body is numbers only: the five most popular games and each source's health (failed and unranked domains), so a
-reviewer can spot a broken week before merging. Game names come from the maintainer-approved catalog.
+The body is numbers only: the five most popular games and each source's health (whether its scores were used, why
+not, and its failed games or domains and unranked domains), so a reviewer can spot a broken week before merging. Game
+names come from the maintainer-approved catalog.
 
 Usage:
     python -I scripts/popularity/pr_body.py --summary "$RUNNER_TEMP/result/summary.json" \
@@ -25,8 +26,8 @@ def _cell(text: object) -> str:
     return str(text).replace("|", "\\|").replace("\n", " ")
 
 
-def _domains(label: str, domains: list[str]) -> list[str]:
-    return [f"{label}: {', '.join(f'`{domain}`' for domain in domains)}", ""] if domains else []
+def _listing(label: str, names: list[str]) -> list[str]:
+    return [f"{label}: {', '.join(f'`{name}`' for name in names)}", ""] if names else []
 
 
 def render(summary: dict[str, Any], run_url: str | None = None) -> str:
@@ -58,18 +59,22 @@ def render(summary: dict[str, Any], run_url: str | None = None) -> str:
         "",
         "### Source health",
         "",
-        "| Source | OK | Failed | Domains | Fetched |",
-        "|---|---:|---:|---:|---|",
+        "| Source | OK | Failed | Asked | Used | Fetched |",
+        "|---|---:|---:|---:|---|---|",
     ]
     sources = summary["sources"]
     lines += [
-        f"| {_cell(name)} | {health['ok']} | {health['failed']} | {health['count']} | {health['fetched_at']} |"
+        f"| {_cell(name)} | {health['ok']} | {health['failed']} | {health['count']} "
+        f"| {'yes' if health.get('used', True) else 'no'} | {health['fetched_at']} |"
         for name, health in sorted(sources.items())
     ]
     lines.append("")
     for name, health in sorted(sources.items()):
-        lines += _domains(f"Failed domains ({name})", health.get("failed_domains", []))
-        lines += _domains(f"Unranked domains ({name})", health.get("unranked_domains", []))
+        if not health.get("used", True):
+            lines += [f"Not used ({name}): {health['error']}", ""]
+        lines += _listing(f"Failed domains ({name})", health.get("failed_domains", []))
+        lines += _listing(f"Failed games ({name})", health.get("failed_games", []))
+        lines += _listing(f"Unranked domains ({name})", health.get("unranked_domains", []))
     raw = "Raw signals and summary.json are attached to the workflow run as artifacts (kept 90 days)"
     lines.append(f"{raw}: {run_url}" if run_url else f"{raw}.")
     return "\n".join(lines) + "\n"

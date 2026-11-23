@@ -114,6 +114,33 @@ def test_healthy_source_lists_no_problem_domains() -> None:
     assert "Unranked domains" not in body
 
 
+def test_unused_optional_source_shows_its_error_and_failed_games() -> None:
+    data = summary()
+    error = "wikipedia failed for 3 of 10 (more than 20%)"
+    data["sources"]["wikipedia"] = {
+        "ok": 7,
+        "failed": 3,
+        "count": 10,
+        "fetched_at": "2026-10-19T04:19:00Z",
+        "used": False,
+        "error": error,
+        "failed_games": ["game-a", "game-b", "game-c"],
+    }
+
+    body = pr_body.render(data)
+    health = body.split("Source health", 1)[1]
+
+    header = next(line for line in health.splitlines() if line.startswith("| Source"))
+    columns = [cell.strip() for cell in header.split("|")[1:-1]]
+    cells = [[cell.strip() for cell in row.split("|")[1:-1]] for row in table_rows(body, "Source health")]
+    rows = {row[0]: row for row in cells}
+    assert "Domains" not in columns
+    assert rows["wikipedia"][columns.index("Used")] == "no"
+    assert rows["tranco"][columns.index("Used")] == "yes"
+    assert f"Not used (wikipedia): {error}" in health
+    assert "Failed games (wikipedia): `game-a`, `game-b`, `game-c`" in health
+
+
 def test_run_url_is_linked_for_the_raw_signals() -> None:
     url = "https://github.com/Tim-van-Oudheusden/Dailies/actions/runs/123"
 
