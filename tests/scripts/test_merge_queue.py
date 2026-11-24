@@ -576,8 +576,18 @@ def test_land_does_not_merge_when_main_moved_after_verification_and_queues_a_rer
         {"labels": ["automated"]},
         {"isDraft": True},
         {"mergeStateStatus": "BLOCKED"},
+        # A pull request closed unmerged still reads CLEAN, so only its state tells land to leave it.
+        {"state": "CLOSED"},
     ],
-    ids=["put on hold", "blocked", "flagged by the sentinel", "labelled automated", "made a draft", "failing checks"],
+    ids=[
+        "put on hold",
+        "blocked",
+        "flagged by the sentinel",
+        "labelled automated",
+        "made a draft",
+        "failing checks",
+        "closed unmerged",
+    ],
 )
 def test_land_does_not_merge_a_pull_request_that_stopped_being_ready_during_verification(
     tmp_path: Path, change: dict
