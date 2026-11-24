@@ -344,6 +344,13 @@ MUTANTS = [
         f"{STRATEGY_REPORT_TESTS}::test_rejects_missing_or_valueless_flags_with_a_usage_line",
     ),
     Mutant(
+        "a strategy report --since date with leading text is a usage error",
+        STRATEGY_REPORT,
+        "=~ ^[0-9]{4}",
+        "=~ [0-9]{4}",
+        f"{STRATEGY_REPORT_TESTS}::test_rejects_missing_or_valueless_flags_with_a_usage_line",
+    ),
+    Mutant(
         "a --since date with leading text is a usage error",
         AI_AUDIT_REPORT,
         "=~ ^[0-9]{4}",
