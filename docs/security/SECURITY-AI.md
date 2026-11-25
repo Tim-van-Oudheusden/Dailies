@@ -101,9 +101,10 @@ The step is boxed in by Claude Code's permissions and checked afterwards:
 
 - No secrets live in this repo; `.gitignore` excludes `.env*`.
 - Agents must not read `.env*` or any credential file. `.claude/settings.json` denies these reads.
-- Tokens such as `GITHUB_TOKEN` exist only in the shell environment (`export GITHUB_TOKEN="$(gh auth token)"`); CI
-  secrets such as `CLAUDE_CODE_OAUTH_TOKEN` exist only in GitHub Actions. Never echo, log, commit, or paste them into a
-  prompt, issue, PR, or comment.
+- Local GitHub access goes through `gh`, which keeps its token in the system keyring. Don't export a token such as
+  `GITHUB_TOKEN` into the shell environment: every agent and child process started from that shell inherits it. CI
+  secrets such as `CLAUDE_CODE_OAUTH_TOKEN` exist only in GitHub Actions. Never echo, log, commit, or paste a token or
+  secret into a prompt, issue, PR, or comment.
 - The `bot` environment holds the key of the repository's own GitHub App (`BOT_APP_ID`, `BOT_APP_PRIVATE_KEY`; #269,
   #79). Its tokens can push workflow changes and open and merge pull requests that start CI, so only `main` may use the
   environment and only the jobs reviewed in `BOT_ENVIRONMENT_JOBS` (`tests/tooling/test_workflows.py`) may name it:
