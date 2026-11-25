@@ -79,7 +79,10 @@ goes in `tests/core/test_catalog.py`, one for `scripts/validate_submission.py` i
 committed data files go in `tests/data/`; checks on `.github/` (workflow invariants, label and policy parity) go in
 `tests/tooling/`. A workflow job that needs more than `contents: read` declares its own `permissions:` and gets a
 reviewed rule in `.github/policies/workflow-permissions.yml`; `tests/tooling/test_workflows.py` fails when a workflow
-has no rule, a rule names a missing workflow or job, or a job's block differs from its rule.
+has no rule, a rule names a missing workflow or job, or a job's block differs from its rule. A value written out in two
+or more files (an id list in a schema and in the code, a version in a workflow and a script) gets a row in
+`SHARED_VALUES` in `tests/tooling/test_shared_values.py`, not a test file of its own: the row names the value and how
+to read each copy, and the test fails while any two copies differ or a copy is no longer where its row looks.
 
 ## Finding and claiming work
 

@@ -9,14 +9,16 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-23. #536 on `fix/536-pr-body-optional-sources` (the weekly popularity PR body hid an optional source's state).
+2026-11-25. #543 on `test/543-shared-values` (values restated across files with no parity test; option A accepted).
 
-- **Outcome:** `scripts/popularity/pr_body.py` reads the `used`, `error` and `failed_games` fields `compute.py` writes
-  for Wikipedia, HN and Radar. The source table has a "Used" column (Tranco, which has no `used` field, shows "yes"),
-  "Domains" became "Asked", and an unused source gets a `Not used (<source>): <error>` line plus its failed games.
-- **Open follow-ups:** none from #536.
+- **Outcome:** `tests/tooling/test_shared_values.py` holds `SHARED_VALUES`, one row per value two or more files
+  restate, each with one extractor per copy (`enum_values`, `json_list`). The first rows pin `Category`, `Difficulty`
+  and `Status` in `dailies/core/models.py` to the matching `enum` in `data/v1/schema/catalog.schema.json`.
+  CONTRIBUTING "Where a test goes" and the docs/testing.md Tooling row name the convention.
+- **Open follow-ups:** none from #543. The new-game form's category labels already have a parity test
+  (`tests/scripts/test_validate_submission.py`); the category table in `docs/data-format.md` is prose and not a row.
 - **Gotchas:**
-  - Only the Radar summary names its failures `failed_domains`; Wikipedia and HN use `failed_games`
-    (`Signal.health`). A consumer of `summary.json` reads both.
-  - The full suite needs Python 3.13 (PEP 695 generics in `dailies/core`); on 3.11 only scripts tests like
-    `tests/scripts/test_pr_body.py` and `test_compute.py` collect.
+  - The full suite needs Python 3.13 (PEP 695 generics in `dailies/core`); `uv python install 3.13` works without
+    root when the host only has 3.11.
+  - Adding a status only to the schema and `STATUSES` in `tests/data/test_catalog_file.py` left the rest of
+    `tests/core` and `tests/data` green; only the new row fails.
