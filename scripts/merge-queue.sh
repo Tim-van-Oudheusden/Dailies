@@ -151,7 +151,8 @@ land() {
   fi
 
   # A pull request closed unmerged during verification still reads CLEAN. One merged
-  # meanwhile goes on to the merged-at-the-verified-head check below.
+  # meanwhile reads UNKNOWN, not CLEAN, so it is skipped here too; the merged-at-the-
+  # verified-head check below covers only a merge gh made but lost the answer to.
   ready="$(gh pr view "$number" --json state,isDraft,labels \
     --jq "(.state != \"CLOSED\") and (.isDraft | not) and ${UNHELD}")"
   state="$(merge_state "$number")"
