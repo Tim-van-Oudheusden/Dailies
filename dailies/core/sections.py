@@ -111,9 +111,10 @@ def sort_key(
 ) -> tuple[bool, int, str, str]:
     """Return the key that orders the game within `section`; the id breaks ties, so the order is stable.
 
-    The default order is the shelf rank on Popular and Trending, the favourite order (`favorite_position`, oldest first)
-    on Favorites and the name elsewhere. Sorting by name or by difficulty (then name) overrides it everywhere; "not done
-    first" keeps it, after moving the games done today to the end. Names compare case- and accent-insensitively.
+    The default order is the shelf rank on Popular and Trending, the favourite order (`favorite_position`, as the user
+    arranged it) on Favorites and the name elsewhere. Sorting by name or by difficulty (then name) overrides it
+    everywhere; "not done first" keeps it, after moving the games done today to the end. Names compare case- and
+    accent-insensitively.
     """
     game = listing.game
     done_last = mode is SortMode.NOT_DONE and listing.done
