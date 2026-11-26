@@ -10,7 +10,7 @@ _KEY = "favorites"
 
 
 class Favorites(GObject.Object):
-    """The favourite game ids, in display order (insertion order, newest last), kept in the `favorites` key.
+    """The favourite game ids, in the display order the user set (a new one goes last), kept in the `favorites` key.
 
     Emits `changed(id)` whenever a game becomes or stops being a favourite or moves, whether through this object or
     through an external change to the key, such as `gsettings set` from a terminal.
