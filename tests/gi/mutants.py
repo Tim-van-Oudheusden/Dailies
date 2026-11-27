@@ -49,8 +49,8 @@ MUTANTS = [
     Mutant(
         "every other script dialog is left to WebKit (#422)",
         BROWSER_PAGE,
-        "        return False\n\n    def _uri(self)",
-        "        return True\n\n    def _uri(self)",
+        "        return False\n\n    def _on_load_failed(",
+        "        return True\n\n    def _on_load_failed(",
         "test_window.PageDecisionsTest.test_a_page_still_shown_keeps_its_own_questions",
     ),
     Mutant(
