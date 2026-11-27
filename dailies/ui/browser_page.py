@@ -280,6 +280,8 @@ class BrowserPage(Adw.NavigationPage):
         view.connect("permission-request", self._on_permission_request)
         view.connect("close", self._on_close)
         view.connect("script-dialog", self._on_script_dialog)
+        view.connect("load-failed", self._on_load_failed)
+        view.connect("web-process-terminated", self._on_web_process_terminated)
         history_buttons = Gtk.GestureClick(button=0, propagation_phase=Gtk.PropagationPhase.CAPTURE)
         history_buttons.connect("pressed", self._on_mouse_pressed)
         view.add_controller(history_buttons)
@@ -372,6 +374,19 @@ class BrowserPage(Adw.NavigationPage):
             dialog.confirm_set_confirmed(True)
             return True
         return False
+
+    def _on_load_failed(self, _view: WebKit.WebView, _event: WebKit.LoadEvent, uri: str, error: GLib.Error) -> bool:
+        # A navigation that another one interrupts, and a response `_on_decide_policy` hands to the external browser,
+        # are not failures. The host, not the URL: a page's URL can carry what the user typed into the site.
+        if not (
+            error.matches(WebKit.network_error_quark(), WebKit.NetworkError.CANCELLED)
+            or error.matches(WebKit.policy_error_quark(), WebKit.PolicyError.FRAME_LOAD_INTERRUPTED_BY_POLICY_CHANGE)
+        ):
+            log.warning("Could not load a page of %s: %s", display_host(uri), error.message)
+        return False  # WebKit shows its error page.
+
+    def _on_web_process_terminated(self, _view: WebKit.WebView, reason: WebKit.WebProcessTerminationReason) -> None:
+        log.warning("The web process of %s ended (%s)", display_host(self._uri()), reason.value_nick)
 
     def _uri(self) -> str:
         return (self._web_view and self._web_view.get_uri()) or ""
