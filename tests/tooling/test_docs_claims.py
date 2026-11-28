@@ -55,6 +55,11 @@ HUMAN_MERGE = re.compile(
 )
 # A bold name followed by "form" or "issue form": how the docs point a reader at an issue form.
 FORM_NAME = re.compile(r"\*\*(?P<name>[^*]+)\*\* (?:issue )?form\b")
+# The same with the name as a link text, as the README points at the "Add a game" form.
+LINKED_FORM_NAME = re.compile(r"\[(?P<name>[^\]]+)\]\([^)]*\) (?:issue )?form\b")
+# A diagram node whose text opens with the name and "issue form", as the README and architecture diagrams draw it.
+DIAGRAM_FORM_NAME = re.compile(r"\[\"(?P<name>[^\"<]+?) issue form\b")
+FORM_NAMES = (FORM_NAME, LINKED_FORM_NAME, DIAGRAM_FORM_NAME)
 
 # The weekly shelves are the one pull request that merges itself; the catalog pull request is opened by this workflow.
 CATALOG_WORKFLOW = "game-submission-approve.yml"
@@ -248,7 +253,8 @@ def issue_forms() -> set[str]:
 def form_name_violations(name: str, markdown: str, forms: set[str]) -> list[str]:
     return [
         f"{name} names the issue form {match['name']!r}, which is not one of {sorted(forms)}"
-        for match in FORM_NAME.finditer(squash(markdown))
+        for pattern in FORM_NAMES
+        for match in pattern.finditer(squash(markdown))
         if match["name"] not in forms
     ]
 
@@ -473,6 +479,20 @@ def test_fixture_release_body_without_the_reinstall_note_fails() -> None:
 
 def test_fixture_unknown_issue_form_name_fails() -> None:
     assert form_name_violations("d.md", "use the **New game** issue form", {"Add a game", "Issue"}) == [
+        "d.md names the issue form 'New game', which is not one of ['Add a game', 'Issue']"
+    ]
+
+
+def test_fixture_unknown_linked_issue_form_name_fails() -> None:
+    markdown = "Use the [New game](https://example.org/issues/new?template=new-game.yml) issue form"
+    assert form_name_violations("d.md", markdown, {"Add a game", "Issue"}) == [
+        "d.md names the issue form 'New game', which is not one of ['Add a game', 'Issue']"
+    ]
+
+
+def test_fixture_unknown_issue_form_name_in_a_diagram_node_fails() -> None:
+    markdown = '```mermaid\nflowchart LR\n    FORM["New game issue form<br/>new-game.yml"] --> A["Stage A"]\n```'
+    assert form_name_violations("d.md", markdown, {"Add a game", "Issue"}) == [
         "d.md names the issue form 'New game', which is not one of ['Add a game', 'Issue']"
     ]
 

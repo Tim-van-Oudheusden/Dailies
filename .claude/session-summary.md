@@ -25,3 +25,5 @@ docs knew only the em-dash form, so the AI audit trail lost agent and model and 
   - The full suite needs the scripts' lock (`requests`) and `ruamel.yaml`:
     `uv run --no-project --python 3.13 --with-requirements scripts/requirements.txt --with pytest --with ruamel.yaml
     python -m pytest`.
+  - The GI tests (`tests/gi/`) need the GNOME 51 SDK (or `Dockerfile.sandbox` under podman); a container with
+    neither leaves them to CI's `Flatpak (x86_64)` job.
