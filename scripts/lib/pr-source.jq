@@ -3,8 +3,9 @@
 # `gh pr list --json author,headRefName,body`; without a body only the author and the branch decide.
 #
 # Sources, first match wins:
-#   Hive             the body has a Hive signature line, "— hive: agent=<a> … model=<m> …" or a
-#                    contributor run's "— omp (Claude Code), model=<m>" (contributor runs leave out agent=),
+#   Hive             the body has a Hive signature line, "-- hive: agent=<a> … model=<m> …" (contributor runs
+#                    leave out agent=); PRs merged before 2026-11-20 signed with an em-dash, "— hive: …", and
+#                    contributor runs then signed "— omp (Claude Code), model=<m>"; both older forms still count;
 #                    or the author is the Hive GitHub App, hive-worker-bee (formerly hive-forge-app;
 #                    both names count; gh pr list reports it as app/<slug>, the REST API as <slug>[bot])
 #   Claude Code (CI) head branch claude/*
@@ -13,11 +14,13 @@
 
 def sources: ["Hive", "Claude Code (CI)", "Dependabot", "Other"];
 
-# Hive's signature is a line of its own, usually near the end of the body but not always last, so read every line;
-# contributor runs sign as omp.
+# Hive's signature is a line of its own, usually near the end of the body but not always last, so read every line.
+# Hive signs "-- hive: " since 2026-11-20; the em-dash and omp forms keep older PRs attributed.
 def signature:
   (.body // "") | split("\n")
-  | map(rtrimstr("\r") | select(startswith("— hive: ") or test("^— omp \\(Claude Code\\), model="))) | .[0];
+  | map(rtrimstr("\r")
+    | select(startswith("-- hive: ") or startswith("— hive: ") or test("^— omp \\(Claude Code\\), model=")))
+  | .[0];
 
 def source:
   (.headRefName // "") as $branch
