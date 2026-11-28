@@ -87,7 +87,7 @@ to read each copy, and the test fails while any two copies differ or a copy is n
 ## Finding and claiming work
 
 - GitHub issues are the **source of truth**. Browse open issues and assign one to yourself before starting.
-- To suggest a game, use the **New game** issue form; you do not need to edit `data/v1/games.json` yourself.
+- To suggest a game, use the **Add a game** issue form; you do not need to edit `data/v1/games.json` yourself.
 
 We favour small, focused changes tied to a tracked issue.
 
