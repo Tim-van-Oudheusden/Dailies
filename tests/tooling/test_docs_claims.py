@@ -3,7 +3,8 @@
 Each check is a function that returns a list of violations for one document; the tests at the top run them over the
 repository's docs, the tests at the bottom feed each one an inline fixture that breaks it. The sources of truth are
 the `release.yml` publish step (release assets), `AUTO_MERGE_JOBS` in `test_workflows.py` (who merges a bot pull
-request), the data files `dailies/data/fetcher.py` requests, and the permissions and environments of every workflow.
+request), the data files `dailies/data/fetcher.py` requests, the permissions and environments of every workflow, and
+the `name:` of every issue form in `.github/ISSUE_TEMPLATE/` (the names the issue chooser shows).
 
 Not covered, because prose cannot be checked mechanically: status and history sentences, and runbook error text. Of the
 README "Installing" list only the "Install from FlatPark" bullet is checked, against the release body (the bundle
@@ -37,6 +38,8 @@ MULTI_AGENT = ROOT / "docs" / "multi-agent.md"
 DATA_README = ROOT / "data" / "v1" / "README.md"
 FETCHER = ROOT / "dailies" / "data" / "fetcher.py"
 RELEASE_CHECK = ROOT / "scripts" / "release_check.py"
+CONTRIBUTING = ROOT / "CONTRIBUTING.md"
+ISSUE_TEMPLATES = ROOT / ".github" / "ISSUE_TEMPLATE"
 
 # Docs that describe the project today. Proposals and research notes record what was decided or found at the time.
 HISTORICAL_DOCS = ("docs/proposals/", "docs/research/")
@@ -50,6 +53,8 @@ HUMAN_MERGE = re.compile(
     r"|\breview and merge (?:the|this|it)\b",
     re.IGNORECASE,
 )
+# A bold name followed by "form" or "issue form": how the docs point a reader at an issue form.
+FORM_NAME = re.compile(r"\*\*(?P<name>[^*]+)\*\* (?:issue )?form\b")
 
 # The weekly shelves are the one pull request that merges itself; the catalog pull request is opened by this workflow.
 CATALOG_WORKFLOW = "game-submission-approve.yml"
@@ -230,6 +235,24 @@ def flatpark_install_violations(readme: str, body: str) -> list[str]:
     )
 
 
+# --- 6. issue-form names ----------------------------------------------------------------------------------------------
+
+
+def issue_forms() -> set[str]:
+    """The names the issue chooser shows: the `name:` of every issue form (`config.yml` holds no form)."""
+    return {
+        load_yaml(text_of(path))["name"] for path in sorted(ISSUE_TEMPLATES.glob("*.yml")) if path.name != "config.yml"
+    }
+
+
+def form_name_violations(name: str, markdown: str, forms: set[str]) -> list[str]:
+    return [
+        f"{name} names the issue form {match['name']!r}, which is not one of {sorted(forms)}"
+        for match in FORM_NAME.finditer(squash(markdown))
+        if match["name"] not in forms
+    ]
+
+
 # --- the repository's files -------------------------------------------------------------------------------------------
 
 
@@ -286,6 +309,17 @@ def test_release_body_flatpark_install_matches_the_readme() -> None:
     body = load_release_check().release_body(ROOT)
     assert flatpark_install_facts(readme_flatpark_install(text_of(README))), "README lost its FlatPark commands"
     assert flatpark_install_violations(text_of(README), body) == []
+
+
+def test_every_named_issue_form_exists() -> None:
+    forms = issue_forms()
+    assert forms, "no issue form found in .github/ISSUE_TEMPLATE/"
+    violations = [
+        violation
+        for path in [*checked_docs(), CONTRIBUTING]
+        for violation in form_name_violations(str(path.relative_to(ROOT)), text_of(path), forms)
+    ]
+    assert violations == []
 
 
 # --- fixtures: each check fails when its claim drifts -----------------------------------------------------------------
@@ -435,3 +469,17 @@ def test_fixture_flatpark_install_command_drift_fails() -> None:
 def test_fixture_release_body_without_the_reinstall_note_fails() -> None:
     body = FLATPARK_BODY.replace("Installed a release bundle before? Add `--reinstall` to the last command;", "")
     assert len(flatpark_install_violations(FLATPARK_README, body)) == 1
+
+
+def test_fixture_unknown_issue_form_name_fails() -> None:
+    assert form_name_violations("d.md", "use the **New game** issue form", {"Add a game", "Issue"}) == [
+        "d.md names the issue form 'New game', which is not one of ['Add a game', 'Issue']"
+    ]
+
+
+def test_fixture_issue_form_name_across_a_line_break_passes() -> None:
+    assert form_name_violations("d.md", "use the **Add a game**\nissue form", {"Add a game", "Issue"}) == []
+
+
+def test_fixture_bold_text_not_followed_by_form_is_not_a_form_name() -> None:
+    assert form_name_violations("d.md", "the **Add a game** button and the **New game** formats", {"Issue"}) == []

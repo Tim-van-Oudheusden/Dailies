@@ -9,16 +9,16 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-25. #543 on `test/543-shared-values` (values restated across files with no parity test; option A accepted).
+2026-11-27. #559 on `docs/559-issue-form-names` (docs called the **Add a game** issue form "New game"; the docs-claims
+gate did not read issue-form names).
 
-- **Outcome:** `tests/tooling/test_shared_values.py` holds `SHARED_VALUES`, one row per value two or more files
-  restate, each with one extractor per copy (`enum_values`, `json_list`). The first rows pin `Category`, `Difficulty`
-  and `Status` in `dailies/core/models.py` to the matching `enum` in `data/v1/schema/catalog.schema.json`.
-  CONTRIBUTING "Where a test goes" and the docs/testing.md Tooling row name the convention.
-- **Open follow-ups:** none from #543. The new-game form's category labels already have a parity test
-  (`tests/scripts/test_validate_submission.py`); the category table in `docs/data-format.md` is prose and not a row.
+- **Outcome:** `tests/tooling/test_docs_claims.py` check 6 reads the `name:` of every form in `.github/ISSUE_TEMPLATE/`
+  (`config.yml` excluded) and fails on a bold name followed by "form" or "issue form" that is none of them, over
+  `checked_docs()` plus `CONTRIBUTING.md`. `CONTRIBUTING.md` and `docs/security/SECURITY-AI.md` now say **Add a game**.
+  The docs/testing.md "Docs claims" row names the check.
+- **Open follow-ups:** none from #559. `CONTRIBUTING.md` was added for this check only; the other docs-claims checks
+  still walk `README.md` and the current `docs/` alone.
 - **Gotchas:**
-  - The full suite needs Python 3.13 (PEP 695 generics in `dailies/core`); `uv python install 3.13` works without
-    root when the host only has 3.11.
-  - Adding a status only to the schema and `STATUSES` in `tests/data/test_catalog_file.py` left the rest of
-    `tests/core` and `tests/data` green; only the new row fails.
+  - `tests/tooling` imports `ruamel.yaml`; without the scripts' lock, run
+    `uv run --no-project --python 3.13 --with pytest --with ruamel.yaml python -m pytest tests/tooling`.
+  - Form names are matched on squashed text, so a name split across a line break still counts.
