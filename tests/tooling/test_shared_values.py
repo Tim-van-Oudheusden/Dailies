@@ -14,13 +14,16 @@ its pattern matches exactly once.
 """
 
 import json
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
+from types import ModuleType
 
 import pytest
 
+from dailies.core import web
 from dailies.core.models import Category, Difficulty, Status
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -40,19 +43,51 @@ def enum_values(enum: type[Enum]) -> Copy:
     return Copy(f"{enum.__module__}.{enum.__qualname__}", lambda: tuple(member.value for member in enum))
 
 
+def json_node(path: Path, *keys: str) -> object:
+    """The node at `keys` in the JSON file `path`; fails naming the first key it no longer finds."""
+    node = json.loads(path.read_text(encoding="utf-8"))
+    for depth, key in enumerate(keys):
+        if not isinstance(node, dict) or key not in node:
+            pytest.fail(f"{path.relative_to(ROOT)} no longer has {'/'.join(keys[: depth + 1])}")
+        node = node[key]
+    return node
+
+
 def json_list(path: Path, *keys: str) -> Copy:
     """The list at `keys` in the JSON file `path`."""
     where = f"{path.relative_to(ROOT)} {'/'.join(keys)}"
 
     def read() -> tuple[str, ...]:
-        node = json.loads(path.read_text(encoding="utf-8"))
-        for depth, key in enumerate(keys):
-            if not isinstance(node, dict) or key not in node:
-                pytest.fail(f"{path.relative_to(ROOT)} no longer has {'/'.join(keys[: depth + 1])}")
-            node = node[key]
+        node = json_node(path, *keys)
         if not isinstance(node, list):
             pytest.fail(f"{where} is no longer a list")
         return tuple(node)
+
+    return Copy(where, read)
+
+
+def json_anchored_pattern(path: Path, *keys: str) -> Copy:
+    """The regex at `keys` in the JSON file `path`, without the `^` and `$` a whole-string JSON Schema pattern needs."""
+    where = f"{path.relative_to(ROOT)} {'/'.join(keys)}"
+
+    def read() -> tuple[str, ...]:
+        node = json_node(path, *keys)
+        if not isinstance(node, str) or not (node.startswith("^") and node.endswith("$")):
+            pytest.fail(f"{where} is no longer a pattern anchored with ^ and $")
+        return (node[1:-1],)
+
+    return Copy(where, read)
+
+
+def compiled_pattern(module: ModuleType, name: str) -> Copy:
+    """The source of the compiled regex `name` in `module`, which the module matches with `fullmatch`."""
+    where = f"{module.__name__}.{name}"
+
+    def read() -> tuple[str, ...]:
+        pattern = getattr(module, name, None)
+        if not isinstance(pattern, re.Pattern):
+            pytest.fail(f"{where} is no longer a compiled regex")
+        return (pattern.pattern,)
 
     return Copy(where, read)
 
@@ -66,6 +101,10 @@ SHARED_VALUES: dict[str, tuple[Copy, ...]] = {
     "catalog category ids, in sidebar order": (enum_values(Category), catalog_enum("category")),
     "catalog difficulty ids, easiest first": (enum_values(Difficulty), catalog_enum("difficulty")),
     "catalog status ids": (enum_values(Status), catalog_enum("status")),
+    "catalog game id pattern": (
+        json_anchored_pattern(CATALOG_SCHEMA, "$defs", "game", "properties", "id", "pattern"),
+        compiled_pattern(web, "_GAME_ID"),
+    ),
 }
 
 

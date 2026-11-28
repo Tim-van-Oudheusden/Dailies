@@ -9,16 +9,15 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-27. #559 on `docs/559-issue-form-names` (docs called the **Add a game** issue form "New game"; the docs-claims
-gate did not read issue-form names).
+2026-11-28. #561 on `test/561-game-id-parity` (the catalog game-id pattern is restated in `dailies/core/web.py`
+`_GAME_ID` and nothing compared it with `catalog.schema.json`).
 
-- **Outcome:** `tests/tooling/test_docs_claims.py` check 6 reads the `name:` of every form in `.github/ISSUE_TEMPLATE/`
-  (`config.yml` excluded) and fails on a bold name followed by "form" or "issue form" that is none of them, over
-  `checked_docs()` plus `CONTRIBUTING.md`. `CONTRIBUTING.md` and `docs/security/SECURITY-AI.md` now say **Add a game**.
-  The docs/testing.md "Docs claims" row names the check.
-- **Open follow-ups:** none from #559. `CONTRIBUTING.md` was added for this check only; the other docs-claims checks
-  still walk `README.md` and the current `docs/` alone.
+- **Outcome:** `tests/tooling/test_shared_values.py` has a "catalog game id pattern" row with two new extractor kinds:
+  `json_anchored_pattern` (the schema's `$defs/game/properties/id/pattern`, `^`/`$` stripped, failing if the anchors
+  go) and `compiled_pattern` (`web._GAME_ID.pattern`, failing if the name is gone or no longer a compiled regex).
+  `json_list` now walks the JSON through a shared `json_node`. The docs/testing.md "Tooling" row names the new row.
+- **Open follow-ups:** none from #561.
 - **Gotchas:**
-  - `tests/tooling` imports `ruamel.yaml`; without the scripts' lock, run
-    `uv run --no-project --python 3.13 --with pytest --with ruamel.yaml python -m pytest tests/tooling`.
-  - Form names are matched on squashed text, so a name split across a line break still counts.
+  - Mutation proof: widening `_GAME_ID` to `{1,63}`, renaming it, or dropping the schema anchors each fails only the new
+    row, naming the place.
+  - `_GAME_ID` stays private on purpose (hive decision in #561); the test reads it with `getattr`.
