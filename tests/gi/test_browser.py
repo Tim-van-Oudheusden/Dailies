@@ -7,6 +7,7 @@ data and cache directories at a temporary directory before GLib reads them.
 import gettext
 import os
 import shutil
+import socket
 import sys
 import tempfile
 import time
@@ -354,6 +355,46 @@ class OpenPageTest(BrowserTest):
         self.settings.set_boolean("developer-extras", True)
 
         assert not view.get_settings().get_enable_developer_extras()
+
+    def test_a_page_that_fails_to_load_logs_its_host_and_the_error(self) -> None:
+        view = self.open_page()
+        closed = socket.socket()
+        closed.bind(("127.0.0.1", 0))
+        port = closed.getsockname()[1]
+        closed.close()
+
+        with self.assertLogs("dailies.ui.browser_page", "WARNING") as logs:
+            load(view, lambda: view.load_uri(f"http://127.0.0.1:{port}/wordle?guess=crane"))
+
+        # WebKit's own text is translated, so this checks the host and that a cause follows it, not which one.
+        assert any("Could not load a page of 127.0.0.1: " in line for line in logs.output), logs.output
+        assert all("guess=crane" not in line for line in logs.output), logs.output
+
+    def test_an_interrupted_navigation_logs_nothing(self) -> None:
+        view = self.open_page()
+        cancelled = GLib.Error.new_literal(WebKit.network_error_quark(), "cancelled", WebKit.NetworkError.CANCELLED)
+        handed_off = GLib.Error.new_literal(
+            WebKit.policy_error_quark(), "handed off", WebKit.PolicyError.FRAME_LOAD_INTERRUPTED_BY_POLICY_CHANGE
+        )
+
+        # WebKit cannot be made to interrupt a load on demand, so this emits `load-failed` as WebKit would. WebKit's
+        # own handler leaves these two errors alone, so the view shows no error page either.
+        with self.assertNoLogs("dailies.ui.browser_page", "WARNING"):
+            for error in (cancelled, handed_off):
+                view.emit("load-failed", WebKit.LoadEvent.STARTED, "http://127.0.0.1/", error)
+
+    def test_an_ended_web_process_logs_the_host_and_the_reason(self) -> None:
+        view = self.open_page()
+        load(view, lambda: view.load_html("<p>Wordle</p>", "http://127.0.0.1/"))
+        done: list[bool] = []
+        view.connect("web-process-terminated", lambda *_args: done.append(True))
+
+        with self.assertLogs("dailies.ui.browser_page", "WARNING") as logs:
+            view.terminate_web_process()
+            run_until(done)
+
+        ended = "The web process of 127.0.0.1 ended (terminated-by-api)"
+        assert any(ended in line for line in logs.output), logs.output
 
 
 if __name__ == "__main__":
