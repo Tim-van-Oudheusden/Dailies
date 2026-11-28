@@ -9,15 +9,15 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-27. #557 on `fix/557-log-browser-load-failures` (the built-in browser logged nothing on a failed load or an
-ended web process).
+2026-11-28. #561 on `test/561-game-id-parity` (the catalog game-id pattern is restated in `dailies/core/web.py`
+`_GAME_ID` and nothing compared it with `catalog.schema.json`).
 
-- **Outcome:** `BrowserPage` connects `load-failed` and `web-process-terminated` and logs a WARNING naming the host
-  (`display_host`), never the URL, with WebKit's error message or the termination reason's nick.
-  `NetworkError.CANCELLED` and `PolicyError.FRAME_LOAD_INTERRUPTED_BY_POLICY_CHANGE` are skipped; the handler returns
-  False so WebKit still shows its error page. Three GI tests in `tests/gi/test_browser.py`; the docs/testing.md GI row
-  names them.
-- **Open follow-ups:** none from #557.
+- **Outcome:** `tests/tooling/test_shared_values.py` has a "catalog game id pattern" row with two new extractor kinds:
+  `json_anchored_pattern` (the schema's `$defs/game/properties/id/pattern`, `^`/`$` stripped, failing if the anchors
+  go) and `compiled_pattern` (`web._GAME_ID.pattern`, failing if the name is gone or no longer a compiled regex).
+  `json_list` now walks the JSON through a shared `json_node`. The docs/testing.md "Tooling" row names the new row.
+- **Open follow-ups:** none from #561.
 - **Gotchas:**
-  - The GI tests need the GNOME 51 SDK (or `Dockerfile.sandbox` under podman); a container with neither leaves them
-    to CI's `Flatpak (x86_64)` job.
+  - Mutation proof: widening `_GAME_ID` to `{1,63}`, renaming it, or dropping the schema anchors each fails only the new
+    row, naming the place.
+  - `_GAME_ID` stays private on purpose (hive decision in #561); the test reads it with `getattr`.
