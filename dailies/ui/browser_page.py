@@ -382,11 +382,12 @@ class BrowserPage(Adw.NavigationPage):
             error.matches(WebKit.network_error_quark(), WebKit.NetworkError.CANCELLED)
             or error.matches(WebKit.policy_error_quark(), WebKit.PolicyError.FRAME_LOAD_INTERRUPTED_BY_POLICY_CHANGE)
         ):
-            log.warning("Could not load a page of %s: %s", display_host(uri), error.message)
+            log.warning("Could not load a page of %s: %s", display_host(uri) or "an unnamed site", error.message)
         return False  # WebKit shows its error page.
 
     def _on_web_process_terminated(self, _view: WebKit.WebView, reason: WebKit.WebProcessTerminationReason) -> None:
-        log.warning("The web process of %s ended (%s)", display_host(self._uri()), reason.value_nick)
+        host = display_host(self._uri()) or "an unnamed site"
+        log.warning("The web process of %s ended (%s)", host, reason.value_nick)
 
     def _uri(self) -> str:
         return (self._web_view and self._web_view.get_uri()) or ""
