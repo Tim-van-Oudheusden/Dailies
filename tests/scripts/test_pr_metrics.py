@@ -95,6 +95,7 @@ def test_a_branch_named_like_claude_without_the_slash_is_not_an_agent() -> None:
     [
         pytest.param("— hive: agent=quality backend=claude model=claude-opus-5-5 effort=high", id="hive"),
         pytest.param("— omp (Claude Code), model=claude-opus-5-5", id="omp"),
+        pytest.param("-- hive: agent=quality backend=claude model=claude-opus-5-5 effort=high", id="hive-ascii"),
     ],
 )
 def test_a_signed_body_is_an_agent_on_any_branch_and_under_any_author(signature: str) -> None:

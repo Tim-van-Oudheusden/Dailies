@@ -126,6 +126,23 @@ def test_omp_contributor_signature_is_hive_with_its_model() -> None:
     assert row.startswith("| #10 | 2026-10-10 12:00 | Hive | — | anthropic/claude-opus-5-5 |"), row
 
 
+def test_ascii_hive_signature_names_the_agent_and_model() -> None:
+    # Hive has signed with two ASCII hyphens since 2026-11-20 (#525 onward).
+    body = "Fixes #1\n\n-- hive: agent=scanner backend=claude model=claude-opus-5-5\n"
+    result = report([pr(15, body=body)])
+
+    (row,) = rows(result, "Ledger")
+    assert row.startswith("| #15 | 2026-10-10 12:00 | Hive | scanner | claude-opus-5-5 |"), row
+
+
+def test_ascii_contributor_signature_is_hive_with_its_model() -> None:
+    body = "Fixes #1\n\n-- hive: backend=omp model=anthropic/claude-opus-5-5\n"
+    result = report([pr(16, branch="fix/1-x", body=body)])
+
+    (row,) = rows(result, "Ledger")
+    assert row.startswith("| #16 | 2026-10-10 12:00 | Hive | — | anthropic/claude-opus-5-5 |"), row
+
+
 def test_ledger_follows_merge_time_not_pr_number() -> None:
     result = report([pr(11, merged_at="2026-10-03T00:00:00Z"), pr(12, merged_at="2026-10-02T00:00:00Z")])
 
