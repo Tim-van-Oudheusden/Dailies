@@ -110,10 +110,10 @@ gh pr list -R Tim-van-Oudheusden/Dailies --base main --state closed --limit 1000
 A record of what reached `main` and who was behind it. Each PR merged in the window (default 7 days) is attributed to
 one source, checked in this order:
 
-- **Hive**: the PR body has a Hive signature line, `— hive: agent=<name> … model=<model> …` or
-  `— omp (Claude Code), model=<model>`, from which the agent and model are taken (contributor runs, such as the
-  maintainer's local agent, sign without `agent=`, shown as `—`), or the PR is authored by the `hive-worker-bee` GitHub
-  App (formerly `hive-forge-app`).
+- **Hive**: the PR body has a Hive signature line, `-- hive: agent=<name> … model=<model> …` (PRs merged before
+  2026-11-20 used an em-dash, `— hive: …`, and contributor runs signed `— omp (Claude Code), model=<model>`), from
+  which the agent and model are taken (contributor runs, such as the maintainer's local agent, sign without `agent=`,
+  shown as `—`), or the PR is authored by the `hive-worker-bee` GitHub App (formerly `hive-forge-app`).
 - **Claude Code (CI)**: head branch `claude/*`.
 - **Dependabot**: head branch `dependabot/*`.
 - **Other**: anything else, such as the maintainer's own PRs or the data PRs `github-actions` opens

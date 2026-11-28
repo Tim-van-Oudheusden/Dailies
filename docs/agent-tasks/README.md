@@ -9,11 +9,11 @@ coordination rules behind it are in [`../multi-agent.md`](../multi-agent.md).
 
 | Link | Carries the issue number as | Example | Enforced by |
 | --- | --- | --- | --- |
-| Issue | The task itself, filed by a person, an agent or a workflow; Hive's issues end with `— hive: agent=<name> …` | #303 | — |
+| Issue | The task itself, filed by a person, an agent or a workflow; Hive's issues end with a `🐝 **Hive Agent**: <name> \| …` line | #303 | — |
 | Claim | An assignee, or Hive's `<!-- hive:claim who=<agent> … until=<time> -->` comment with its `hive/claimed-by-<agent>` label | `gh issue edit 303 --add-assignee @me` | Convention ([`multi-agent.md`](../multi-agent.md#the-shared-queue)) |
 | Branch | `<type>/<number>-<slug>` for local agents; Hive uses `<agent>/<number>-<slug>` or a topic branch such as `quality/test-…`; Claude Code in CI uses `claude/*` | `craftsman/303-done-today-refresh-doc` | Convention (`AGENTS.md`, "Issue Tracking") |
 | Commit | `(#<number>)` at the end of the Conventional Commits subject | `docs(done-today): refresh drops the marks of every other day, not only earlier ones (#303)` | Convention |
-| Pull request | `Fixes #<number>` in the body (or `Closes`, `Resolves`, `Refs`); Hive's PRs also end with `— hive: agent=<name> backend=… model=<model> …` | #304 | `PR review rubric` check (`scripts/pr-review-check.sh`), required on `main` for authors that are not `*[bot]` accounts |
+| Pull request | `Fixes #<number>` in the body (or `Closes`, `Resolves`, `Refs`); Hive's PRs also carry a `-- hive: agent=<name> backend=… model=<model> …` line | #304 | `PR review rubric` check (`scripts/pr-review-check.sh`), required on `main` for authors that are not `*[bot]` accounts |
 | Merge | Merge commit `Merge pull request #<PR> from <owner>/<branch>`, made by the maintainer or, for a low- or medium-risk PR, by the merge queue (`.github/workflows/merge-queue.yml`); or a squash commit, made by the maintainer or, for a low- or medium-risk PR, by Hive's merge sweep | `ec9291a` | `main` only changes through pull requests (`.github/rulesets/main.json`); `.github/CODEOWNERS` names the maintainer owner of the high-risk paths |
 | Close | The merge closes the issue through `Fixes #<number>`; a merge by the queue's token closes nothing by itself, so its `land` job closes the linked issues | #303 closed by #304 | GitHub; `scripts/merge-queue.sh land` |
 
@@ -60,8 +60,8 @@ gh pr list --state merged --search "<commit>"  # the PR, whose body links the is
 
 From an agent to everything it did: filter pull requests by author or branch, for example
 `gh pr list --state all --author app/hive-worker-bee` for Hive and `gh pr list --state all --search "head:claude/"` for
-Claude Code in CI. The `— hive: agent=<name> …` signature at the end of a Hive issue or PR body names the Hive agent,
-and the `agent/<name>` label on its issues does too.
+Claude Code in CI. The `-- hive: agent=<name> …` line in a Hive PR body and the `🐝 **Hive Agent**: <name>` line at the
+end of a Hive issue name the Hive agent, and the `agent/<name>` label on its issues does too.
 
 ## When the chain breaks
 

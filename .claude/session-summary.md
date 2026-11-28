@@ -9,15 +9,19 @@ Format: date, issue/PR worked, outcome, open follow-ups, gotchas for next time.
 
 ## Latest session
 
-2026-11-28. #561 on `test/561-game-id-parity` (the catalog game-id pattern is restated in `dailies/core/web.py`
-`_GAME_ID` and nothing compared it with `catalog.schema.json`).
+2026-11-28. #563 on `fix/563-hive-ascii-signature` (Hive signs `-- hive: …` since 2026-11-20; `pr-source.jq` and the
+docs knew only the em-dash form, so the AI audit trail lost agent and model and counted contributor runs as Other).
 
-- **Outcome:** `tests/tooling/test_shared_values.py` has a "catalog game id pattern" row with two new extractor kinds:
-  `json_anchored_pattern` (the schema's `$defs/game/properties/id/pattern`, `^`/`$` stripped, failing if the anchors
-  go) and `compiled_pattern` (`web._GAME_ID.pattern`, failing if the name is gone or no longer a compiled regex).
-  `json_list` now walks the JSON through a shared `json_node`. The docs/testing.md "Tooling" row names the new row.
-- **Open follow-ups:** none from #561.
+- **Outcome:** `scripts/lib/pr-source.jq` `signature` also accepts a line starting `-- hive: `; the em-dash and
+  `— omp (Claude Code)` forms still count, so older PRs keep their attribution. Two ledger tests in
+  `tests/scripts/test_ai_audit_report.py` and a `hive-ascii` case in `tests/scripts/test_pr_metrics.py`.
+  `docs/metrics/README.md` and `docs/agent-tasks/README.md` name the current PR signature and the
+  `🐝 **Hive Agent**: <name>` issue footer. On the last 40 merged PRs, By source went from Hive 12 / Other 26 to
+  Hive 16 / Other 22.
+- **Open follow-ups:** none from #563.
 - **Gotchas:**
-  - Mutation proof: widening `_GAME_ID` to `{1,63}`, renaming it, or dropping the schema anchors each fails only the new
-    row, naming the place.
-  - `_GAME_ID` stays private on purpose (hive decision in #561); the test reads it with `getattr`.
+  - `scripts/pr-metrics.sh` names a jq variable `$label`, which jq 1.6 rejects as a keyword; run its tests with jq
+    1.7 or later on `PATH`.
+  - The full suite needs the scripts' lock (`requests`) and `ruamel.yaml`:
+    `uv run --no-project --python 3.13 --with-requirements scripts/requirements.txt --with pytest --with ruamel.yaml
+    python -m pytest`.
